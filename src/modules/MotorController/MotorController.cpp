@@ -1,0 +1,257 @@
+#include "MotorController.h"
+#include "../Configuration/Configuration.h"
+#include <Arduino.h>
+
+// Pin definitions
+#define R_SENSE 0.11f
+#define EN_PIN 2
+#define DIR_PIN 18
+#define STEP_PIN 23
+#define CLK_PIN 19
+#define SPREAD_PIN 4
+#define SW_RX 26
+#define SW_TX 27
+#define DRIVER_ADDRESS 0b00
+#define SPI_MT_CS 15
+#define SPI_CLK 14
+#define SPI_MISO 12
+#define SPI_MOSI 13
+
+// LED pins from factory code
+#define iStep 25
+#define iDIR 32
+#define iEN 33
+
+// Static member initialization
+double MotorController::lastLocation = 0;
+double MotorController::currentLocation = 0;
+double MotorController::monitorSpeed = 0;
+float MotorController::motorSpeed = 0;
+int8_t MotorController::direction = 1;
+
+// Global instance
+MotorController motorController;
+
+MotorController::MotorController() {
+    serialDriver = &Serial1;
+    driver = new TMC2209Stepper(serialDriver, R_SENSE, DRIVER_ADDRESS);
+    stepper = new AccelStepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN);
+    mt6816 = new SPIClass(HSPI);
+
+    targetPosition = 0;
+    emergencyStopActive = false;
+    useStealthChop = true;
+}
+
+bool MotorController::begin() {
+    Serial.println("Initializing Motor Controller...");
+
+    // Initialize pins exactly like factory code
+    pinMode(CLK_PIN, OUTPUT);
+    pinMode(SPREAD_PIN, OUTPUT);
+    digitalWrite(CLK_PIN, LOW);
+    digitalWrite(SPREAD_PIN, HIGH);
+
+    pinMode(EN_PIN, OUTPUT);
+    pinMode(STEP_PIN, OUTPUT);
+    pinMode(DIR_PIN, OUTPUT);
+    digitalWrite(EN_PIN, LOW); // Enable driver in hardware
+
+    // Initialize TMC2209 exactly like factory code
+    serialDriver->begin(115200, SERIAL_8N1, SW_RX, SW_TX);
+    driver->begin(); //  SPI: Init CS pins and possible SW SPI pins
+    // UART: Init SW UART (if selected) with default 115200 baudrate
+    driver->push();
+    driver->pdn_disable(true);
+
+    uint32_t text = driver->IOIN();
+    Serial.printf("TMC2209 IOIN : 0X%X\r\n", text);
+
+    driver->toff(5);           // Enables driver in software
+    driver->rms_current(2000); // Set motor RMS current
+    driver->microsteps(16);    // Set microsteps to 1/16th
+    driver->ihold(1);
+
+    driver->en_spreadCycle(true); // Toggle spreadCycle on TMC2208/2209/2224
+    driver->pwm_autoscale(true);  // Needed for stealthChop
+
+    // Initialize AccelStepper exactly like factory code
+    stepper->setMaxSpeed(config.getMaxSpeed());               // 100mm/s @ 80 steps/mm
+    stepper->setAcceleration(config.getAcceleration()); // 2000mm/s^2
+    stepper->setEnablePin(EN_PIN);
+    stepper->setPinsInverted(false, false, true);
+    stepper->enableOutputs();
+
+    Serial.println("Motor Controller initialized successfully");
+    return true;
+}
+
+// Separate encoder initialization (called from InputTask like factory code)
+bool MotorController::initEncoder() {
+    Serial.println("Initializing MT6816 Encoder...");
+
+    mt6816->begin(SPI_CLK, SPI_MISO, SPI_MOSI, SPI_MT_CS);
+    pinMode(SPI_MT_CS, OUTPUT);
+    mt6816->setClockDivider(SPI_CLOCK_DIV4);
+    lastLocation = (double)readEncoder();
+
+    Serial.println("MT6816 Encoder initialized successfully");
+    return true;
+}
+
+// LED initialization sequence exactly from factory code
+void MotorController::initLEDSequence() {
+    Serial.println("Initializing LED sequence...");
+
+    ledcSetup(0, 1500, 8);
+    ledcSetup(1, 1500, 8);
+    ledcSetup(2, 1500, 8);
+
+    ledcAttachPin(iStep, 0);
+    ledcAttachPin(iDIR, 1);
+    ledcAttachPin(iEN, 2);
+
+    ledcWrite(0, 0xFF);
+    ledcWrite(1, 0xFF);
+    ledcWrite(2, 0xFF);
+
+    for (uint8_t i = 0; i < 3; i++)
+    {
+        ledcWrite(i, 0x80);
+        delay(300);
+        ledcWrite(i, 0xFF);
+        delay(300);
+    }
+
+    ledcDetachPin(iStep);
+    ledcDetachPin(iDIR);
+    ledcDetachPin(iEN);
+
+    pinMode(iStep, INPUT);
+    pinMode(iDIR, INPUT);
+    pinMode(iEN, INPUT);
+
+    Serial.println("LED sequence completed");
+}
+
+void MotorController::moveTo(long position, int speedPercent) {
+    if (emergencyStopActive) {
+        Serial.println("Cannot move - emergency stop active");
+        return;
+    }
+
+    targetPosition = position;
+    float actualSpeed = (speedPercent / 100.0) * config.getMaxSpeed();
+    stepper->setMaxSpeed(actualSpeed);
+    stepper->moveTo(position);
+
+    Serial.printf("Moving to position: %ld at speed: %d%%\n", position, speedPercent);
+}
+
+void MotorController::stop() {
+    emergencyStopActive = true;
+    stepper->setSpeed(0);
+    stepper->stop();
+    Serial.println("Motor stopped");
+}
+
+void MotorController::emergencyStop() {
+    stop();
+    Serial.println("EMERGENCY STOP ACTIVATED");
+}
+
+void MotorController::clearEmergencyStop() {
+    emergencyStopActive = false;
+    Serial.println("Emergency stop cleared");
+}
+
+long MotorController::getCurrentPosition() const {
+    return stepper->currentPosition();
+}
+
+int MotorController::readEncoder() {
+    uint16_t temp[2];
+    digitalWrite(SPI_MT_CS, LOW);
+    mt6816->beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE3));
+    temp[0] = mt6816->transfer16(0x8300) & 0xFF;
+    mt6816->endTransaction();
+    digitalWrite(SPI_MT_CS, HIGH);
+
+    digitalWrite(SPI_MT_CS, LOW);
+    mt6816->beginTransaction(SPISettings(400000, MSBFIRST, SPI_MODE3));
+    temp[1] = mt6816->transfer16(0x8400) & 0xFF;
+    mt6816->endTransaction();
+    digitalWrite(SPI_MT_CS, HIGH);
+
+    return (int)(temp[0] << 6 | temp[1] >> 2);
+}
+
+double MotorController::calculateSpeed(float ms) {
+    double speedT = 0;
+    currentLocation = (double)readEncoder();
+
+    if (currentLocation == lastLocation) {
+        speedT = direction = 0;
+    } else {
+        double tempT = abs(currentLocation - lastLocation);
+        if (tempT < 8192) {
+            speedT = (tempT * 360) / 16384;
+            direction = currentLocation > lastLocation ? 1 : -1;
+        } else {
+            speedT = ((currentLocation > lastLocation ? 16384 - currentLocation + lastLocation : 16384 - lastLocation + currentLocation) * 360) / 16384;
+            direction = currentLocation > lastLocation ? -1 : 1;
+        }
+    }
+
+    speedT = direction * (speedT * ms / 1000);
+    lastLocation = currentLocation;
+    return speedT;
+}
+
+void MotorController::updateTMCMode() {
+    float currentSpeedPercent = abs(motorSpeed) / (float)config.getMaxSpeed();
+    bool shouldUseStealthChop = currentSpeedPercent < STEALTH_CHOP_THRESHOLD;
+
+    if (shouldUseStealthChop != useStealthChop) {
+        useStealthChop = shouldUseStealthChop;
+        driver->en_spreadCycle(!useStealthChop);
+        Serial.printf("TMC mode switched to %s\n", useStealthChop ? "StealthChop" : "SpreadCycle");
+    }
+}
+
+void MotorController::setTMCMode(bool stealthChop) {
+    useStealthChop = stealthChop;
+    driver->en_spreadCycle(!stealthChop);
+    Serial.printf("TMC mode manually set to %s\n", stealthChop ? "StealthChop" : "SpreadCycle");
+}
+
+uint32_t MotorController::getTMCStatus() {
+    return driver->IOIN();
+}
+
+void MotorController::update() {
+    // Calculate current speed from encoder
+    monitorSpeed = calculateSpeed(100);
+
+    // Update TMC mode based on speed
+    updateTMCMode();
+
+    // Handle movement
+    if (emergencyStopActive) {
+        stepper->setSpeed(0);
+    } else {
+        stepper->run();
+    }
+}
+
+void MotorController::setAcceleration(long accel) {
+    stepper->setAcceleration(accel);
+}
+
+void MotorController::setMaxSpeed(long speed) {
+    stepper->setMaxSpeed(speed);
+}
+
+void MotorController::setCurrentPosition(long position) {
+    stepper->setCurrentPosition(position);
+}

@@ -1,0 +1,13 @@
+{
+  "id": "lilygo-motion-controller",
+  "started": "2025-09-21T14:55:00Z",
+  "lastUpdated": "2025-09-21T14:55:00Z",
+  "status": "active",
+  "phase": "complete",
+  "progress": {
+    "discovery": { "answered": 5, "total": 5 },
+    "detail": { "answered": 5, "total": 5 }
+  },
+  "contextFiles": ["src/main.cpp", "platformio.ini"],
+  "relatedFeatures": ["TMC2209 configuration", "FreeRTOS tasks", "MT6816 encoder"]
+}
