@@ -73,6 +73,7 @@ src/
 | POST | `/api/stop` | Emergency stop |
 | POST | `/api/reset` | Clear emergency stop |
 | GET | `/api/config` | Get motor configuration |
+| POST | `/api/config` | Update motor configuration (`maxSpeed`, `acceleration`, `useStealthChop` parameters) |
 
 ### WebSocket Commands
 
@@ -90,6 +91,17 @@ Send JSON messages to `/ws`:
 
 // Request status update
 {"command": "status"}
+
+// Get current configuration
+{"command": "getConfig"}
+
+// Update configuration
+{
+  "command": "setConfig",
+  "maxSpeed": 8000,
+  "acceleration": 16000,
+  "useStealthChop": true
+}
 ```
 
 ### WebSocket Responses
@@ -112,6 +124,22 @@ Send JSON messages to `/ws`:
 {
   "type": "position",
   "position": 1500
+}
+
+// Configuration response (getConfig)
+{
+  "type": "config",
+  "maxSpeed": 8000,
+  "acceleration": 16000,
+  "minLimit": -5000,
+  "maxLimit": 5000,
+  "useStealthChop": true
+}
+
+// Configuration update confirmation (setConfig)
+{
+  "type": "configUpdated",
+  "status": "success"
 }
 ```
 

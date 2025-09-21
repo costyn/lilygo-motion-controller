@@ -108,10 +108,50 @@ void WebServerClass::setupRoutes()
         doc["acceleration"] = config.getAcceleration();
         doc["minLimit"] = config.getMinLimit();
         doc["maxLimit"] = config.getMaxLimit();
+        doc["useStealthChop"] = config.getUseStealthChop();
 
         String response;
         serializeJson(doc, response);
         request->send(200, "application/json", response); });
+
+    server.on("/api/config", HTTP_POST, [this](AsyncWebServerRequest *request)
+              {
+        bool updated = false;
+        JsonDocument response;
+
+        if (request->hasParam("maxSpeed", true)) {
+            long maxSpeed = request->getParam("maxSpeed", true)->value().toInt();
+            config.setMaxSpeed(maxSpeed);
+            motorController.setMaxSpeed(maxSpeed);
+            updated = true;
+        }
+
+        if (request->hasParam("acceleration", true)) {
+            long acceleration = request->getParam("acceleration", true)->value().toInt();
+            config.setAcceleration(acceleration);
+            motorController.setAcceleration(acceleration);
+            updated = true;
+        }
+
+        if (request->hasParam("useStealthChop", true)) {
+            bool useStealthChop = request->getParam("useStealthChop", true)->value() == "true";
+            config.setUseStealthChop(useStealthChop);
+            motorController.setTMCMode(useStealthChop);
+            updated = true;
+        }
+
+        if (updated) {
+            config.saveConfiguration();
+            response["status"] = "success";
+            response["message"] = "Configuration updated";
+        } else {
+            response["status"] = "error";
+            response["message"] = "No valid parameters provided";
+        }
+
+        String responseStr;
+        serializeJson(response, responseStr);
+        request->send(200, "application/json", responseStr); });
 }
 
 void WebServerClass::setupWebSocket()
@@ -194,6 +234,62 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
         else if (command == "status")
         {
             broadcastStatus();
+        }
+        else if (command == "getConfig")
+        {
+            JsonDocument configDoc;
+            configDoc["type"] = "config";
+            configDoc["maxSpeed"] = config.getMaxSpeed();
+            configDoc["acceleration"] = config.getAcceleration();
+            configDoc["minLimit"] = config.getMinLimit();
+            configDoc["maxLimit"] = config.getMaxLimit();
+            configDoc["useStealthChop"] = config.getUseStealthChop();
+
+            String configMessage;
+            serializeJson(configDoc, configMessage);
+            ws.textAll(configMessage);
+        }
+        else if (command == "setConfig")
+        {
+            bool updated = false;
+
+            if (doc["maxSpeed"].is<long>()) {
+                config.setMaxSpeed(doc["maxSpeed"]);
+                motorController.setMaxSpeed(doc["maxSpeed"]);
+                updated = true;
+            }
+
+            if (doc["acceleration"].is<long>()) {
+                config.setAcceleration(doc["acceleration"]);
+                motorController.setAcceleration(doc["acceleration"]);
+                updated = true;
+            }
+
+            if (doc["useStealthChop"].is<bool>()) {
+                config.setUseStealthChop(doc["useStealthChop"]);
+                motorController.setTMCMode(doc["useStealthChop"]);
+                updated = true;
+            }
+
+            if (updated) {
+                config.saveConfiguration();
+                ws.textAll("{\"type\":\"configUpdated\",\"status\":\"success\"}");
+
+                // Broadcast updated config to all clients
+                JsonDocument configDoc;
+                configDoc["type"] = "config";
+                configDoc["maxSpeed"] = config.getMaxSpeed();
+                configDoc["acceleration"] = config.getAcceleration();
+                configDoc["minLimit"] = config.getMinLimit();
+                configDoc["maxLimit"] = config.getMaxLimit();
+                configDoc["useStealthChop"] = config.getUseStealthChop();
+
+                String configMessage;
+                serializeJson(configDoc, configMessage);
+                ws.textAll(configMessage);
+            } else {
+                ws.textAll("{\"type\":\"error\",\"message\":\"Invalid configuration parameters\"}");
+            }
         }
     }
 }
