@@ -273,12 +273,23 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
         }
 
         // Log incoming command for debugging
-        LOG_DEBUG("WebSocket command received: %s", (char*)data);
+        LOG_DEBUG("WebSocket raw data received: %s", (char*)data);
 
-        String command = doc["command"];
+        // Check for command field (support both "command" and "cmd" for compatibility)
+        String command;
+        if (doc["command"].is<const char*>() || doc["command"].is<String>()) {
+            command = doc["command"].as<String>();
+        } else if (doc["cmd"].is<const char*>() || doc["cmd"].is<String>()) {
+            command = doc["cmd"].as<String>();
+            LOG_DEBUG("Using legacy 'cmd' field, consider updating webapp to use 'command'");
+        } else {
+            LOG_WARN("WebSocket message missing 'command' or 'cmd' field in: %s", (char*)data);
+            return;
+        }
+
         LOG_INFO("Processing WebSocket command: %s", command.c_str());
 
-        if (command == "move")
+        if (command == "move" || command == "goto")
         {
             if (doc["position"].is<long>() && doc["speed"].is<int>())
             {
@@ -427,8 +438,8 @@ void WebServerClass::onDebugWebSocketEvent(AsyncWebSocket *server, AsyncWebSocke
     {
     case WS_EVT_CONNECT:
         LOG_INFO("Debug WebSocket client #%u connected from %s", client->id(), client->remoteIP().toString().c_str());
-        // Send message history to new client
-        debugBuffer.sendHistoryTo(client);
+        // Send a simple welcome message instead of history (to prevent flooding)
+        client->text("[DEBUG] Debug WebSocket connected - showing real-time logs only");
         break;
 
     case WS_EVT_DISCONNECT:
@@ -447,10 +458,10 @@ void WebServerClass::onDebugWebSocketEvent(AsyncWebSocket *server, AsyncWebSocke
 
 void WebServerClass::broadcastDebugMessage(const String& message)
 {
-    // Add to circular buffer
-    debugBuffer.add(message);
+    // Skip circular buffer entirely to prevent flooding
+    // debugBuffer.add(message);
 
-    // Broadcast to connected debug clients
+    // Simple real-time broadcast only
     if (debugWs.count() > 0) {
         debugWs.textAll(message);
     }

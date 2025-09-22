@@ -216,7 +216,7 @@ void MotorController::updateTMCMode() {
     if (shouldUseStealthChop != useStealthChop) {
         useStealthChop = shouldUseStealthChop;
         driver->en_spreadCycle(!useStealthChop);
-        LOG_INFO("TMC mode switched to %s", useStealthChop ? "StealthChop" : "SpreadCycle");
+        LOG_DEBUG("TMC mode switched to %s", useStealthChop ? "StealthChop" : "SpreadCycle");
     }
 }
 
