@@ -8,19 +8,65 @@
 // Global instance
 WebServerClass webServer;
 
-WebServerClass::WebServerClass() : server(80), ws("/ws"), initialized(false)
+// DebugBuffer implementation
+DebugBuffer::DebugBuffer() : head(0), tail(0), full(false) {}
+
+void DebugBuffer::add(const String &message)
+{
+    buffer[head] = message;
+    head = (head + 1) % DEBUG_BUFFER_SIZE;
+
+    if (full)
+    {
+        tail = (tail + 1) % DEBUG_BUFFER_SIZE;
+    }
+
+    if (head == tail)
+    {
+        full = true;
+    }
+}
+
+void DebugBuffer::sendHistoryTo(AsyncWebSocketClient *client)
+{
+    if (isEmpty())
+    {
+        return;
+    }
+
+    int start = full ? tail : 0;
+    int end = head;
+
+    for (int i = start; i != end; i = (i + 1) % DEBUG_BUFFER_SIZE)
+    {
+        client->text(buffer[i]);
+    }
+}
+
+bool DebugBuffer::isEmpty() const
+{
+    return (!full && (head == tail));
+}
+
+// Global function for util.cpp weak linkage
+void broadcastDebugMessage(const String &message)
+{
+    webServer.broadcastDebugMessage(message);
+}
+
+WebServerClass::WebServerClass() : server(80), ws("/ws"), debugWs("/debug"), initialized(false)
 {
 }
 
 bool WebServerClass::begin()
 {
     constexpr const char *SGN = "WebServerClass::begin()";
-    Serial.println("Initializing Web Server...");
+    LOG_INFO("Initializing Web Server...");
 
     // Initialize SPIFFS first
     if (!setupSPIFFS())
     {
-        Serial.println("SPIFFS initialization failed");
+        LOG_WARN("SPIFFS initialization failed");
         return false;
     }
 
@@ -30,15 +76,22 @@ bool WebServerClass::begin()
     // Try to connect to saved WiFi or start config portal
     if (!wm.autoConnect("LilyGo-MotionController"))
     {
-        Serial.println("Failed to connect to WiFi");
+        LOG_WARN("Failed to connect to WiFi");
         return false;
     }
 
-    Serial.printf("%s: %s: Connected to wifi! IP: %s\n", SGN, timeToString().c_str(), WiFi.localIP());
+    LOG_INFO("Connected to WiFi! IP: %s", WiFi.localIP().toString().c_str());
 
-    // Setup web server routes and WebSocket
+    // Setup mDNS
+    if (!setupMDNS())
+    {
+        LOG_WARN("mDNS setup failed, device won't be accessible via hostname");
+    }
+
+    // Setup web server routes and WebSockets
     setupRoutes();
     setupWebSocket();
+    setupDebugWebSocket();
 
     // Initialize ElegantOTA
     ElegantOTA.begin(&server);
@@ -46,7 +99,7 @@ bool WebServerClass::begin()
 
     // Start the server
     server.begin();
-    Serial.printf("%s: %s: Webserver started. URL http://%s/\n", timeToString().c_str(), SGN, WiFi.localIP());
+    LOG_INFO("Web server started. URLs: http://%s/ and http://%s.local/", WiFi.localIP().toString().c_str(), DEVICE_HOSTNAME);
 
     initialized = true;
     return true;
@@ -56,11 +109,11 @@ bool WebServerClass::setupSPIFFS()
 {
     if (!SPIFFS.begin(true))
     {
-        Serial.println("An Error has occurred while mounting SPIFFS");
+        LOG_WARN("An Error has occurred while mounting SPIFFS");
         return false;
     }
 
-    Serial.println("SPIFFS mounted successfully");
+    LOG_INFO("SPIFFS mounted successfully");
     return true;
 }
 
@@ -162,19 +215,45 @@ void WebServerClass::setupWebSocket()
     server.addHandler(&ws);
 }
 
+void WebServerClass::setupDebugWebSocket()
+{
+    debugWs.onEvent([this](AsyncWebSocket *server, AsyncWebSocketClient *client,
+                           AwsEventType type, void *arg, uint8_t *data, size_t len)
+                    { onDebugWebSocketEvent(server, client, type, arg, data, len); });
+
+    server.addHandler(&debugWs);
+}
+
+bool WebServerClass::setupMDNS()
+{
+    esp_err_t err = mdns_init();
+    if (err)
+    {
+        LOG_ERROR("mDNS Init failed: %d", err);
+        return false;
+    }
+
+    mdns_hostname_set(DEVICE_HOSTNAME);
+    mdns_instance_name_set(DEVICE_NAME);
+    mdns_service_add(DEVICE_HOSTNAME, "_http", "_tcp", 80, NULL, 0);
+
+    LOG_INFO("mDNS initialized. Device accessible at http://%s.local/", DEVICE_HOSTNAME);
+    return true;
+}
+
 void WebServerClass::onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
                                       AwsEventType type, void *arg, uint8_t *data, size_t len)
 {
     switch (type)
     {
     case WS_EVT_CONNECT:
-        Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+        LOG_INFO("WebSocket client #%u connected from %s", client->id(), client->remoteIP().toString().c_str());
         // Send current status to new client
         broadcastStatus();
         break;
 
     case WS_EVT_DISCONNECT:
-        Serial.printf("WebSocket client #%u disconnected\n", client->id());
+        LOG_INFO("WebSocket client #%u disconnected", client->id());
         break;
 
     case WS_EVT_DATA:
@@ -199,13 +278,33 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
 
         if (error)
         {
-            Serial.printf("WebSocket JSON parse error: %s\n", error.c_str());
+            LOG_ERROR("WebSocket JSON parse error: %s", error.c_str());
             return;
         }
 
-        String command = doc["command"];
+        // Log incoming command for debugging
+        LOG_DEBUG("WebSocket raw data received: %s", (char *)data);
 
-        if (command == "move")
+        // Check for command field (support both "command" and "cmd" for compatibility)
+        String command;
+        if (doc["command"].is<const char *>() || doc["command"].is<String>())
+        {
+            command = doc["command"].as<String>();
+        }
+        else if (doc["cmd"].is<const char *>() || doc["cmd"].is<String>())
+        {
+            command = doc["cmd"].as<String>();
+            LOG_DEBUG("Using legacy 'cmd' field, consider updating webapp to use 'command'");
+        }
+        else
+        {
+            LOG_WARN("WebSocket message missing 'command' or 'cmd' field in: %s", (char *)data);
+            return;
+        }
+
+        LOG_INFO("Processing WebSocket command: %s", command.c_str());
+
+        if (command == "move" || command == "goto")
         {
             if (doc["position"].is<long>() && doc["speed"].is<int>())
             {
@@ -347,6 +446,43 @@ void WebServerClass::broadcastPosition(long position)
     ws.textAll(message);
 }
 
+void WebServerClass::onDebugWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
+                                           AwsEventType type, void *arg, uint8_t *data, size_t len)
+{
+    switch (type)
+    {
+    case WS_EVT_CONNECT:
+        LOG_INFO("Debug WebSocket client #%u connected from %s", client->id(), client->remoteIP().toString().c_str());
+        // Send a simple welcome message instead of history (to prevent flooding)
+        client->text("[DEBUG] Debug WebSocket connected - showing real-time logs only");
+        break;
+
+    case WS_EVT_DISCONNECT:
+        LOG_INFO("Debug WebSocket client #%u disconnected", client->id());
+        break;
+
+    case WS_EVT_DATA:
+        // Debug WebSocket is read-only, ignore incoming messages
+        break;
+
+    case WS_EVT_PONG:
+    case WS_EVT_ERROR:
+        break;
+    }
+}
+
+void WebServerClass::broadcastDebugMessage(const String &message)
+{
+    // Skip circular buffer entirely to prevent flooding
+    // debugBuffer.add(message);
+
+    // Simple real-time broadcast only
+    if (debugWs.count() > 0)
+    {
+        debugWs.textAll(message);
+    }
+}
+
 void WebServerClass::update()
 {
     if (!initialized)
@@ -357,4 +493,5 @@ void WebServerClass::update()
 
     // Cleanup disconnected WebSocket clients
     ws.cleanupClients();
+    debugWs.cleanupClients();
 }
