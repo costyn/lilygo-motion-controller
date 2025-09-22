@@ -2,6 +2,7 @@
 #include <OneButton.h>
 
 // Import our modules
+#include "util.h"
 #include "modules/Configuration/Configuration.h"
 #include "modules/MotorController/MotorController.h"
 #include "modules/LimitSwitch/LimitSwitch.h"
@@ -51,7 +52,8 @@ void onButton1Click();
 void onButton2Click();
 void onButton3Click();
 
-void setup() {
+void setup()
+{
     Serial.begin(115200);
     Serial.println("========================================");
     Serial.println("LilyGo Motion Controller Starting...");
@@ -61,27 +63,35 @@ void setup() {
     Serial.println("Initializing modules...");
 
     // 1. Configuration first (needed by other modules)
-    if (!config.begin()) {
+    if (!config.begin())
+    {
         Serial.println("FATAL: Failed to initialize Configuration module");
-        while(1) delay(1000);
+        while (1)
+            delay(1000);
     }
 
     // 2. Motor controller
-    if (!motorController.begin()) {
+    if (!motorController.begin())
+    {
         Serial.println("FATAL: Failed to initialize Motor Controller");
-        while(1) delay(1000);
+        while (1)
+            delay(1000);
     }
 
     // 3. Limit switches
-    if (!limitSwitch.begin()) {
+    if (!limitSwitch.begin())
+    {
         Serial.println("FATAL: Failed to initialize Limit Switches");
-        while(1) delay(1000);
+        while (1)
+            delay(1000);
     }
 
     // 4. Web server
-    if (!webServer.begin()) {
+    if (!webServer.begin())
+    {
         Serial.println("FATAL: Failed to initialize Web Server");
-        while(1) delay(1000);
+        while (1)
+            delay(1000);
     }
 
     Serial.println("All modules initialized successfully");
@@ -90,23 +100,23 @@ void setup() {
     Serial.println("Creating FreeRTOS tasks...");
 
     xTaskCreatePinnedToCore(
-        InputTask,           // Task function
-        "InputTask",         // Task name
-        8192,               // Stack size
-        NULL,               // Parameters
-        2,                  // Priority
-        &inputTaskHandle,   // Task handle
-        0                   // Core (0 for input monitoring)
+        InputTask,        // Task function
+        "InputTask",      // Task name
+        8192,             // Stack size
+        NULL,             // Parameters
+        2,                // Priority
+        &inputTaskHandle, // Task handle
+        0                 // Core (0 for input monitoring)
     );
 
     xTaskCreatePinnedToCore(
-        WebServerTask,       // Task function
-        "WebServerTask",     // Task name
-        16384,              // Stack size (larger for web operations)
-        NULL,               // Parameters
-        1,                  // Priority
+        WebServerTask,        // Task function
+        "WebServerTask",      // Task name
+        16384,                // Stack size (larger for web operations)
+        NULL,                 // Parameters
+        1,                    // Priority
         &webServerTaskHandle, // Task handle
-        1                   // Core (1 for web server)
+        1                     // Core (1 for web server)
     );
 
     Serial.println("FreeRTOS tasks created");
@@ -115,7 +125,8 @@ void setup() {
     Serial.println("========================================");
 }
 
-void loop() {
+void loop()
+{
     // Main loop handles motor control (time-critical)
     motorController.update();
 
@@ -123,7 +134,8 @@ void loop() {
     delayMicroseconds(100);
 }
 
-void InputTask(void *pvParameters) {
+void InputTask(void *pvParameters)
+{
     Serial.println("Input Task started");
 
     // Initialize LED sequence exactly like factory code
@@ -138,7 +150,8 @@ void InputTask(void *pvParameters) {
     motorController.initEncoder();
 
     // Task main loop
-    while (1) {
+    while (1)
+    {
         // Update button states
         button1.tick();
         button2.tick();
@@ -155,11 +168,13 @@ void InputTask(void *pvParameters) {
     }
 }
 
-void WebServerTask(void *pvParameters) {
+void WebServerTask(void *pvParameters)
+{
     Serial.println("Web Server Task started");
 
     // Task main loop
-    while (1) {
+    while (1)
+    {
         // Update web server (handles WebSocket, WiFi reconnection, etc.)
         webServer.update();
 
@@ -169,22 +184,27 @@ void WebServerTask(void *pvParameters) {
 }
 
 // Button callback functions (for debugging/testing)
-void onButton1Click() {
+void onButton1Click()
+{
     Serial.println("Button 1 pressed - Move forward");
-    if (!limitSwitch.isAnyTriggered()) {
+    if (!limitSwitch.isAnyTriggered())
+    {
         long currentPos = motorController.getCurrentPosition();
         motorController.moveTo(currentPos + 100, 30); // Move 100 steps forward at 30% speed
     }
 }
 
-void onButton2Click() {
+void onButton2Click()
+{
     Serial.println("Button 2 pressed - Emergency stop");
     motorController.emergencyStop();
 }
 
-void onButton3Click() {
+void onButton3Click()
+{
     Serial.println("Button 3 pressed - Move backward");
-    if (!limitSwitch.isAnyTriggered()) {
+    if (!limitSwitch.isAnyTriggered())
+    {
         long currentPos = motorController.getCurrentPosition();
         motorController.moveTo(currentPos - 100, 30); // Move 100 steps backward at 30% speed
     }

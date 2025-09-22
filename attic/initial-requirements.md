@@ -41,7 +41,7 @@
   - Current speed and direction, if moving
   - Config, see below
 - ElegantOTA (ayushsharma82/ElegantOTA) integration so new firmware can be uploaded wirelessly. (I have example working code, please ask for a pointer to the code if needed)
-- Websocket by use of the mathieucarbou/ESPAsyncWebServer library. (I have example working code, please ask for a pointer to the code if needed)
+- Websocket by use of the ESP32Async/ESPAsyncWebServer library. (I have example working code, please ask for a pointer to the code if needed)
 - A separate (from control) http server path (with websocket) where debugging/serial output is sent to, in case a client is connected. Since the normal serial port is hard to get to, this is important. 
 
 ## Should haves

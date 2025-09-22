@@ -2,6 +2,7 @@
 #include "../Configuration/Configuration.h"
 #include "../MotorController/MotorController.h"
 #include "../LimitSwitch/LimitSwitch.h"
+#include "util.h"
 #include <Arduino.h>
 
 // Global instance
@@ -13,6 +14,7 @@ WebServerClass::WebServerClass() : server(80), ws("/ws"), initialized(false)
 
 bool WebServerClass::begin()
 {
+    constexpr const char *SGN = "WebServerClass::begin()";
     Serial.println("Initializing Web Server...");
 
     // Initialize SPIFFS first
@@ -23,8 +25,7 @@ bool WebServerClass::begin()
     }
 
     // Configure WiFiManager
-    wm.setConfigPortalTimeout(180); // 3 minutes timeout
-    wm.setAPStaticIPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1), IPAddress(255, 255, 255, 0));
+    wm.setConfigPortalTimeout(30); // 3 minutes timeout
 
     // Try to connect to saved WiFi or start config portal
     if (!wm.autoConnect("LilyGo-MotionController"))
@@ -33,9 +34,7 @@ bool WebServerClass::begin()
         return false;
     }
 
-    Serial.println("WiFi connected successfully");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
+    Serial.printf("%s: %s: Connected to wifi! IP: %s\n", SGN, timeToString().c_str(), WiFi.localIP());
 
     // Setup web server routes and WebSocket
     setupRoutes();
@@ -47,7 +46,7 @@ bool WebServerClass::begin()
 
     // Start the server
     server.begin();
-    Serial.println("Web Server started");
+    Serial.printf("%s: %s: Webserver started. URL http://%s/\n", timeToString().c_str(), SGN, WiFi.localIP());
 
     initialized = true;
     return true;
@@ -253,25 +252,29 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
         {
             bool updated = false;
 
-            if (doc["maxSpeed"].is<long>()) {
+            if (doc["maxSpeed"].is<long>())
+            {
                 config.setMaxSpeed(doc["maxSpeed"]);
                 motorController.setMaxSpeed(doc["maxSpeed"]);
                 updated = true;
             }
 
-            if (doc["acceleration"].is<long>()) {
+            if (doc["acceleration"].is<long>())
+            {
                 config.setAcceleration(doc["acceleration"]);
                 motorController.setAcceleration(doc["acceleration"]);
                 updated = true;
             }
 
-            if (doc["useStealthChop"].is<bool>()) {
+            if (doc["useStealthChop"].is<bool>())
+            {
                 config.setUseStealthChop(doc["useStealthChop"]);
                 motorController.setTMCMode(doc["useStealthChop"]);
                 updated = true;
             }
 
-            if (updated) {
+            if (updated)
+            {
                 config.saveConfiguration();
                 ws.textAll("{\"type\":\"configUpdated\",\"status\":\"success\"}");
 
@@ -287,7 +290,9 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
                 String configMessage;
                 serializeJson(configDoc, configMessage);
                 ws.textAll(configMessage);
-            } else {
+            }
+            else
+            {
                 ws.textAll("{\"type\":\"error\",\"message\":\"Invalid configuration parameters\"}");
             }
         }

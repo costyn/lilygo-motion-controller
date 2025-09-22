@@ -15,12 +15,12 @@ A modular wireless stepper motor controller for LilyGo T-Motor hardware with TMC
 
 ## Hardware Requirements
 
-- **Controller**: LilyGo T-Motor with ESP32 Pico
-- **Stepper Driver**: TMC2209
-- **Encoder**: MT6816 magnetic encoder (16384 pulses/rotation)
+- **Controller**: LilyGo T-Motor with ESP32 Pico with onboard:
+  - **Stepper Driver**: TMC2209
+  - **Encoder**: MT6816 magnetic encoder (16384 pulses/rotation)
+  - **Debug Buttons**: GPIO 34, 35, 36 (optional, for manual testing)
 - **Motor**: 17HS19-2004S1 (1.8°, 59Ncm, 2.0A/phase) or compatible
 - **Limit Switches**: Connected to IO21 and IO22
-- **Debug Buttons**: GPIO 34, 35, 36 (optional, for manual testing)
 
 ## Pin Configuration
 
