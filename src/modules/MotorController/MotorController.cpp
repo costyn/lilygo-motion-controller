@@ -1,5 +1,6 @@
 #include "MotorController.h"
 #include "../Configuration/Configuration.h"
+#include "util.h"
 #include <Arduino.h>
 
 // Pin definitions
@@ -44,7 +45,7 @@ MotorController::MotorController() {
 }
 
 bool MotorController::begin() {
-    Serial.println("Initializing Motor Controller...");
+    LOG_INFO("Initializing Motor Controller...");
 
     // Initialize pins exactly like factory code
     pinMode(CLK_PIN, OUTPUT);
@@ -65,7 +66,7 @@ bool MotorController::begin() {
     driver->pdn_disable(true);
 
     uint32_t text = driver->IOIN();
-    Serial.printf("TMC2209 IOIN : 0X%X\r\n", text);
+    LOG_DEBUG("TMC2209 IOIN : 0X%X", text);
 
     driver->toff(5);           // Enables driver in software
     driver->rms_current(2000); // Set motor RMS current
@@ -82,26 +83,26 @@ bool MotorController::begin() {
     stepper->setPinsInverted(false, false, true);
     stepper->enableOutputs();
 
-    Serial.println("Motor Controller initialized successfully");
+    LOG_INFO("Motor Controller initialized successfully");
     return true;
 }
 
 // Separate encoder initialization (called from InputTask like factory code)
 bool MotorController::initEncoder() {
-    Serial.println("Initializing MT6816 Encoder...");
+    LOG_INFO("Initializing MT6816 Encoder...");
 
     mt6816->begin(SPI_CLK, SPI_MISO, SPI_MOSI, SPI_MT_CS);
     pinMode(SPI_MT_CS, OUTPUT);
     mt6816->setClockDivider(SPI_CLOCK_DIV4);
     lastLocation = (double)readEncoder();
 
-    Serial.println("MT6816 Encoder initialized successfully");
+    LOG_INFO("MT6816 Encoder initialized successfully");
     return true;
 }
 
 // LED initialization sequence exactly from factory code
 void MotorController::initLEDSequence() {
-    Serial.println("Initializing LED sequence...");
+    LOG_INFO("Initializing LED sequence...");
 
     ledcSetup(0, 1500, 8);
     ledcSetup(1, 1500, 8);
@@ -131,12 +132,12 @@ void MotorController::initLEDSequence() {
     pinMode(iDIR, INPUT);
     pinMode(iEN, INPUT);
 
-    Serial.println("LED sequence completed");
+    LOG_INFO("LED sequence completed");
 }
 
 void MotorController::moveTo(long position, int speedPercent) {
     if (emergencyStopActive) {
-        Serial.println("Cannot move - emergency stop active");
+        LOG_WARN("Cannot move - emergency stop active");
         return;
     }
 
@@ -145,24 +146,24 @@ void MotorController::moveTo(long position, int speedPercent) {
     stepper->setMaxSpeed(actualSpeed);
     stepper->moveTo(position);
 
-    Serial.printf("Moving to position: %ld at speed: %d%%\n", position, speedPercent);
+    LOG_INFO("Moving to position: %ld at speed: %d%%", position, speedPercent);
 }
 
 void MotorController::stop() {
     emergencyStopActive = true;
     stepper->setSpeed(0);
     stepper->stop();
-    Serial.println("Motor stopped");
+    LOG_INFO("Motor stopped");
 }
 
 void MotorController::emergencyStop() {
     stop();
-    Serial.println("EMERGENCY STOP ACTIVATED");
+    LOG_WARN("EMERGENCY STOP ACTIVATED");
 }
 
 void MotorController::clearEmergencyStop() {
     emergencyStopActive = false;
-    Serial.println("Emergency stop cleared");
+    LOG_INFO("Emergency stop cleared");
 }
 
 long MotorController::getCurrentPosition() const {
@@ -215,14 +216,14 @@ void MotorController::updateTMCMode() {
     if (shouldUseStealthChop != useStealthChop) {
         useStealthChop = shouldUseStealthChop;
         driver->en_spreadCycle(!useStealthChop);
-        Serial.printf("TMC mode switched to %s\n", useStealthChop ? "StealthChop" : "SpreadCycle");
+        LOG_INFO("TMC mode switched to %s", useStealthChop ? "StealthChop" : "SpreadCycle");
     }
 }
 
 void MotorController::setTMCMode(bool stealthChop) {
     useStealthChop = stealthChop;
     driver->en_spreadCycle(!stealthChop);
-    Serial.printf("TMC mode manually set to %s\n", stealthChop ? "StealthChop" : "SpreadCycle");
+    LOG_INFO("TMC mode manually set to %s", stealthChop ? "StealthChop" : "SpreadCycle");
 }
 
 uint32_t MotorController::getTMCStatus() {

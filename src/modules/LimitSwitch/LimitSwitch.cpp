@@ -1,6 +1,7 @@
 #include "LimitSwitch.h"
 #include "../MotorController/MotorController.h"
 #include "../Configuration/Configuration.h"
+#include "util.h"
 
 // Global instance
 LimitSwitch limitSwitch;
@@ -22,7 +23,7 @@ bool LimitSwitch::begin() {
     pinMode(pin1, INPUT_PULLUP);
     pinMode(pin2, INPUT_PULLUP);
 
-    Serial.printf("Limit switches initialized on pins %d and %d\n", pin1, pin2);
+    LOG_INFO("Limit switches initialized on pins %d and %d", pin1, pin2);
     return true;
 }
 
@@ -40,7 +41,7 @@ void LimitSwitch::update() {
         switch1Triggered = true;
         long currentPos = motorController.getCurrentPosition();
 
-        Serial.printf("Limit Switch 1 triggered at position: %ld\n", currentPos);
+        LOG_WARN("Limit Switch 1 triggered at position: %ld", currentPos);
 
         // Stop motor immediately
         motorController.emergencyStop();
@@ -63,7 +64,7 @@ void LimitSwitch::update() {
         switch2Triggered = true;
         long currentPos = motorController.getCurrentPosition();
 
-        Serial.printf("Limit Switch 2 triggered at position: %ld\n", currentPos);
+        LOG_WARN("Limit Switch 2 triggered at position: %ld", currentPos);
 
         // Stop motor immediately
         motorController.emergencyStop();
@@ -84,7 +85,7 @@ void LimitSwitch::update() {
 void LimitSwitch::clearTriggers() {
     switch1Triggered = false;
     switch2Triggered = false;
-    Serial.println("Limit switch triggers cleared");
+    LOG_INFO("Limit switch triggers cleared");
 }
 
 bool LimitSwitch::debouncedRead(uint8_t pin, bool& lastState, unsigned long& lastDebounceTime) {

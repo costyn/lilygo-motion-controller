@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,46 +13,55 @@
             padding: 20px;
             background-color: #f0f0f0;
         }
+
         .container {
             background: white;
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
+
         .status-panel {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
         }
+
         .status-item {
             background: #f8f9fa;
             padding: 15px;
             border-radius: 5px;
             border-left: 4px solid #007bff;
         }
+
         .status-label {
             font-weight: bold;
             color: #333;
             margin-bottom: 5px;
         }
+
         .status-value {
             font-size: 1.2em;
             color: #007bff;
         }
+
         .control-panel {
             margin-top: 20px;
         }
+
         .control-row {
             display: flex;
             align-items: center;
             gap: 10px;
             margin-bottom: 15px;
         }
+
         input[type="range"] {
             flex: 1;
             height: 5px;
         }
+
         button {
             background-color: #007bff;
             color: white;
@@ -60,21 +70,26 @@
             border-radius: 5px;
             cursor: pointer;
         }
+
         button:hover {
             background-color: #0056b3;
         }
+
         button:disabled {
             background-color: #ccc;
             cursor: not-allowed;
         }
+
         .emergency-stop {
             background-color: #dc3545;
             font-size: 1.1em;
             padding: 15px 30px;
         }
+
         .emergency-stop:hover {
             background-color: #c82333;
         }
+
         .connection-status {
             position: fixed;
             top: 10px;
@@ -84,10 +99,17 @@
             color: white;
             font-size: 0.9em;
         }
-        .connected { background-color: #28a745; }
-        .disconnected { background-color: #dc3545; }
+
+        .connected {
+            background-color: #28a745;
+        }
+
+        .disconnected {
+            background-color: #dc3545;
+        }
     </style>
 </head>
+
 <body>
     <div class="connection-status" id="connectionStatus">Disconnected</div>
 
@@ -132,6 +154,40 @@
                 <button class="emergency-stop" onclick="emergencyStop()">EMERGENCY STOP</button>
             </div>
         </div>
+
+        <button id="debugToggle">Toggle Debug Console</button>
+        <div id="debugConsole" style="display:none; border: 1px solid #ccc; height: 300px; 
+  overflow-y: scroll; background: #000; color: #0f0; font-family: monospace; padding: 
+  10px;"></div>
+
+        <script>
+            let debugWs = null;
+            let debugVisible = false;
+
+            document.getElementById('debugToggle').onclick = function () {
+                debugVisible = !debugVisible;
+                const console = document.getElementById('debugConsole');
+                console.style.display = debugVisible ? 'block' : 'none';
+
+                if (debugVisible && !debugWs) {
+                    // Connect to debug WebSocket
+                    debugWs = new WebSocket(`ws://${window.location.host}/debug`);
+
+                    debugWs.onmessage = function (event) {
+                        const console = document.getElementById('debugConsole');
+                        console.innerHTML += event.data + '\n';
+                        console.scrollTop = console.scrollHeight;
+                    };
+
+                    debugWs.onclose = function () {
+                        debugWs = null;
+                    };
+                } else if (!debugVisible && debugWs) {
+                    debugWs.close();
+                    debugWs = null;
+                }
+            };
+        </script>
     </div>
 
     <script>
@@ -158,21 +214,21 @@
 
             ws = new WebSocket(wsUrl);
 
-            ws.onopen = function() {
+            ws.onopen = function () {
                 console.log('WebSocket connected');
                 connectionStatus.textContent = 'Connected';
                 connectionStatus.className = 'connection-status connected';
 
                 // Request current status
-                sendCommand({cmd: 'status'});
+                sendCommand({ cmd: 'status' });
             };
 
-            ws.onmessage = function(event) {
+            ws.onmessage = function (event) {
                 const data = JSON.parse(event.data);
                 handleMessage(data);
             };
 
-            ws.onclose = function() {
+            ws.onclose = function () {
                 console.log('WebSocket disconnected');
                 connectionStatus.textContent = 'Disconnected';
                 connectionStatus.className = 'connection-status disconnected';
@@ -182,14 +238,14 @@
                 reconnectTimer = setTimeout(connectWebSocket, 3000);
             };
 
-            ws.onerror = function(error) {
+            ws.onerror = function (error) {
                 console.error('WebSocket error:', error);
             };
         }
 
         // Handle incoming messages
         function handleMessage(data) {
-            switch(data.type) {
+            switch (data.type) {
                 case 'status':
                     currentPos = data.position || 0;
                     currentPosition.textContent = currentPos;
@@ -219,11 +275,11 @@
         }
 
         // UI Event Handlers
-        positionSlider.oninput = function() {
+        positionSlider.oninput = function () {
             positionValue.textContent = this.value;
         };
 
-        speedSlider.oninput = function() {
+        speedSlider.oninput = function () {
             speedValue.textContent = this.value + '%';
         };
 
@@ -242,7 +298,7 @@
         }
 
         function emergencyStop() {
-            sendCommand({cmd: 'stop'});
+            sendCommand({ cmd: 'stop' });
         }
 
         // Initialize
@@ -254,5 +310,9 @@
             positionSlider.max = max;
         }
     </script>
+
+
+
 </body>
+
 </html>

@@ -36,6 +36,8 @@ Current features that are there now in the basic index.html are a very nice star
 ## Desired Features Phase 2
 Once we have all the above working, some nice other features:
 
+- Debug output: because the controller won't normally have a serial connection, it will be useful to have controller debut output on a separate websocket on the path /debug .
+  - There should be a button which opens a panel/card. The card will should the serial output stream from the controller and display it. 
 - Preset positions. Initially they should be saved to a browser localstorage. In the future when the controller supports this, they could be written to config in nvram there.
 - Some sort of playlist editor. 
   - A way to predefine x number of steps 

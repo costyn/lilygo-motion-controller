@@ -1,4 +1,5 @@
 #include "Configuration.h"
+#include "util.h"
 #include <Arduino.h>
 
 // Global instance
@@ -17,9 +18,9 @@ bool Configuration::begin() {
     bool success = preferences.begin("motor-config", false);
     if (success) {
         loadConfiguration();
-        Serial.println("Configuration module initialized");
+        LOG_INFO("Configuration module initialized");
     } else {
-        Serial.println("Failed to initialize configuration module");
+        LOG_ERROR("Failed to initialize configuration module");
     }
     return success;
 }
@@ -31,8 +32,8 @@ void Configuration::loadConfiguration() {
     motorConfig.limitPos2 = preferences.getLong("limitPos2", motorConfig.limitPos2);
     motorConfig.useStealthChop = preferences.getBool("stealthChop", motorConfig.useStealthChop);
 
-    Serial.printf("Configuration loaded - Accel: %ld, MaxSpeed: %ld, Limit1: %ld, Limit2: %ld\n",
-                  motorConfig.acceleration, motorConfig.maxSpeed, motorConfig.limitPos1, motorConfig.limitPos2);
+    LOG_INFO("Configuration loaded - Accel: %ld, MaxSpeed: %ld, Limit1: %ld, Limit2: %ld",
+             motorConfig.acceleration, motorConfig.maxSpeed, motorConfig.limitPos1, motorConfig.limitPos2);
 }
 
 void Configuration::saveConfiguration() {
@@ -41,7 +42,7 @@ void Configuration::saveConfiguration() {
     preferences.putLong("limitPos1", motorConfig.limitPos1);
     preferences.putLong("limitPos2", motorConfig.limitPos2);
     preferences.putBool("stealthChop", motorConfig.useStealthChop);
-    Serial.println("Configuration saved");
+    LOG_INFO("Configuration saved");
 }
 
 void Configuration::saveLimitPositions(long pos1, long pos2) {
@@ -49,7 +50,7 @@ void Configuration::saveLimitPositions(long pos1, long pos2) {
     motorConfig.limitPos2 = pos2;
     preferences.putLong("limitPos1", pos1);
     preferences.putLong("limitPos2", pos2);
-    Serial.printf("Limit positions saved: %ld, %ld\n", pos1, pos2);
+    LOG_INFO("Limit positions saved: %ld, %ld", pos1, pos2);
 }
 
 void Configuration::setAcceleration(long accel) {

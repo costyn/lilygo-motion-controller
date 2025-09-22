@@ -55,17 +55,18 @@ void onButton3Click();
 void setup()
 {
     Serial.begin(115200);
-    Serial.println("========================================");
-    Serial.println("LilyGo Motion Controller Starting...");
-    Serial.println("========================================");
+    delay(1000); // Allow serial to initialize
+    LOG_INFO("========================================");
+    LOG_INFO("LilyGo Motion Controller Starting...");
+    LOG_INFO("========================================");
 
     // Initialize all modules in order
-    Serial.println("Initializing modules...");
+    LOG_INFO("Initializing modules...");
 
     // 1. Configuration first (needed by other modules)
     if (!config.begin())
     {
-        Serial.println("FATAL: Failed to initialize Configuration module");
+        LOG_ERROR("FATAL: Failed to initialize Configuration module");
         while (1)
             delay(1000);
     }
@@ -73,7 +74,7 @@ void setup()
     // 2. Motor controller
     if (!motorController.begin())
     {
-        Serial.println("FATAL: Failed to initialize Motor Controller");
+        LOG_ERROR("FATAL: Failed to initialize Motor Controller");
         while (1)
             delay(1000);
     }
@@ -81,7 +82,7 @@ void setup()
     // 3. Limit switches
     if (!limitSwitch.begin())
     {
-        Serial.println("FATAL: Failed to initialize Limit Switches");
+        LOG_ERROR("FATAL: Failed to initialize Limit Switches");
         while (1)
             delay(1000);
     }
@@ -89,15 +90,15 @@ void setup()
     // 4. Web server
     if (!webServer.begin())
     {
-        Serial.println("FATAL: Failed to initialize Web Server");
+        LOG_ERROR("FATAL: Failed to initialize Web Server");
         while (1)
             delay(1000);
     }
 
-    Serial.println("All modules initialized successfully");
+    LOG_INFO("All modules initialized successfully");
 
     // Create FreeRTOS tasks
-    Serial.println("Creating FreeRTOS tasks...");
+    LOG_INFO("Creating FreeRTOS tasks...");
 
     xTaskCreatePinnedToCore(
         InputTask,        // Task function
@@ -119,10 +120,10 @@ void setup()
         1                     // Core (1 for web server)
     );
 
-    Serial.println("FreeRTOS tasks created");
-    Serial.println("========================================");
-    Serial.println("System ready!");
-    Serial.println("========================================");
+    LOG_INFO("FreeRTOS tasks created");
+    LOG_INFO("========================================");
+    LOG_INFO("System ready!");
+    LOG_INFO("========================================");
 }
 
 void loop()
@@ -136,7 +137,7 @@ void loop()
 
 void InputTask(void *pvParameters)
 {
-    Serial.println("Input Task started");
+    LOG_INFO("Input Task started");
 
     // Initialize LED sequence exactly like factory code
     motorController.initLEDSequence();
@@ -170,7 +171,7 @@ void InputTask(void *pvParameters)
 
 void WebServerTask(void *pvParameters)
 {
-    Serial.println("Web Server Task started");
+    LOG_INFO("Web Server Task started");
 
     // Task main loop
     while (1)
@@ -186,7 +187,7 @@ void WebServerTask(void *pvParameters)
 // Button callback functions (for debugging/testing)
 void onButton1Click()
 {
-    Serial.println("Button 1 pressed - Move forward");
+    LOG_INFO("Button 1 pressed - Move forward");
     if (!limitSwitch.isAnyTriggered())
     {
         long currentPos = motorController.getCurrentPosition();
@@ -196,13 +197,13 @@ void onButton1Click()
 
 void onButton2Click()
 {
-    Serial.println("Button 2 pressed - Emergency stop");
+    LOG_INFO("Button 2 pressed - Emergency stop");
     motorController.emergencyStop();
 }
 
 void onButton3Click()
 {
-    Serial.println("Button 3 pressed - Move backward");
+    LOG_INFO("Button 3 pressed - Move backward");
     if (!limitSwitch.isAnyTriggered())
     {
         long currentPos = motorController.getCurrentPosition();
