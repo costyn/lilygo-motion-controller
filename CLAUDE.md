@@ -3,15 +3,22 @@
 ## Project Overview
 LilyGo Motion Controller - Modular wireless stepper motor controller for LilyGo T-Motor hardware with TMC2209 driver and MT6816 encoder.
 
-## Implementation Status: ✅ COMPLETE
+## Implementation Status: ✅ COMPLETE + HIGH PRIORITY FEATURES ADDED
 
-### ✅ Completed Tasks
+### ✅ Completed Tasks (Core System)
 1. **Modular Architecture Implementation** - Clean separation into Configuration, MotorController, LimitSwitch, and WebServer modules
 2. **Factory-Accurate Hardware Initialization** - TMC2209 and MT6816 setup matching manufacturer's example exactly
 3. **FreeRTOS Task Structure** - InputTask (Core 0) + WebServerTask (Core 1) with proper task separation
 4. **Library Conflict Resolution** - Fixed ESPAsyncWebServer compatibility by switching to maintained `ESP32Async/ESPAsyncWebServer` repository
 5. **WebServer Integration** - WiFiManager + WebSocket + REST API fully functional
-6. **Build Success** - Final build: RAM 14.9%, Flash 80.6%
+6. **Build Success** - Final build: RAM 16.0%, Flash 83.1%
+
+### ✅ High Priority Features Added (September 2025)
+7. **mDNS Support** - Device accessible via `http://lilygo-motioncontroller.local/` with automatic service discovery
+8. **Debug Serial WebSocket Stream** - Real-time debugging via `/debug` WebSocket endpoint with browser console integration
+9. **Unified Logging System** - LOG_ERROR/WARN/INFO/DEBUG macros with consistent timestamp format: `[HH:MM:SS.mmm] [LEVEL] [FUNCTION]: message`
+10. **WebSocket Command Logging** - All incoming commands logged to serial/debug stream with backward compatibility for `"cmd"` and `"goto"` fields
+11. **Unit Testing Framework** - Native cross-platform tests for MotorController calculation functions (20 tests passing)
 
 ## Key Technical Details
 
@@ -31,6 +38,59 @@ build_flags =
     -Wno-pragmas
     -Wno-format
     -DELEGANTOTA_USE_ASYNC_WEBSERVER=1
+
+# Native test environment added
+[env:native]
+platform = native
+test_ignore = test_embedded
+build_src_filter = -<*>  # No ESP32 source files needed for tests
+build_flags = -DUNIT_TEST -DUNITY_INCLUDE_DOUBLE
+```
+
+### High Priority Features Technical Implementation
+
+#### mDNS Configuration
+```cpp
+// Device naming (configurable via defines)
+#define DEVICE_NAME "LilyGo-MotionController"
+#define DEVICE_HOSTNAME "lilygo-motioncontroller"
+
+// Auto-initialized after WiFi connection
+mdns_hostname_set(DEVICE_HOSTNAME);
+mdns_service_add(DEVICE_HOSTNAME, "_http", "_tcp", 80, NULL, 0);
+```
+
+#### Debug WebSocket Architecture
+```cpp
+// Separate WebSocket endpoints
+AsyncWebSocket ws("/ws");        // Main control interface
+AsyncWebSocket debugWs("/debug"); // Debug output stream
+
+// Real-time debug streaming (no circular buffer to prevent flooding)
+void broadcastDebugMessage(const String& message) {
+    if (debugWs.count() > 0) {
+        debugWs.textAll(message);
+    }
+}
+```
+
+#### Unified Logging System
+```cpp
+// Available log levels
+LOG_ERROR("Critical error: %s", errorMessage);
+LOG_WARN("Warning: limit switch triggered at position %ld", position);
+LOG_INFO("Motor started, moving to position: %ld", targetPos);
+LOG_DEBUG("TMC mode switched to %s", useStealthChop ? "StealthChop" : "SpreadCycle");
+
+// Output format: [HH:MM:SS.mmm] [LEVEL] [FUNCTION]: message
+// Dual output: Serial console + debug WebSocket stream
+```
+
+#### WebSocket Command Compatibility
+```cpp
+// Supports both new and legacy command formats
+{"command": "move", "position": 1000, "speed": 50}  // New format
+{"cmd": "goto", "position": 1000, "speed": 50}     // Legacy format (webapp)
 ```
 
 ### Critical Include Order (WebServer.h)

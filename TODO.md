@@ -3,13 +3,11 @@
 ## 🔴 Missing Features (from original requirements, and those added afterwards)
 
 ### High Priority - Should Have
-- [ ] **mDNS Support** - Access device via `lilygo-motioncontroller.local`
-- [ ] **Debug Serial WebSocket Stream** - Separate WebSocket path (`/debug`) for serial output streaming when client is connected
-- [ ] **Write incoming websocket commands to serial** - Even though in production there will be no serial attached, for development purposes it's useful to have incoming websocket commands be written to serial output.
-- [ ] **Unified output with timestamps to Serial** - All serial output should be written out in similar format, with a timestamp, then the name of the function that's doing the output. For example: 
-    Serial.printf("%s: %s: Webserver started. URL http://%s/\n", timeToString().c_str(), SGN, WiFi.localIP());
-    This example is from the WebServer.cpp.
-- [ ] **Unit Tests** - Test modules: priority is MotorController calculationfunctions like calculateSpeed() and updateTMCMode()
+- [X] **mDNS Support** - Access device via `lilygo-motioncontroller.local` ✅ **COMPLETED**
+- [X] **Debug Serial WebSocket Stream** - Separate WebSocket path (`/debug`) for serial output streaming when client is connected ✅ **COMPLETED**
+- [X] **Write incoming websocket commands to serial** - Even though in production there will be no serial attached, for development purposes it's useful to have incoming websocket commands be written to serial output. ✅ **COMPLETED**
+- [X] **Unified output with timestamps to Serial** - All serial output should be written out in similar format, with a timestamp, then the name of the function that's doing the output. Now using LOG_ERROR/WARN/INFO/DEBUG macros with format: `[HH:MM:SS.mmm] [LEVEL] [FUNCTION]: message` ✅ **COMPLETED**
+- [X] **Unit Tests** - Test modules: priority is MotorController calculation functions like calculateSpeed() and updateTMCMode() ✅ **COMPLETED**
 
 ### Medium Priority - Could Have
 - [X] **Dynamic TMC2209 Mode Switching** - Advanced SpreadCycle/StealthChop optimization based on load/speed: Already in updateTMCMode()?

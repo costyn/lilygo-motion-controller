@@ -4,6 +4,7 @@ A modular wireless stepper motor controller for LilyGo T-Motor hardware with TMC
 
 ## Features
 
+### Core Functionality
 - **WebSocket-based Control Interface** - Real-time motor control via web browser
 - **Smart Limit Switch Handling** - Automatic position learning and persistence
 - **Automatic TMC2209 Optimization** - Dynamic switching between StealthChop/SpreadCycle modes
@@ -12,6 +13,13 @@ A modular wireless stepper motor controller for LilyGo T-Motor hardware with TMC
 - **Real-time Position Feedback** - High-precision encoder position reporting
 - **WiFi Configuration Portal** - Automatic WiFiManager setup without hardcoded credentials
 - **Modular Architecture** - Clean separation of concerns for maintainability
+
+### Developer & Debugging Features
+- **mDNS Network Discovery** - Access device via `http://lilygo-motioncontroller.local/`
+- **Debug WebSocket Stream** - Real-time serial output via `/debug` WebSocket for remote debugging
+- **Unified Logging System** - Consistent timestamped logging with LOG_ERROR/WARN/INFO/DEBUG macros
+- **WebSocket Command Logging** - All incoming commands logged for development troubleshooting
+- **Cross-Platform Unit Testing** - Native tests for motor calculation functions (no hardware required)
 
 ## Hardware Requirements
 
@@ -23,6 +31,7 @@ A modular wireless stepper motor controller for LilyGo T-Motor hardware with TMC
 - **Limit Switches**: Connected to IO21 and IO22
 
 ## Pin Configuration
+All pins except the 2 limit switches are already configured as described below on the LilyGo T-Motor PCB.
 
 | Component | Pin | Description |
 |-----------|-----|-------------|
@@ -155,7 +164,7 @@ Send JSON messages to `/ws`:
 ```bash
 # Clone repository
 git clone <repository-url>
-cd Esp-stepperserver
+cd lilygo-motion-controller
 
 # Build firmware
 pio run -e pico32
@@ -169,8 +178,20 @@ pio device monitor --baud 115200
 
 ### Memory Usage
 
-- **RAM**: ~15% (48KB)
-- **Flash**: ~80% (1MB)
+- **RAM**: ~16% (52KB)
+- **Flash**: ~83% (1.09MB)
+
+### Unit Testing
+
+Run cross-platform unit tests for motor calculation functions:
+
+```bash
+# Run unit tests on local development machine
+pio test -e native
+
+# Expected output: 20 test cases passed
+# Tests calculateSpeed() and updateTMCMode() logic
+```
 
 ## Configuration
 
@@ -179,7 +200,7 @@ pio device monitor --baud 115200
 1. **Flash firmware** to ESP32
 2. **Connect to WiFi portal**: Device creates "LilyGo-MotionController" access point
 3. **Configure WiFi**: Connect via captive portal at 192.168.4.1
-4. **Access web interface**: Navigate to device IP address
+4. **Access web interface**: Navigate to device IP address or `http://lilygo-motioncontroller.local/`
 
 ### Motor Configuration
 
@@ -204,6 +225,41 @@ Default settings can be modified via the Configuration module:
 - **Watchdog Protection**: FreeRTOS task monitoring prevents system lockup
 - **TMC2209 Thermal Protection**: Built-in driver overtemperature protection
 
+## Debugging Features
+
+### Debug WebSocket Stream
+
+Connect to real-time serial output via WebSocket for remote debugging:
+
+```javascript
+// Open browser console (F12) and connect to debug stream
+const debugWs = new WebSocket('ws://lilygo-motioncontroller.local/debug');
+debugWs.onmessage = function(event) {
+    console.log('Debug:', event.data);
+};
+```
+
+**What you'll see:**
+- Real-time log messages with timestamps: `[HH:MM:SS.mmm] [LEVEL] [FUNCTION]: message`
+- WebSocket command logging: All incoming commands from web interface
+- Motor control events: Movement commands, limit switch triggers, emergency stops
+- System status: WiFi connections, mDNS registration, module initialization
+
+### Log Levels
+
+The system uses structured logging with different levels:
+- `LOG_ERROR`: Critical errors and failures
+- `LOG_WARN`: Warnings like limit switch triggers or emergency stops
+- `LOG_INFO`: General information like motor movements and connections
+- `LOG_DEBUG`: Detailed debugging information (compile-time configurable)
+
+### Network Access
+
+- **Primary URL**: `http://lilygo-motioncontroller.local/` (mDNS)
+- **Fallback**: `http://[device-ip-address]/` (if mDNS unavailable)
+- **Debug Stream**: `ws://lilygo-motioncontroller.local/debug`
+- **Control Stream**: `ws://lilygo-motioncontroller.local/ws`
+
 ## Troubleshooting
 
 ### Common Issues
@@ -224,17 +280,29 @@ Default settings can be modified via the Configuration module:
 
 4. **Web Interface Unreachable**
    - Check WiFi connection status
-   - Verify device IP address via serial monitor
-   - Try accessing via mDNS: `http://lilygo-motioncontroller.local`
+   - Try mDNS first: `http://lilygo-motioncontroller.local/`
+   - Verify device IP address via serial monitor or debug WebSocket
+   - Check network allows mDNS traffic (some corporate networks block it)
+
+5. **Debug WebSocket Not Working**
+   - Ensure main web interface works first
+   - Try direct IP instead of hostname: `ws://192.168.x.x/debug`
+   - Check browser console for WebSocket connection errors
+   - Verify no firewall blocking WebSocket connections
 
 ### Debug Information
 
-Enable detailed logging via serial monitor (115200 baud):
-- Module initialization status
-- WiFi connection details
-- TMC2209 register values
-- Encoder position readings
-- WebSocket connection events
+Multiple ways to access debug information:
+- **Serial Monitor**: `pio device monitor --baud 115200`
+- **Debug WebSocket**: Connect via browser console to `/debug` endpoint
+- **Log Levels**: Adjust LOG_LEVEL in build flags for more/less detail
+
+**Available information:**
+- Module initialization status with timestamps
+- WiFi connection details and mDNS registration
+- TMC2209 register values and mode switching
+- Encoder position readings and speed calculations
+- WebSocket connection events and command processing
 
 ## Development
 

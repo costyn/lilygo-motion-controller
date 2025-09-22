@@ -2,13 +2,16 @@
 
 #include <Preferences.h>
 
-class Configuration {
+class Configuration
+{
 private:
+    // ESP NVRAM Preference API
     Preferences preferences;
 
 public:
     // Motor configuration
-    struct MotorConfig {
+    struct MotorConfig
+    {
         long acceleration;
         long maxSpeed;
         long limitPos1;

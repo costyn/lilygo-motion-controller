@@ -11,38 +11,46 @@ WebServerClass webServer;
 // DebugBuffer implementation
 DebugBuffer::DebugBuffer() : head(0), tail(0), full(false) {}
 
-void DebugBuffer::add(const String& message) {
+void DebugBuffer::add(const String &message)
+{
     buffer[head] = message;
     head = (head + 1) % DEBUG_BUFFER_SIZE;
 
-    if (full) {
+    if (full)
+    {
         tail = (tail + 1) % DEBUG_BUFFER_SIZE;
     }
 
-    if (head == tail) {
+    if (head == tail)
+    {
         full = true;
     }
 }
 
-void DebugBuffer::sendHistoryTo(AsyncWebSocketClient* client) {
-    if (isEmpty()) {
+void DebugBuffer::sendHistoryTo(AsyncWebSocketClient *client)
+{
+    if (isEmpty())
+    {
         return;
     }
 
     int start = full ? tail : 0;
     int end = head;
 
-    for (int i = start; i != end; i = (i + 1) % DEBUG_BUFFER_SIZE) {
+    for (int i = start; i != end; i = (i + 1) % DEBUG_BUFFER_SIZE)
+    {
         client->text(buffer[i]);
     }
 }
 
-bool DebugBuffer::isEmpty() const {
+bool DebugBuffer::isEmpty() const
+{
     return (!full && (head == tail));
 }
 
 // Global function for util.cpp weak linkage
-void broadcastDebugMessage(const String& message) {
+void broadcastDebugMessage(const String &message)
+{
     webServer.broadcastDebugMessage(message);
 }
 
@@ -53,12 +61,12 @@ WebServerClass::WebServerClass() : server(80), ws("/ws"), debugWs("/debug"), ini
 bool WebServerClass::begin()
 {
     constexpr const char *SGN = "WebServerClass::begin()";
-    Serial.println("Initializing Web Server...");
+    LOG_INFO("Initializing Web Server...");
 
     // Initialize SPIFFS first
     if (!setupSPIFFS())
     {
-        Serial.println("SPIFFS initialization failed");
+        LOG_WARN("SPIFFS initialization failed");
         return false;
     }
 
@@ -68,14 +76,15 @@ bool WebServerClass::begin()
     // Try to connect to saved WiFi or start config portal
     if (!wm.autoConnect("LilyGo-MotionController"))
     {
-        Serial.println("Failed to connect to WiFi");
+        LOG_WARN("Failed to connect to WiFi");
         return false;
     }
 
     LOG_INFO("Connected to WiFi! IP: %s", WiFi.localIP().toString().c_str());
 
     // Setup mDNS
-    if (!setupMDNS()) {
+    if (!setupMDNS())
+    {
         LOG_WARN("mDNS setup failed, device won't be accessible via hostname");
     }
 
@@ -100,11 +109,11 @@ bool WebServerClass::setupSPIFFS()
 {
     if (!SPIFFS.begin(true))
     {
-        Serial.println("An Error has occurred while mounting SPIFFS");
+        LOG_WARN("An Error has occurred while mounting SPIFFS");
         return false;
     }
 
-    Serial.println("SPIFFS mounted successfully");
+    LOG_INFO("SPIFFS mounted successfully");
     return true;
 }
 
@@ -218,7 +227,8 @@ void WebServerClass::setupDebugWebSocket()
 bool WebServerClass::setupMDNS()
 {
     esp_err_t err = mdns_init();
-    if (err) {
+    if (err)
+    {
         LOG_ERROR("mDNS Init failed: %d", err);
         return false;
     }
@@ -273,17 +283,22 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
         }
 
         // Log incoming command for debugging
-        LOG_DEBUG("WebSocket raw data received: %s", (char*)data);
+        LOG_DEBUG("WebSocket raw data received: %s", (char *)data);
 
         // Check for command field (support both "command" and "cmd" for compatibility)
         String command;
-        if (doc["command"].is<const char*>() || doc["command"].is<String>()) {
+        if (doc["command"].is<const char *>() || doc["command"].is<String>())
+        {
             command = doc["command"].as<String>();
-        } else if (doc["cmd"].is<const char*>() || doc["cmd"].is<String>()) {
+        }
+        else if (doc["cmd"].is<const char *>() || doc["cmd"].is<String>())
+        {
             command = doc["cmd"].as<String>();
             LOG_DEBUG("Using legacy 'cmd' field, consider updating webapp to use 'command'");
-        } else {
-            LOG_WARN("WebSocket message missing 'command' or 'cmd' field in: %s", (char*)data);
+        }
+        else
+        {
+            LOG_WARN("WebSocket message missing 'command' or 'cmd' field in: %s", (char *)data);
             return;
         }
 
@@ -456,13 +471,14 @@ void WebServerClass::onDebugWebSocketEvent(AsyncWebSocket *server, AsyncWebSocke
     }
 }
 
-void WebServerClass::broadcastDebugMessage(const String& message)
+void WebServerClass::broadcastDebugMessage(const String &message)
 {
     // Skip circular buffer entirely to prevent flooding
     // debugBuffer.add(message);
 
     // Simple real-time broadcast only
-    if (debugWs.count() > 0) {
+    if (debugWs.count() > 0)
+    {
         debugWs.textAll(message);
     }
 }
