@@ -34,7 +34,13 @@ export default defineConfig({
 
         // copy new hashed files & gz
         try {
-          execSync(`cp dist/*.* dist/*.gz ${dataDir}/`);
+          execSync(`cp dist/*.* ${dataDir}/`);
+          // Copy gzip files separately to handle the case where they might not exist
+          try {
+            execSync(`cp dist/*.gz ${dataDir}/`);
+          } catch {
+            // Gzip files might not exist, that's ok
+          }
           console.log(`✓ Build artifacts copied to ${dataDir}/`);
         }
         catch (error) {

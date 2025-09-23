@@ -1,3 +1,5 @@
 .pio
 .vscode
 .claude/settings.local.json
+webapp/node_modules
+webapp/dist
