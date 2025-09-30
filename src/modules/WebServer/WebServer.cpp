@@ -56,6 +56,9 @@ void broadcastDebugMessage(const String &message)
 
 WebServerClass::WebServerClass() : server(80), ws("/ws"), debugWs("/debug"), initialized(false)
 {
+    lastPositionBroadcast = 0;
+    lastStatusBroadcast = 0;
+    wasMovingLastUpdate = false;
 }
 
 bool WebServerClass::begin()
@@ -314,6 +317,12 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
                 if (!limitSwitch.isAnyTriggered())
                 {
                     motorController.moveTo(position, speed);
+
+                    // Immediate status broadcast on movement start
+                    LOG_INFO("Movement started to position %ld - broadcasting initial status", position);
+                    broadcastStatus();
+                    lastPositionBroadcast = millis();
+                    lastStatusBroadcast = millis();
                 }
                 else
                 {
@@ -324,6 +333,10 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
         else if (command == "stop")
         {
             motorController.emergencyStop();
+
+            // Immediate broadcast of emergency stop state
+            LOG_WARN("Emergency stop triggered - broadcasting status");
+            broadcastStatus();
         }
         else if (command == "reset")
         {
@@ -494,4 +507,38 @@ void WebServerClass::update()
     // Cleanup disconnected WebSocket clients
     ws.cleanupClients();
     debugWs.cleanupClients();
+
+    // Automatic status broadcasting during movement
+    // Only broadcast if actually moving (not stopped by emergency stop)
+    bool isCurrentlyMoving = motorController.isMoving() && !motorController.isEmergencyStopActive();
+    unsigned long currentMillis = millis();
+
+    if (isCurrentlyMoving)
+    {
+        // Send position updates every 100ms during movement
+        if (currentMillis - lastPositionBroadcast >= POSITION_BROADCAST_INTERVAL_MS)
+        {
+            LOG_DEBUG("Broadcasting position update: %ld", motorController.getCurrentPosition());
+            broadcastPosition(motorController.getCurrentPosition());
+            lastPositionBroadcast = currentMillis;
+        }
+
+        // Send full status every 500ms during movement
+        if (currentMillis - lastStatusBroadcast >= STATUS_BROADCAST_INTERVAL_MS)
+        {
+            LOG_DEBUG("Broadcasting full status (movement active)");
+            broadcastStatus();
+            lastStatusBroadcast = currentMillis;
+        }
+
+        // Update movement tracking for next iteration
+        wasMovingLastUpdate = true;
+    }
+    else if (wasMovingLastUpdate)
+    {
+        // Movement just completed - send final status
+        LOG_INFO("Movement completed - sending final status");
+        broadcastStatus();
+        wasMovingLastUpdate = false;
+    }
 }

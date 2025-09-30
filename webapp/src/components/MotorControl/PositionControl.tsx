@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Slider } from '@/components/ui/slider'
+import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { validatePosition, formatPosition } from '@/lib/utils'
 import type { MotorConfig } from '@/types'
@@ -11,6 +12,7 @@ interface PositionControlProps {
   isConnected: boolean
   isMoving: boolean
   emergencyStop: boolean
+  currentPosition: number
   motorConfig: MotorConfig
   onMoveTo: (position: number, speed: number) => void
 }
@@ -19,12 +21,20 @@ export function PositionControl({
   isConnected,
   isMoving,
   emergencyStop,
+  currentPosition,
   motorConfig,
   onMoveTo
 }: PositionControlProps) {
   const [targetPosition, setTargetPosition] = useState([motorConfig.minLimit])
   const [targetSpeed, setTargetSpeed] = useState('50') // Default to 50% of max speed
   const [validationError, setValidationError] = useState('')
+
+  // Calculate position progress
+  const range = motorConfig.maxLimit - motorConfig.minLimit
+  const progress = range > 0
+    ? ((currentPosition - motorConfig.minLimit) / range) * 100
+    : 0
+  const clampedProgress = Math.max(0, Math.min(100, progress))
 
   const handlePositionChange = (value: number[]) => {
     setTargetPosition(value)
@@ -77,6 +87,22 @@ export function PositionControl({
         <CardTitle className="text-lg">Position Control</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Current Position Display */}
+        <div className="space-y-2 pb-2 border-b">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium">Current Position</span>
+            <span className="text-sm font-mono text-muted-foreground">
+              {formatPosition(currentPosition)} steps
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Progress value={clampedProgress} className="flex-1" />
+            <span className="text-xs font-medium text-muted-foreground min-w-[3rem] text-right">
+              {clampedProgress.toFixed(0)}%
+            </span>
+          </div>
+        </div>
+
         {/* Position Slider */}
         <div>
           <div className="flex justify-between items-center mb-2">

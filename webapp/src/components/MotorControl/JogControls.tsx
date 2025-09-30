@@ -102,7 +102,7 @@ export function JogControls({
         </div>
 
         {/* Jog Controls */}
-        <div className="grid grid-cols-2 gap-2">
+        {/* <div className="grid grid-cols-2 gap-2">
           <Button
             variant="outline"
             size="touch"
@@ -132,7 +132,7 @@ export function JogControls({
             <span>Jog Forward</span>
             <ArrowRight className="h-5 w-5 ml-2" />
           </Button>
-        </div>
+        </div> */}
 
         {/* Move to Limits */}
         <div className="border-t pt-4">

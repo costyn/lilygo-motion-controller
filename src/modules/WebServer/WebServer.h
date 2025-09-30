@@ -10,6 +10,11 @@
 
 // Simple circular buffer for debug messages
 #define DEBUG_BUFFER_SIZE 100
+
+// Broadcast timing intervals (milliseconds)
+#define POSITION_BROADCAST_INTERVAL_MS 100
+#define STATUS_BROADCAST_INTERVAL_MS 500
+
 class DebugBuffer {
 private:
     String buffer[DEBUG_BUFFER_SIZE];
@@ -33,6 +38,11 @@ private:
     WiFiManager wm;
     bool initialized;
     DebugBuffer debugBuffer;
+
+    // Broadcast timing state
+    unsigned long lastPositionBroadcast;
+    unsigned long lastStatusBroadcast;
+    bool wasMovingLastUpdate;
 
     // WebSocket handlers
     void handleWebSocketMessage(void *arg, uint8_t *data, size_t len);

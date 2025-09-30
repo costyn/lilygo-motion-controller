@@ -59,9 +59,8 @@ function AppContent() {
                 onClick={manualReconnect}
                 disabled={connectionState.isConnecting}
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${
-                  connectionState.isConnecting ? 'animate-spin' : ''
-                }`} />
+                <RefreshCw className={`h-4 w-4 mr-2 ${connectionState.isConnecting ? 'animate-spin' : ''
+                  }`} />
                 Reconnect
               </Button>
             )}
@@ -113,6 +112,7 @@ function AppContent() {
             isConnected={isConnected}
             isMoving={motorStatus.isMoving}
             emergencyStop={motorStatus.emergencyStop}
+            currentPosition={motorStatus.position}
             motorConfig={motorConfig}
             onMoveTo={moveTo}
           />
