@@ -131,8 +131,8 @@ void loop()
     // Main loop handles motor control (time-critical)
     motorController.update();
 
-    // Small delay to prevent watchdog issues
-    delayMicroseconds(100);
+    // No delay - AccelStepper needs maximum call frequency for high speeds
+    // Watchdog is automatically fed by FreeRTOS idle task
 }
 
 void InputTask(void *pvParameters)

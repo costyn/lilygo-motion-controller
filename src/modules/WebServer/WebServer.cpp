@@ -378,6 +378,18 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
                 updated = true;
             }
 
+            if (doc["minLimit"].is<long>())
+            {
+                config.setLimitPos1(doc["minLimit"]);
+                updated = true;
+            }
+
+            if (doc["maxLimit"].is<long>())
+            {
+                config.setLimitPos2(doc["maxLimit"]);
+                updated = true;
+            }
+
             if (doc["useStealthChop"].is<bool>())
             {
                 config.setUseStealthChop(doc["useStealthChop"]);
