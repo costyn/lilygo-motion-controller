@@ -11,9 +11,9 @@ export const CONTROLLER_HOSTNAME = 'lilygo-motioncontroller.local';
 
 export function getWebSocketUrl(endpoint: string): string {
   // During development, use the dev server's proxy
-  if (import.meta.env.DEV) {
-    return `ws://localhost:5173${endpoint}`;
-  }
+  // if (import.meta.env.DEV) {
+  //   return `ws://localhost:5173${endpoint}`;
+  // }
 
   // In production, try .local hostname first, fallback to current host
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';

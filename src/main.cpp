@@ -159,7 +159,7 @@ void InputTask(void *pvParameters)
         button3.tick();
 
         // Update limit switches
-        limitSwitch.update();
+        // limitSwitch.update();
 
         // Calculate speed from encoder (like factory code)
         motorController.calculateSpeed(100);

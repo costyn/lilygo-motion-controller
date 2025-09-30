@@ -3,3 +3,4 @@
 .claude/settings.local.json
 webapp/node_modules
 webapp/dist
+webapp/.vite
