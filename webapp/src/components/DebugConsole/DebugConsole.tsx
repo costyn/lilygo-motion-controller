@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Activity, Wifi, WifiOff, Trash2, RotateCcw } from 'lucide-react';
 import './DebugConsole.css';
 
 const DebugConsole: React.FC = () => {
@@ -8,45 +11,46 @@ const DebugConsole: React.FC = () => {
   const consoleRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
-  useEffect(() => {
-    if (isVisible && !wsRef.current) {
-      // Connect to debug WebSocket
-      setConnectionStatus('connecting');
-      setMessages(['[Connecting to debug stream...]']);
+  const connectWebSocket = () => {
+    if (wsRef.current) {
+      return; // Already connected or connecting
+    }
 
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/debug`;
+    setConnectionStatus('connecting');
+    setMessages(prev => [...prev, '[Connecting to debug stream...]']);
 
-      const ws = new WebSocket(wsUrl);
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/debug`;
 
-      ws.onopen = () => {
-        setConnectionStatus('connected');
-        setMessages(prev => [...prev, '[Connected to debug stream]']);
-      };
+    const ws = new WebSocket(wsUrl);
 
-      ws.onmessage = (event) => {
-        setMessages(prev => [...prev, event.data]);
-      };
+    ws.onopen = () => {
+      setConnectionStatus('connected');
+      setMessages(prev => [...prev, '[Connected to debug stream]']);
+    };
 
-      ws.onclose = () => {
-        wsRef.current = null;
-        setConnectionStatus('disconnected');
-        setMessages(prev => [...prev, '[Connection closed]']);
-      };
+    ws.onmessage = (event) => {
+      setMessages(prev => [...prev, event.data]);
+    };
 
-      ws.onerror = (error) => {
-        console.error('Debug WebSocket error:', error);
-        setConnectionStatus('disconnected');
-        setMessages(prev => [...prev, '[Connection error - retrying...]']);
-      };
-
-      wsRef.current = ws;
-    } else if (!isVisible && wsRef.current) {
-      // Close WebSocket when hiding console
-      wsRef.current.close();
+    ws.onclose = () => {
       wsRef.current = null;
       setConnectionStatus('disconnected');
-    }
+      setMessages(prev => [...prev, '[Connection closed]']);
+    };
+
+    ws.onerror = (error) => {
+      console.error('Debug WebSocket error:', error);
+      setConnectionStatus('disconnected');
+      setMessages(prev => [...prev, '[Connection error]']);
+    };
+
+    wsRef.current = ws;
+  };
+
+  // Auto-connect on mount
+  useEffect(() => {
+    connectWebSocket();
 
     return () => {
       if (wsRef.current) {
@@ -54,7 +58,7 @@ const DebugConsole: React.FC = () => {
         wsRef.current = null;
       }
     };
-  }, [isVisible]);
+  }, []);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -71,30 +75,78 @@ const DebugConsole: React.FC = () => {
     setMessages([]);
   };
 
-  return (
-    <div className="debug-console-container">
-      <div className="debug-console-controls">
-        <button onClick={handleToggle} className="debug-toggle-btn">
-          {isVisible ? 'Hide' : 'Show'} Debug Console
-          {isVisible && connectionStatus === 'connecting' && ' (Connecting...)'}
-        </button>
-        {isVisible && (
-          <button onClick={handleClear} className="debug-clear-btn">
-            Clear
-          </button>
-        )}
-      </div>
+  const handleReconnect = () => {
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    connectWebSocket();
+  };
 
+  const getConnectionIcon = () => {
+    if (connectionStatus === 'connecting') {
+      return <Activity className="h-4 w-4 animate-pulse text-yellow-500" />;
+    } else if (connectionStatus === 'connected') {
+      return <Wifi className="h-4 w-4 text-green-500" />;
+    } else {
+      return <WifiOff className="h-4 w-4 text-red-500" />;
+    }
+  };
+
+  return (
+    <Card className="mt-6">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center justify-between text-lg">
+          <div className="flex items-center gap-2">
+            <span>Debug Console</span>
+            {getConnectionIcon()}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleToggle}
+            >
+              {isVisible ? 'Hide' : 'Show'}
+            </Button>
+            {isVisible && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClear}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+                {connectionStatus === 'disconnected' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleReconnect}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </CardTitle>
+      </CardHeader>
       {isVisible && (
-        <div ref={consoleRef} className="debug-console">
-          {messages.map((msg, index) => (
-            <div key={index} className="debug-message">
-              {msg}
-            </div>
-          ))}
-        </div>
+        <CardContent>
+          <div
+            ref={consoleRef}
+            className="debug-console-output"
+          >
+            {messages.map((msg, index) => (
+              <div key={index} className="whitespace-pre-wrap break-words leading-relaxed">
+                {msg}
+              </div>
+            ))}
+          </div>
+        </CardContent>
       )}
-    </div>
+    </Card>
   );
 };
 

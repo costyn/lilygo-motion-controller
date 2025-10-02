@@ -1,62 +1,30 @@
-.debug-console-container {
-  margin-top: 20px;
-  width: 100%;
-}
-
-.debug-console-controls {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.debug-toggle-btn,
-.debug-clear-btn {
-  padding: 8px 16px;
-  border: 1px solid hsl(var(--input));
-  border-radius: 6px;
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.debug-toggle-btn:hover,
-.debug-clear-btn:hover {
-  background: hsl(var(--accent));
-  color: hsl(var(--accent-foreground));
-}
-
-.debug-console {
+/* Debug Console - Always dark background for readability */
+.debug-console-output {
   border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem;
   height: 300px;
-  overflow-y: scroll;
-  background: hsl(var(--card));
+  overflow-y: auto;
+  background: #0a0a0a;
   color: hsl(142 70% 55%);
   font-family: 'Courier New', Courier, monospace;
-  padding: 10px;
-  border-radius: 8px;
+  font-size: 0.875rem;
+  padding: 0.75rem;
 }
 
-.debug-message {
-  white-space: pre-wrap;
-  word-break: break-word;
-  line-height: 1.4;
-}
-
-.debug-console::-webkit-scrollbar {
+.debug-console-output::-webkit-scrollbar {
   width: 8px;
 }
 
-.debug-console::-webkit-scrollbar-track {
+.debug-console-output::-webkit-scrollbar-track {
   background: #1a1a1a;
-}
-
-.debug-console::-webkit-scrollbar-thumb {
-  background: hsl(142 70% 55%);
   border-radius: 4px;
 }
 
-.debug-console::-webkit-scrollbar-thumb:hover {
+.debug-console-output::-webkit-scrollbar-thumb {
   background: hsl(142 70% 45%);
+  border-radius: 4px;
+}
+
+.debug-console-output::-webkit-scrollbar-thumb:hover {
+  background: hsl(142 70% 55%);
 }
