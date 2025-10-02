@@ -194,6 +194,14 @@ export function useMotorController() {
     return sendCommand({ command: 'status' })
   }, [sendCommand])
 
+  const jogStart = useCallback((direction: 'forward' | 'backward') => {
+    return sendCommand({ command: 'jogStart', direction })
+  }, [sendCommand])
+
+  const jogStop = useCallback(() => {
+    return sendCommand({ command: 'jogStop' })
+  }, [sendCommand])
+
   const manualReconnect = useCallback(() => {
     cleanup()
     setConnectionState({
@@ -239,6 +247,8 @@ export function useMotorController() {
     clearEmergencyStop,
     updateConfig,
     refreshStatus,
+    jogStart,
+    jogStop,
     manualReconnect,
 
     // Raw WebSocket access for advanced use

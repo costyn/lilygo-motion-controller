@@ -163,6 +163,15 @@ void MotorController::stop()
     LOG_INFO("Motor stopped");
 }
 
+void MotorController::stopGently()
+{
+    // Stop motor movement without triggering emergency stop flag
+    // Use setCurrentPosition to stop immediately (no deceleration ramp)
+    stepper->setCurrentPosition(stepper->currentPosition());
+    stepper->setSpeed(0);
+    LOG_INFO("Motor stopped gently");
+}
+
 void MotorController::emergencyStop()
 {
     stop();

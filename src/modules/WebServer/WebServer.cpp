@@ -338,6 +338,49 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
             LOG_WARN("Emergency stop triggered - broadcasting status");
             broadcastStatus();
         }
+        else if (command == "jogStart")
+        {
+            if (doc["direction"].is<const char *>() || doc["direction"].is<String>())
+            {
+                String direction = doc["direction"].as<String>();
+
+                if (!limitSwitch.isAnyTriggered() && !motorController.isEmergencyStopActive())
+                {
+                    // Calculate jog speed (30% of max speed)
+                    int jogSpeed = config.getMaxSpeed() * 0.3;
+
+                    if (direction == "forward")
+                    {
+                        // Move to max limit at jog speed
+                        long targetPosition = config.getMaxLimit();
+                        motorController.moveTo(targetPosition, jogSpeed);
+                        LOG_INFO("Jog started: forward to %ld at speed %d", targetPosition, jogSpeed);
+                    }
+                    else if (direction == "backward")
+                    {
+                        // Move to min limit at jog speed
+                        long targetPosition = config.getMinLimit();
+                        motorController.moveTo(targetPosition, jogSpeed);
+                        LOG_INFO("Jog started: backward to %ld at speed %d", targetPosition, jogSpeed);
+                    }
+
+                    // Broadcast status to show movement started
+                    broadcastStatus();
+                    lastPositionBroadcast = millis();
+                    lastStatusBroadcast = millis();
+                }
+                else
+                {
+                    ws.textAll("{\"type\":\"error\",\"message\":\"Cannot jog: limit or emergency stop active\"}");
+                }
+            }
+        }
+        else if (command == "jogStop")
+        {
+            motorController.stopGently();
+            LOG_INFO("Jog stopped");
+            broadcastStatus();
+        }
         else if (command == "reset")
         {
             motorController.clearEmergencyStop();

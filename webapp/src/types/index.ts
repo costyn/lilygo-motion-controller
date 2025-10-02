@@ -78,6 +78,15 @@ export interface SetConfigCommand {
   useStealthChop?: boolean;
 }
 
+export interface JogStartCommand {
+  command: 'jogStart';
+  direction: 'forward' | 'backward';
+}
+
+export interface JogStopCommand {
+  command: 'jogStop';
+}
+
 export type ControlCommand =
   | MoveCommand
   | StopCommand
@@ -85,7 +94,9 @@ export type ControlCommand =
   | ResetCommand
   | StatusCommand
   | GetConfigCommand
-  | SetConfigCommand;
+  | SetConfigCommand
+  | JogStartCommand
+  | JogStopCommand;
 
 // Connection state
 export interface ConnectionState {

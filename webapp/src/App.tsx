@@ -18,26 +18,17 @@ function AppContent() {
     moveTo,
     emergencyStop,
     clearEmergencyStop,
+    jogStart,
+    jogStop,
     manualReconnect
   } = useMotorController()
 
   const handleJogStart = (direction: 'forward' | 'backward') => {
-    const jogDistance = 100 // Small step for jogging
-    const jogSpeed = Math.round(motorConfig.maxSpeed * 0.3) // 30% of max speed
-    const currentPos = motorStatus.position
-
-    let newPosition: number
-    if (direction === 'forward') {
-      newPosition = Math.min(currentPos + jogDistance, motorConfig.maxLimit)
-    } else {
-      newPosition = Math.max(currentPos - jogDistance, motorConfig.minLimit)
-    }
-
-    moveTo(newPosition, jogSpeed)
+    jogStart(direction)
   }
 
   const handleJogStop = () => {
-    stop() // Stop current movement
+    jogStop()
   }
 
   const handleMoveToLimit = (limit: 'min' | 'max') => {

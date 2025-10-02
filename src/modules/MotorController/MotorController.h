@@ -43,6 +43,7 @@ public:
     // Motor control methods
     void moveTo(long position, int speedPercent = 50);
     void stop();
+    void stopGently();  // Stop without triggering emergency stop (for jogging)
     void emergencyStop();
     void clearEmergencyStop();
 
