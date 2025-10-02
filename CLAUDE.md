@@ -131,6 +131,7 @@ The `factory-example.cpp` provided by user was used as reference to ensure:
 ```
 src/modules/
 ├── Configuration/     # ESP32 Preferences, motor settings, limit positions
+├── DebugConsole/     # Serial logging is sent over websocket to a text field for display
 ├── MotorController/   # TMC2209 + MT6816, factory-accurate initialization
 ├── LimitSwitch/      # Debounced switches, position learning
 └── WebServer/        # WiFiManager, WebSocket, REST API
@@ -161,7 +162,8 @@ src/modules/
 ### REST Endpoints
 - `GET /api/status` - Full system status
 - `POST /api/move` - Move to position (params: position, speed)
-- `POST /api/stop` - Emergency stop
+- `POST /api/emergency-stop` - Emergency stop
+- `POST /api/stop` - Stop
 - `POST /api/reset` - Clear emergency stop
 - `GET /api/config` - Motor configuration
 
@@ -193,10 +195,6 @@ src/modules/
 - Minimal build (without WebServer): SUCCESS
 - Full build (with WebServer): SUCCESS
 - Memory usage within acceptable limits
-
-### ⚠️ Hardware Testing
-**Status**: Not possible - hardware at friend's location
-**Next Steps**: Ready for hardware deployment and testing
 
 ## Development Notes
 
