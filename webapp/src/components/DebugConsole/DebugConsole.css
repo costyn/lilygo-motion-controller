@@ -1,0 +1,62 @@
+.debug-console-container {
+  margin-top: 20px;
+  width: 100%;
+}
+
+.debug-console-controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.debug-toggle-btn,
+.debug-clear-btn {
+  padding: 8px 16px;
+  border: 1px solid hsl(var(--input));
+  border-radius: 6px;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.debug-toggle-btn:hover,
+.debug-clear-btn:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.debug-console {
+  border: 1px solid hsl(var(--border));
+  height: 300px;
+  overflow-y: scroll;
+  background: hsl(var(--card));
+  color: hsl(142 70% 55%);
+  font-family: 'Courier New', Courier, monospace;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.debug-message {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.debug-console::-webkit-scrollbar {
+  width: 8px;
+}
+
+.debug-console::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.debug-console::-webkit-scrollbar-thumb {
+  background: hsl(142 70% 55%);
+  border-radius: 4px;
+}
+
+.debug-console::-webkit-scrollbar-thumb:hover {
+  background: hsl(142 70% 45%);
+}

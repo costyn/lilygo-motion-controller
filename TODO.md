@@ -13,9 +13,9 @@
 - [X] **Dynamic TMC2209 Mode Switching** - Advanced SpreadCycle/StealthChop optimization based on load/speed: Already in updateTMCMode()?
 - [ ] **Smooth Acceleration/Deceleration** - Currently using basic AccelStepper, may need custom curves (is the same as easing?)
 - [ ] **Physical Button Controls**
-  - Button 1: Move clockwise until limit switch hit
+  - Button 1: Jog clockwise until limit switch hit
   - Button 2: Emergency stop (✅ partially implemented)
-  - Button 3: Move counterclockwise until limit switch hit
+  - Button 3: Jog counterclockwise until limit switch hit
 - [ ] **Standalone mode auto redirect** - When the wifimanager isn't used and times out, the project should create it's own AP without a password. If the user then connects to the AP, would be cool if they were automatically directed to the webapp. 
 - [ ] **Custom Movement Playlists** - Predetermined movement sequences/loops
 - [ ] **Playlist WebSocket Control** - Send movement sequences from webapp

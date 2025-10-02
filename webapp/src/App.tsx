@@ -4,6 +4,7 @@ import { ThemeToggle } from './components/ui/theme-toggle'
 import { MotorStatus } from './components/MotorControl/MotorStatus'
 import { JogControls } from './components/MotorControl/JogControls'
 import { PositionControl } from './components/MotorControl/PositionControl'
+import DebugConsole from './components/DebugConsole/DebugConsole'
 import { useMotorController } from './hooks/useMotorController'
 import { Button } from './components/ui/button'
 import { ExternalLink, RefreshCw } from 'lucide-react'
@@ -36,7 +37,7 @@ function AppContent() {
   }
 
   const handleJogStop = () => {
-    emergencyStop() // Stop current movement
+    stop() // Stop current movement
   }
 
   const handleMoveToLimit = (limit: 'min' | 'max') => {
@@ -117,6 +118,7 @@ function AppContent() {
             onMoveTo={moveTo}
           />
         </div>
+        <DebugConsole />
       </main>
 
       {/* Footer */}

@@ -55,6 +55,10 @@ export interface StopCommand {
   command: 'stop';
 }
 
+export interface EmergencyStopCommand {
+  command: 'emergency-stop';
+}
+
 export interface ResetCommand {
   command: 'reset';
 }
@@ -77,6 +81,7 @@ export interface SetConfigCommand {
 export type ControlCommand =
   | MoveCommand
   | StopCommand
+  | EmergencyStopCommand
   | ResetCommand
   | StatusCommand
   | GetConfigCommand

@@ -1,0 +1,14 @@
+{
+    "command": "setConfig",
+    "maxSpeed": 700,
+    "acceleration": 500,
+    "minLimit": 0,
+    "maxLimit": 5500,
+    "useStealthChop": true
+}
+
+{
+  "command": "move",
+  "position": 50,
+  "speed": 100
+}
