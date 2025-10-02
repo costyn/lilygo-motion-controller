@@ -20,6 +20,19 @@ LilyGo Motion Controller - Modular wireless stepper motor controller for LilyGo 
 10. **WebSocket Command Logging** - All incoming commands logged to serial/debug stream with backward compatibility for `"cmd"` and `"goto"` fields
 11. **Unit Testing Framework** - Native cross-platform tests for MotorController calculation functions (20 tests passing)
 
+### ✅ CI/CD Pipeline (October 2025)
+12. **GitHub Actions Workflow** - Automated build and release pipeline in `.github/workflows/build.yml`
+   - Triggers only on version tags (e.g., `v1.0.0`)
+   - Builds firmware for `pico32` environment
+   - Builds SPIFFS filesystem image
+   - Creates GitHub Release with versioned artifacts:
+     - `lilygo-motion-controller-v1.0.0.bin` (firmware)
+     - `spiffs-v1.0.0.bin` (web interface)
+     - `checksums.txt` (SHA256 hashes)
+   - PlatformIO package caching for fast subsequent builds (~1-3 minutes)
+   - Free tier: Unlimited minutes for public repositories
+   - **Usage**: `git tag -a v1.0.0 -m "Release" && git push origin v1.0.0`
+
 ## Key Technical Details
 
 ### Library Dependencies (platformio.ini)
