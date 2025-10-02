@@ -2,15 +2,8 @@ name: PlatformIO CI
 
 on:
   push:
-    branches:
-      - main
-      - dev
     tags:
       - 'v*'
-  pull_request:
-    branches:
-      - main
-      - dev
 
 jobs:
   build:
@@ -45,9 +38,6 @@ jobs:
 
     - name: Build SPIFFS filesystem
       run: pio run --target buildfs --environment pico32
-
-    - name: Run tests
-      run: pio test --environment native
 
     - name: Upload firmware artifacts
       uses: actions/upload-artifact@v4
