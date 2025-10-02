@@ -147,7 +147,7 @@ void WebServerClass::setupRoutes()
 
     server.on("/api/stop", HTTP_POST, [this](AsyncWebServerRequest *request)
               {
-        motorController.emergencyStop();
+        motorController.stop();
         request->send(200, "application/json", "{\"status\":\"stopped\"}"); });
 
     server.on("/api/reset", HTTP_POST, [this](AsyncWebServerRequest *request)
@@ -332,7 +332,7 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
         }
         else if (command == "stop")
         {
-            motorController.emergencyStop();
+            motorController.stop();
 
             // Immediate broadcast of emergency stop state
             LOG_WARN("Emergency stop triggered - broadcasting status");
@@ -478,8 +478,6 @@ void WebServerClass::onDebugWebSocketEvent(AsyncWebSocket *server, AsyncWebSocke
     {
     case WS_EVT_CONNECT:
         LOG_INFO("Debug WebSocket client #%u connected from %s", client->id(), client->remoteIP().toString().c_str());
-        // Send a simple welcome message instead of history (to prevent flooding)
-        client->text("[DEBUG] Debug WebSocket connected - showing real-time logs only");
         break;
 
     case WS_EVT_DISCONNECT:

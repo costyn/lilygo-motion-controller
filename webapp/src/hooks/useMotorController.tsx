@@ -59,7 +59,7 @@ export function useMotorController() {
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN ||
-        wsRef.current?.readyState === WebSocket.CONNECTING) {
+      wsRef.current?.readyState === WebSocket.CONNECTING) {
       return
     }
 
@@ -173,8 +173,12 @@ export function useMotorController() {
     return sendCommand({ command: 'move', position, speed })
   }, [sendCommand])
 
-  const emergencyStop = useCallback(() => {
+  const stop = useCallback(() => {
     return sendCommand({ command: 'stop' })
+  }, [sendCommand])
+
+  const emergencyStop = useCallback(() => {
+    return sendCommand({ command: 'emergency-stop' })
   }, [sendCommand])
 
   const clearEmergencyStop = useCallback(() => {
@@ -230,6 +234,7 @@ export function useMotorController() {
 
     // Control methods
     moveTo,
+    stop,
     emergencyStop,
     clearEmergencyStop,
     updateConfig,
