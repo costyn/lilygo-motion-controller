@@ -6,7 +6,8 @@
 // Global instance
 LimitSwitch limitSwitch;
 
-LimitSwitch::LimitSwitch(uint8_t limitPin1, uint8_t limitPin2) {
+LimitSwitch::LimitSwitch(uint8_t limitPin1, uint8_t limitPin2)
+{
     button1 = new OneButton(limitPin1, true); // true = INPUT_PULLUP, active LOW
     button2 = new OneButton(limitPin2, true);
     switch1Triggered = false;
@@ -14,7 +15,8 @@ LimitSwitch::LimitSwitch(uint8_t limitPin1, uint8_t limitPin2) {
     onLimitTriggered = nullptr;
 }
 
-bool LimitSwitch::begin() {
+bool LimitSwitch::begin()
+{
     // Attach click handlers for limit switches
     button1->attachClick(onSwitch1Pressed);
     button2->attachClick(onSwitch2Pressed);
@@ -23,24 +25,27 @@ bool LimitSwitch::begin() {
     return true;
 }
 
-void LimitSwitch::setLimitCallback(LimitSwitchCallback callback) {
+void LimitSwitch::setLimitCallback(LimitSwitchCallback callback)
+{
     onLimitTriggered = callback;
 }
 
-void LimitSwitch::update() {
+void LimitSwitch::update()
+{
     // OneButton handles all the debouncing
     button1->tick();
     button2->tick();
 }
 
-void LimitSwitch::onSwitch1Pressed() {
+void LimitSwitch::onSwitch1Pressed()
+{
     limitSwitch.switch1Triggered = true;
     long currentPos = motorController.getCurrentPosition();
 
     LOG_WARN("Limit Switch 1 triggered at position: %ld", currentPos);
 
     // Stop motor with recovery to limit position
-    motorController.emergencyStopWithRecovery(currentPos);
+    motorController.emergencyStop();
 
     // Save limit position
     config.setLimitPos1(currentPos);
@@ -51,19 +56,21 @@ void LimitSwitch::onSwitch1Pressed() {
     broadcastStatusFromLimitSwitch();
 
     // Call callback if set
-    if (limitSwitch.onLimitTriggered) {
+    if (limitSwitch.onLimitTriggered)
+    {
         limitSwitch.onLimitTriggered(1, currentPos);
     }
 }
 
-void LimitSwitch::onSwitch2Pressed() {
+void LimitSwitch::onSwitch2Pressed()
+{
     limitSwitch.switch2Triggered = true;
     long currentPos = motorController.getCurrentPosition();
 
     LOG_WARN("Limit Switch 2 triggered at position: %ld", currentPos);
 
     // Stop motor with recovery to limit position
-    motorController.emergencyStopWithRecovery(currentPos);
+    motorController.emergencyStop();
 
     // Save limit position
     config.setLimitPos2(currentPos);
@@ -74,12 +81,14 @@ void LimitSwitch::onSwitch2Pressed() {
     broadcastStatusFromLimitSwitch();
 
     // Call callback if set
-    if (limitSwitch.onLimitTriggered) {
+    if (limitSwitch.onLimitTriggered)
+    {
         limitSwitch.onLimitTriggered(2, currentPos);
     }
 }
 
-void LimitSwitch::clearTriggers() {
+void LimitSwitch::clearTriggers()
+{
     switch1Triggered = false;
     switch2Triggered = false;
     motorController.clearEmergencyStop(); // Also clear the emergency stop

@@ -18,7 +18,6 @@
 #define SPI_MISO 12
 #define SPI_MOSI 13
 
-
 // Static member initialization
 double MotorController::lastLocation = 0;
 double MotorController::currentLocation = 0;
@@ -39,8 +38,6 @@ MotorController::MotorController()
     targetPosition = 0;
     emergencyStopActive = false;
     useStealthChop = true;
-    needsLimitRecovery = false;
-    limitRecoveryPosition = 0;
 }
 
 bool MotorController::begin()
@@ -101,7 +98,6 @@ bool MotorController::initEncoder()
     return true;
 }
 
-
 void MotorController::moveTo(long position, int speed)
 {
     if (emergencyStopActive)
@@ -146,18 +142,9 @@ void MotorController::emergencyStop()
     LOG_WARN("EMERGENCY STOP ACTIVATED");
 }
 
-void MotorController::emergencyStopWithRecovery(long limitPosition)
-{
-    stop();
-    needsLimitRecovery = true;
-    limitRecoveryPosition = limitPosition;
-    LOG_WARN("EMERGENCY STOP ACTIVATED - will recover to position %ld after deceleration", limitPosition);
-}
-
 void MotorController::clearEmergencyStop()
 {
     emergencyStopActive = false;
-    needsLimitRecovery = false;
     LOG_INFO("Emergency stop cleared");
 }
 
@@ -250,35 +237,6 @@ void MotorController::update()
     if (emergencyStopActive)
     {
         stepper->setSpeed(0);
-
-        // Check if recovery is needed after deceleration completes
-        if (needsLimitRecovery && !stepper->isRunning())
-        {
-            long currentPos = stepper->currentPosition();
-
-            // Only recover if we're not already at the limit position
-            if (currentPos != limitRecoveryPosition)
-            {
-                LOG_INFO("Deceleration complete at position %ld, recovering to limit position %ld",
-                         currentPos, limitRecoveryPosition);
-
-                // Clear emergency stop to allow recovery movement
-                emergencyStopActive = false;
-                needsLimitRecovery = false;
-
-                // Move back to limit position at slow speed
-                stepper->setMaxSpeed(MIN_SPEED * 5); // 5x minimum speed = slow recovery
-                stepper->moveTo(limitRecoveryPosition);
-
-                LOG_INFO("Recovery move started");
-            }
-            else
-            {
-                // Already at limit position, just clear recovery flag but keep emergency stop
-                needsLimitRecovery = false;
-                LOG_INFO("Already at limit position %ld, emergency stop remains active", limitRecoveryPosition);
-            }
-        }
     }
     else
     {

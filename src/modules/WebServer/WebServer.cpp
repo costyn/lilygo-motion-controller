@@ -336,10 +336,15 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
             LOG_INFO("Jog stopped");
             broadcastStatus();
         }
+        else if (command == "stop")
+        {
+            motorController.emergencyStop();
+            broadcastStatus();
+        }
         else if (command == "reset")
         {
             limitSwitch.clearTriggers(); // Clears both limit triggers and emergency stop
-            broadcastStatus(); // Send updated state to webapp
+            broadcastStatus();           // Send updated state to webapp
         }
         else if (command == "status")
         {
