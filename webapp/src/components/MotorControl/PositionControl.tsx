@@ -59,7 +59,8 @@ export function PositionControl({
     onMoveTo(position, jogSpeed)
   }
 
-  const controlsDisabled = !isConnected || emergencyStop
+  const controlsDisabled = !isConnected || emergencyStop || isMoving
+
 
   return (
     <Card>
@@ -153,7 +154,7 @@ export function PositionControl({
                 variant="outline"
                 size="sm"
                 onClick={() => handleQuickPosition(percentage)}
-                disabled={controlsDisabled || isMoving}
+                disabled={controlsDisabled}
                 className="text-xs"
               >
                 {percentage}%
