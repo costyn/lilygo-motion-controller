@@ -1,12 +1,10 @@
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Slider } from '@/components/ui/slider'
 import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { validatePosition, formatPosition } from '@/lib/utils'
+import { formatPosition } from '@/lib/utils'
 import type { MotorConfig } from '@/types'
-import { Target, AlertCircle } from 'lucide-react'
 
 interface PositionControlProps {
   isConnected: boolean
@@ -26,8 +24,9 @@ export function PositionControl({
   onMoveTo
 }: PositionControlProps) {
   const [targetPosition, setTargetPosition] = useState([motorConfig.minLimit])
-  const [targetSpeed, setTargetSpeed] = useState('50') // Default to 50% of max speed
-  const [validationError, setValidationError] = useState('')
+  // Default to 50% of max speed in actual steps/sec
+  const defaultSpeed = Math.round(motorConfig.maxSpeed * 0.5)
+  const [targetSpeed, setTargetSpeed] = useState([defaultSpeed])
 
   // Calculate position progress
   const range = motorConfig.maxLimit - motorConfig.minLimit
@@ -38,45 +37,28 @@ export function PositionControl({
 
   const handlePositionChange = (value: number[]) => {
     setTargetPosition(value)
-    setValidationError('')
   }
 
-  const handleSpeedChange = (value: string) => {
+  const handleSpeedChange = (value: number[]) => {
     setTargetSpeed(value)
-  }
-
-  const handleMove = () => {
-    const position = targetPosition[0]
-    const speedPercent = parseInt(targetSpeed, 10)
-
-    // Validation
-    if (isNaN(speedPercent) || speedPercent < 1 || speedPercent > 100) {
-      setValidationError('Speed must be between 1-100%')
-      return
-    }
-
-    const actualSpeed = Math.round((speedPercent / 100) * motorConfig.maxSpeed)
-    onMoveTo(position, actualSpeed)
   }
 
   const handleQuickPosition = (percentage: number) => {
     const range = motorConfig.maxLimit - motorConfig.minLimit
     const position = motorConfig.minLimit + Math.round((percentage / 100) * range)
-    const speedPercent = parseInt(targetSpeed, 10) || 50
-    const actualSpeed = Math.round((speedPercent / 100) * motorConfig.maxSpeed)
+    const speed = targetSpeed[0]
 
     // Update slider position and move motor
     setTargetPosition([position])
-    onMoveTo(position, actualSpeed)
+    onMoveTo(position, speed)
   }
 
   // Handle slider commit (when user stops dragging)
   const handleSliderCommit = (value: number[]) => {
     const position = value[0]
-    const speedPercent = parseInt(targetSpeed, 10) || 50
-    const actualSpeed = Math.round((speedPercent / 100) * motorConfig.maxSpeed)
+    const speed = targetSpeed[0]
 
-    onMoveTo(position, actualSpeed)
+    onMoveTo(position, speed)
   }
 
   const controlsDisabled = !isConnected || emergencyStop
@@ -131,30 +113,32 @@ export function PositionControl({
           </div>
         </div>
 
-        {/* Speed Input */}
+        {/* Speed Slider */}
         <div>
-          <label htmlFor="target-speed" className="text-sm font-medium mb-2 block">
-            Speed (1-100% of {motorConfig.maxSpeed.toLocaleString()} steps/s)
-          </label>
-          <Input
-            id="target-speed"
-            type="number"
-            placeholder="Speed %..."
-            value={targetSpeed}
-            onChange={(e) => handleSpeedChange(e.target.value)}
-            disabled={controlsDisabled}
-            min={1}
-            max={100}
-          />
-        </div>
-
-        {/* Validation Error */}
-        {validationError && (
-          <div className="flex items-center gap-2 text-red-600 text-sm">
-            <AlertCircle className="h-4 w-4" />
-            {validationError}
+          <div className="flex justify-between items-center mb-2">
+            <label className="text-sm font-medium">
+              Speed
+            </label>
+            <span className="text-sm text-muted-foreground font-mono">
+              {targetSpeed[0].toLocaleString()} steps/s
+            </span>
           </div>
-        )}
+          <div className="px-2">
+            <Slider
+              value={targetSpeed}
+              onValueChange={handleSpeedChange}
+              min={100}
+              max={motorConfig.maxSpeed}
+              step={100}
+              disabled={controlsDisabled}
+              className="w-full"
+            />
+          </div>
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+            <span>100</span>
+            <span>{motorConfig.maxSpeed.toLocaleString()}</span>
+          </div>
+        </div>
 
         {/* Info Text */}
         <div className="text-xs text-muted-foreground text-center py-1">

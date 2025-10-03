@@ -1,15 +1,18 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { ThemeProvider } from './components/ThemeProvider'
 import { ThemeToggle } from './components/ui/theme-toggle'
 import { MotorStatus } from './components/MotorControl/MotorStatus'
 import { JogControls } from './components/MotorControl/JogControls'
 import { PositionControl } from './components/MotorControl/PositionControl'
 import DebugConsole from './components/DebugConsole/DebugConsole'
+import { MotorConfigDialog } from './components/MotorConfig/MotorConfigDialog'
 import { useMotorController } from './hooks/useMotorController'
 import { Button } from './components/ui/button'
-import { ExternalLink, RefreshCw } from 'lucide-react'
+import { ExternalLink, RefreshCw, Settings } from 'lucide-react'
 
 function AppContent() {
+  const [configDialogOpen, setConfigDialogOpen] = useState(false)
+
   const {
     connectionState,
     isConnected,
@@ -18,6 +21,7 @@ function AppContent() {
     moveTo,
     emergencyStop,
     clearEmergencyStop,
+    updateConfig,
     jogStart,
     jogStop,
     manualReconnect
@@ -56,6 +60,14 @@ function AppContent() {
                 Reconnect
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setConfigDialogOpen(true)}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -121,6 +133,15 @@ function AppContent() {
           </p>
         </div>
       </footer>
+
+      {/* Motor Config Dialog */}
+      <MotorConfigDialog
+        open={configDialogOpen}
+        onOpenChange={setConfigDialogOpen}
+        currentConfig={motorConfig}
+        onApply={updateConfig}
+        isConnected={isConnected}
+      />
     </div>
   )
 }

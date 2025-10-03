@@ -125,37 +125,11 @@ void WebServerClass::setupRoutes()
     // Serve static files from SPIFFS
     server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
 
-    // API endpoints
+    // Read-only REST API endpoints (monitoring/debugging only)
+    // For control operations, use WebSocket interface at /ws
     server.on("/api/status", HTTP_GET, [this](AsyncWebServerRequest *request)
               { handleAPI(request); });
 
-    server.on("/api/move", HTTP_POST, [this](AsyncWebServerRequest *request)
-              {
-        if (request->hasParam("position", true) && request->hasParam("speed", true)) {
-            long position = request->getParam("position", true)->value().toInt();
-            int speed = request->getParam("speed", true)->value().toInt();
-
-            if (!limitSwitch.isAnyTriggered()) {
-                motorController.moveTo(position, speed);
-                request->send(200, "application/json", "{\"status\":\"moving\"}");
-            } else {
-                request->send(400, "application/json", "{\"error\":\"limit switch triggered\"}");
-            }
-        } else {
-            request->send(400, "application/json", "{\"error\":\"missing parameters\"}");
-        } });
-
-    server.on("/api/stop", HTTP_POST, [this](AsyncWebServerRequest *request)
-              {
-        motorController.stop();
-        request->send(200, "application/json", "{\"status\":\"stopped\"}"); });
-
-    server.on("/api/reset", HTTP_POST, [this](AsyncWebServerRequest *request)
-              {
-        motorController.clearEmergencyStop();
-        request->send(200, "application/json", "{\"status\":\"reset\"}"); });
-
-    // Configuration endpoints
     server.on("/api/config", HTTP_GET, [this](AsyncWebServerRequest *request)
               {
         JsonDocument doc;
@@ -168,45 +142,6 @@ void WebServerClass::setupRoutes()
         String response;
         serializeJson(doc, response);
         request->send(200, "application/json", response); });
-
-    server.on("/api/config", HTTP_POST, [this](AsyncWebServerRequest *request)
-              {
-        bool updated = false;
-        JsonDocument response;
-
-        if (request->hasParam("maxSpeed", true)) {
-            long maxSpeed = request->getParam("maxSpeed", true)->value().toInt();
-            config.setMaxSpeed(maxSpeed);
-            motorController.setMaxSpeed(maxSpeed);
-            updated = true;
-        }
-
-        if (request->hasParam("acceleration", true)) {
-            long acceleration = request->getParam("acceleration", true)->value().toInt();
-            config.setAcceleration(acceleration);
-            motorController.setAcceleration(acceleration);
-            updated = true;
-        }
-
-        if (request->hasParam("useStealthChop", true)) {
-            bool useStealthChop = request->getParam("useStealthChop", true)->value() == "true";
-            config.setUseStealthChop(useStealthChop);
-            motorController.setTMCMode(useStealthChop);
-            updated = true;
-        }
-
-        if (updated) {
-            config.saveConfiguration();
-            response["status"] = "success";
-            response["message"] = "Configuration updated";
-        } else {
-            response["status"] = "error";
-            response["message"] = "No valid parameters provided";
-        }
-
-        String responseStr;
-        serializeJson(response, responseStr);
-        request->send(200, "application/json", responseStr); });
 }
 
 void WebServerClass::setupWebSocket()

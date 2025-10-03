@@ -8,22 +8,22 @@ This mobile-first webapp provides real-time control of stepper motors through an
 
 ## Features
 
-### Phase 1 (Current)
+### Current Features
 - **Real-time Motor Control**: WebSocket-based communication with auto-reconnect
-- **Jog Controls**: Press-and-hold directional controls with visual feedback
+- **Continuous Jog Controls**: Press-and-hold for smooth continuous movement (with backend `jogStart`/`jogStop` commands)
 - **Position Control**: Slider-based positioning with drag-to-move functionality
+- **Motor Configuration UI**: Settings dialog for speed, acceleration, and StealthChop mode
 - **Emergency Stop**: Immediate motor halt with reset capability
 - **Status Monitoring**: Live position, speed, and connection status
 - **Mobile-First Design**: Touch-optimized interface for phone/tablet use
 - **Dark Theme**: Professional dark UI with consistent styling
 - **Limit Detection**: Visual indicators for limit switch states
+- **Debug Console**: Real-time serial output via `/debug` WebSocket in collapsible panel
 
-### Phase 2 (Future)
+### Future Enhancements
 - Position presets and profiles
-- Speed ramping controls
 - Multiple motor support
-- Settings persistence on controller
-- Advanced diagnostics
+- Advanced diagnostics dashboard
 
 ## Technology Stack
 
@@ -95,30 +95,35 @@ dist/                           # Vite build output
 
 ### Connection
 - **Control**: `ws://lilygo-motioncontroller.local/ws`
-- **Debug**: `ws://lilygo-motioncontroller.local/debug`
+- **Debug**: `ws://lilygo-motioncontroller.local/debug` (serial output stream)
 
-### Commands
+### Commands Sent to `/ws`
 ```typescript
-// Move to position
+// Move to absolute position
 {
   "command": "move",
   "position": 1000,
   "speed": 50
 }
 
-// Jog controls
+// Continuous jogging (true backend continuous movement)
 {
-  "command": "jog",
+  "command": "jogStart",
   "direction": "forward" | "backward"
 }
 
 {
+  "command": "jogStop"
+}
+
+// Stop motor gently (no emergency flag)
+{
   "command": "stop"
 }
 
-// Emergency stop
+// Emergency stop (requires reset)
 {
-  "command": "emergency_stop"
+  "command": "emergency-stop"
 }
 
 // Clear emergency stop
@@ -126,29 +131,68 @@ dist/                           # Vite build output
   "command": "reset"
 }
 
-// Move to limits
+// Request status
 {
-  "command": "move_to_limit",
-  "limit": "min" | "max"
+  "command": "status"
+}
+
+// Get configuration
+{
+  "command": "getConfig"
+}
+
+// Update configuration (validated and saved to NVRAM)
+{
+  "command": "setConfig",
+  "maxSpeed": 14400,
+  "acceleration": 80000,
+  "useStealthChop": true
 }
 ```
 
-### Status Updates
+**Note:** Legacy `"cmd": "goto"` format still supported for backward compatibility.
+
+### Status Updates Received from `/ws`
 ```typescript
+// Motor status (broadcast periodically)
 {
   "type": "status",
   "position": 1000,
-  "target": 1500,
-  "speed": 0,
   "isMoving": false,
   "emergencyStop": false,
-  "limitMin": false,
-  "limitMax": false,
-  "motorConfig": {
-    "minLimit": 0,
-    "maxLimit": 10000,
-    "maxSpeed": 1000
+  "limitSwitches": {
+    "min": false,
+    "max": false,
+    "any": false
   }
+}
+
+// Motor configuration
+{
+  "type": "config",
+  "maxSpeed": 14400,
+  "acceleration": 80000,
+  "minLimit": -5000,
+  "maxLimit": 50500,
+  "useStealthChop": true
+}
+
+// Position updates (during movement)
+{
+  "type": "position",
+  "position": 1250
+}
+
+// Configuration update confirmation
+{
+  "type": "configUpdated",
+  "status": "success"
+}
+
+// Error messages
+{
+  "type": "error",
+  "message": "Cannot jog: limit or emergency stop active"
 }
 ```
 
@@ -175,21 +219,32 @@ src/
 
 #### `useMotorController` Hook
 Manages WebSocket connection with:
-- Automatic reconnection (limited retries)
+- Automatic reconnection (limited retries with manual reconnect)
 - Command queuing and validation
-- Status state management
+- Status and config state management
 - Error handling and recovery
+- Methods: `moveTo()`, `jogStart()`, `jogStop()`, `emergencyStop()`, `clearEmergencyStop()`, `updateConfig()`
+
+#### `MotorConfigDialog` Component
+- Radix Dialog with form validation
+- Real-time validation for speed (100-100,000) and acceleration (100-500,000)
+- StealthChop mode toggle
+- Read-only limit position display
+- Revert and Apply buttons
+- Auto-saves to ESP32 NVRAM on apply
 
 #### `PositionControl` Component
 - Slider-based position control
 - Uses `onValueCommit` to prevent command spam during drag
 - Quick position buttons (0%, 25%, 50%, 75%, 100%)
 - Speed percentage input with validation
+- Move to min/max limit buttons
 
 #### `JogControls` Component
 - Press-and-hold directional controls
-- Continuous jogging with 100ms intervals
-- Touch and mouse event support
+- **True continuous movement** via backend `jogStart`/`jogStop` commands
+- Mouse and touch event support with leave detection
+- Ref-based state tracking to prevent spurious stops
 - Emergency stop integration
 
 ### Development Server

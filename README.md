@@ -73,27 +73,23 @@ src/
 
 ## API Reference
 
-### REST Endpoints
+### WebSocket Commands (Primary Interface)
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/status` | Get current motor status and position |
-| POST | `/api/move` | Move to position (`position`, `speed` parameters) |
-| POST | `/api/stop` | Emergency stop |
-| POST | `/api/reset` | Clear emergency stop |
-| GET | `/api/config` | Get motor configuration |
-| POST | `/api/config` | Update motor configuration (`maxSpeed`, `acceleration`, `useStealthChop` parameters) |
-
-### WebSocket Commands
-
-Send JSON messages to `/ws`:
+**WebSocket is the primary control interface.** Connect to `/ws` and send JSON messages:
 
 ```json
-// Move motor
+// Move to absolute position
 {"command": "move", "position": 1000, "speed": 50}
 
-// Emergency stop
+// Continuous jogging (hold to move)
+{"command": "jogStart", "direction": "forward"}  // or "backward"
+{"command": "jogStop"}
+
+// Stop motor gently (without emergency flag)
 {"command": "stop"}
+
+// Emergency stop (requires reset to resume)
+{"command": "emergency-stop"}
 
 // Clear emergency stop
 {"command": "reset"}
@@ -104,14 +100,25 @@ Send JSON messages to `/ws`:
 // Get current configuration
 {"command": "getConfig"}
 
-// Update configuration
+// Update configuration (auto-saved to NVRAM)
 {
   "command": "setConfig",
-  "maxSpeed": 8000,
-  "acceleration": 16000,
+  "maxSpeed": 14400,
+  "acceleration": 80000,
   "useStealthChop": true
 }
 ```
+
+**Backward Compatibility:** Legacy `"cmd": "goto"` format still supported for older clients.
+
+### REST API (Read-Only)
+
+**For monitoring and debugging only. Use WebSocket for all control operations.**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/status` | Get current motor status, position, and limit switch states |
+| GET | `/api/config` | Get motor configuration (speed, acceleration, limits, mode) |
 
 ### WebSocket Responses
 
@@ -204,13 +211,16 @@ pio test -e native
 
 ### Motor Configuration
 
-Default settings can be modified via the Configuration module:
+Default settings can be modified via WebSocket or web interface Settings dialog:
 
-- **Max Speed**: 8000 steps/second
-- **Acceleration**: 16000 steps/second²
+- **Max Speed**: 14,400 steps/second (default) - Range: 100-100,000 steps/sec
+- **Acceleration**: 80,000 steps/second² (default) - Range: 100-500,000 steps/sec²
 - **Microsteps**: 16 (1/16th stepping)
 - **RMS Current**: 2000mA
-- **StealthChop Threshold**: 50% of max speed
+- **StealthChop Mode**: Enabled by default (quieter operation, less torque)
+- **StealthChop Threshold**: Automatic switching at 50% of max speed
+
+**Motor-Specific Tuning:** Validation ranges accommodate various motors (e.g., Sanyo Denki 103-547-52500, NEMA 17). Exceeding your motor's capability may cause skipped steps but won't damage hardware. Consult your motor datasheet for optimal settings.
 
 ### Limit Switch Learning
 

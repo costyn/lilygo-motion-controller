@@ -27,6 +27,12 @@ private:
     // Speed threshold for TMC mode switching (percentage)
     const float STEALTH_CHOP_THRESHOLD = 0.5;
 
+    // Safety limits for motor configuration (based on TMC2209 capabilities)
+    static constexpr long MIN_SPEED = 100;           // steps/sec
+    static constexpr long MAX_SPEED = 100000;        // steps/sec (TMC2209 practical limit)
+    static constexpr long MIN_ACCELERATION = 100;     // steps/sec²
+    static constexpr long MAX_ACCELERATION = 500000;  // steps/sec² (TMC2209 practical limit)
+
 public:
     // Constructor
     MotorController();
@@ -41,7 +47,7 @@ public:
     void initLEDSequence();
 
     // Motor control methods
-    void moveTo(long position, int speedPercent = 50);
+    void moveTo(long position, int speed);
     void stop();
     void stopGently();  // Stop without triggering emergency stop (for jogging)
     void emergencyStop();
