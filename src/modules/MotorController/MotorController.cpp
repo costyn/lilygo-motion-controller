@@ -39,6 +39,8 @@ MotorController::MotorController()
     targetPosition = 0;
     emergencyStopActive = false;
     useStealthChop = true;
+    needsLimitRecovery = false;
+    limitRecoveryPosition = 0;
 }
 
 bool MotorController::begin()
@@ -144,9 +146,18 @@ void MotorController::emergencyStop()
     LOG_WARN("EMERGENCY STOP ACTIVATED");
 }
 
+void MotorController::emergencyStopWithRecovery(long limitPosition)
+{
+    stop();
+    needsLimitRecovery = true;
+    limitRecoveryPosition = limitPosition;
+    LOG_WARN("EMERGENCY STOP ACTIVATED - will recover to position %ld after deceleration", limitPosition);
+}
+
 void MotorController::clearEmergencyStop()
 {
     emergencyStopActive = false;
+    needsLimitRecovery = false;
     LOG_INFO("Emergency stop cleared");
 }
 
@@ -239,6 +250,23 @@ void MotorController::update()
     if (emergencyStopActive)
     {
         stepper->setSpeed(0);
+
+        // Check if recovery is needed after deceleration completes
+        if (needsLimitRecovery && !stepper->isRunning())
+        {
+            LOG_INFO("Deceleration complete at position %ld, recovering to limit position %ld",
+                     stepper->currentPosition(), limitRecoveryPosition);
+
+            // Clear emergency stop to allow recovery movement
+            emergencyStopActive = false;
+            needsLimitRecovery = false;
+
+            // Move back to limit position at slow speed
+            stepper->setMaxSpeed(MIN_SPEED * 5); // 5x minimum speed = slow recovery
+            stepper->moveTo(limitRecoveryPosition);
+
+            LOG_INFO("Recovery move started");
+        }
     }
     else
     {

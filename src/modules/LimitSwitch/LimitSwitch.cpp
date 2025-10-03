@@ -39,8 +39,8 @@ void LimitSwitch::onSwitch1Pressed() {
 
     LOG_WARN("Limit Switch 1 triggered at position: %ld", currentPos);
 
-    // Stop motor immediately
-    motorController.emergencyStop();
+    // Stop motor with recovery to limit position
+    motorController.emergencyStopWithRecovery(currentPos);
 
     // Save limit position
     config.setLimitPos1(currentPos);
@@ -62,8 +62,8 @@ void LimitSwitch::onSwitch2Pressed() {
 
     LOG_WARN("Limit Switch 2 triggered at position: %ld", currentPos);
 
-    // Stop motor immediately
-    motorController.emergencyStop();
+    // Stop motor with recovery to limit position
+    motorController.emergencyStopWithRecovery(currentPos);
 
     // Save limit position
     config.setLimitPos2(currentPos);

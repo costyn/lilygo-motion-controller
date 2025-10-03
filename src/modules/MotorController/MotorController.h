@@ -25,6 +25,10 @@ private:
     volatile bool emergencyStopActive;
     bool useStealthChop;
 
+    // Limit switch recovery
+    volatile bool needsLimitRecovery;
+    volatile long limitRecoveryPosition;
+
     // Speed threshold for TMC mode switching (percentage)
     const float STEALTH_CHOP_THRESHOLD = 0.5;
 
@@ -49,6 +53,7 @@ public:
     void stop();
     void stopGently(); // Stop without triggering emergency stop (for jogging)
     void emergencyStop();
+    void emergencyStopWithRecovery(long limitPosition); // Emergency stop with return to limit position
     void clearEmergencyStop();
 
     // Position and status

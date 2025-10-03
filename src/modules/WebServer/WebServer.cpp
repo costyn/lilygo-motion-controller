@@ -286,15 +286,16 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
 
                     if (direction == "forward")
                     {
-                        // Move to max limit at jog speed
-                        long targetPosition = config.getMaxLimit();
+                        // Move to a very large position (limit switch will stop it)
+                        // Use 1 million steps as "infinite" target
+                        long targetPosition = motorController.getCurrentPosition() + 1000000;
                         motorController.moveTo(targetPosition, jogSpeed);
                         LOG_INFO("Jog started: forward to %ld at speed %d", targetPosition, jogSpeed);
                     }
                     else if (direction == "backward")
                     {
-                        // Move to min limit at jog speed
-                        long targetPosition = config.getMinLimit();
+                        // Move to a very large negative position (limit switch will stop it)
+                        long targetPosition = motorController.getCurrentPosition() - 1000000;
                         motorController.moveTo(targetPosition, jogSpeed);
                         LOG_INFO("Jog started: backward to %ld at speed %d", targetPosition, jogSpeed);
                     }
