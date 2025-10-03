@@ -69,6 +69,7 @@ public:
     bool begin();
     void update();
     void broadcastStatus();
+    void broadcastConfig();
     void broadcastPosition(long position);
     void broadcastDebugMessage(const String& message);
 };

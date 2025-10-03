@@ -286,16 +286,15 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
 
                     if (direction == "forward")
                     {
-                        // Move to a very large position (limit switch will stop it)
-                        // Use 1 million steps as "infinite" target
-                        long targetPosition = motorController.getCurrentPosition() + 1000000;
+                        // Move to max limit (or limit switch will stop it if reached first)
+                        long targetPosition = config.getMaxLimit();
                         motorController.moveTo(targetPosition, jogSpeed);
                         LOG_INFO("Jog started: forward to %ld at speed %d", targetPosition, jogSpeed);
                     }
                     else if (direction == "backward")
                     {
-                        // Move to a very large negative position (limit switch will stop it)
-                        long targetPosition = motorController.getCurrentPosition() - 1000000;
+                        // Move to min limit (or limit switch will stop it if reached first)
+                        long targetPosition = config.getMinLimit();
                         motorController.moveTo(targetPosition, jogSpeed);
                         LOG_INFO("Jog started: backward to %ld at speed %d", targetPosition, jogSpeed);
                     }
@@ -437,6 +436,24 @@ void WebServerClass::broadcastStatus()
     ws.textAll(message);
 }
 
+void WebServerClass::broadcastConfig()
+{
+    if (!initialized)
+        return;
+
+    JsonDocument doc;
+    doc["type"] = "config";
+    doc["maxSpeed"] = config.getMaxSpeed();
+    doc["acceleration"] = config.getAcceleration();
+    doc["minLimit"] = config.getMinLimit();
+    doc["maxLimit"] = config.getMaxLimit();
+    doc["useStealthChop"] = config.getUseStealthChop();
+
+    String message;
+    serializeJson(doc, message);
+    ws.textAll(message);
+}
+
 void WebServerClass::broadcastPosition(long position)
 {
     if (!initialized)
@@ -537,4 +554,5 @@ void WebServerClass::update()
 void broadcastStatusFromLimitSwitch()
 {
     webServer.broadcastStatus();
+    webServer.broadcastConfig();
 }

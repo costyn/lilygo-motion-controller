@@ -47,10 +47,12 @@ TaskHandle_t webServerTaskHandle = NULL;
 void InputTask(void *pvParameters);
 void WebServerTask(void *pvParameters);
 
-// Button callback functions (for debugging)
-void onButton1Click();
+// Button callback functions
+void onButton1Press();
+void onButton1Release();
 void onButton2Click();
-void onButton3Click();
+void onButton3Press();
+void onButton3Release();
 
 void setup()
 {
@@ -139,10 +141,19 @@ void InputTask(void *pvParameters)
 {
     LOG_INFO("Input Task started");
 
-    // Initialize buttons for debugging
-    button1.attachClick(onButton1Click);
+    // Initialize buttons
+    // Button 1: Jog backward (press and hold)
+    button1.attachLongPressStart(onButton1Press);
+    button1.attachLongPressStop(onButton1Release);
+    button1.setPressTicks(100); // Start jogging after 100ms
+
+    // Button 2: Emergency stop (click)
     button2.attachClick(onButton2Click);
-    button3.attachClick(onButton3Click);
+
+    // Button 3: Jog forward (press and hold)
+    button3.attachLongPressStart(onButton3Press);
+    button3.attachLongPressStop(onButton3Release);
+    button3.setPressTicks(100); // Start jogging after 100ms
 
     // Initialize encoder
     motorController.initEncoder();
@@ -181,15 +192,24 @@ void WebServerTask(void *pvParameters)
     }
 }
 
-// Button callback functions (for debugging/testing)
-void onButton1Click()
+// Button callback functions
+void onButton1Press()
 {
-    LOG_INFO("Button 1 pressed - Move forward");
-    if (!limitSwitch.isAnyTriggered())
+    // Button 1: Jog backward (to min limit)
+    LOG_INFO("Button 1 press - Jog backward");
+    if (!limitSwitch.isAnyTriggered() && !motorController.isEmergencyStopActive())
     {
-        long currentPos = motorController.getCurrentPosition();
-        motorController.moveTo(currentPos + 100, 30); // Move 100 steps forward at 30% speed
+        int jogSpeed = config.getMaxSpeed() * 0.3; // 30% of max speed
+        long targetPosition = config.getMinLimit();
+        motorController.moveTo(targetPosition, jogSpeed);
+        LOG_INFO("Jog backward started to %ld at speed %d", targetPosition, jogSpeed);
     }
+}
+
+void onButton1Release()
+{
+    LOG_INFO("Button 1 release - Stop jog");
+    motorController.stopGently();
 }
 
 void onButton2Click()
@@ -198,12 +218,21 @@ void onButton2Click()
     motorController.emergencyStop();
 }
 
-void onButton3Click()
+void onButton3Press()
 {
-    LOG_INFO("Button 3 pressed - Move backward");
-    if (!limitSwitch.isAnyTriggered())
+    // Button 3: Jog forward (to max limit)
+    LOG_INFO("Button 3 press - Jog forward");
+    if (!limitSwitch.isAnyTriggered() && !motorController.isEmergencyStopActive())
     {
-        long currentPos = motorController.getCurrentPosition();
-        motorController.moveTo(currentPos - 100, 30); // Move 100 steps backward at 30% speed
+        int jogSpeed = config.getMaxSpeed() * 0.3; // 30% of max speed
+        long targetPosition = config.getMaxLimit();
+        motorController.moveTo(targetPosition, jogSpeed);
+        LOG_INFO("Jog forward started to %ld at speed %d", targetPosition, jogSpeed);
     }
+}
+
+void onButton3Release()
+{
+    LOG_INFO("Button 3 release - Stop jog");
+    motorController.stopGently();
 }

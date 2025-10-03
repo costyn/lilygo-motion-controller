@@ -254,18 +254,30 @@ void MotorController::update()
         // Check if recovery is needed after deceleration completes
         if (needsLimitRecovery && !stepper->isRunning())
         {
-            LOG_INFO("Deceleration complete at position %ld, recovering to limit position %ld",
-                     stepper->currentPosition(), limitRecoveryPosition);
+            long currentPos = stepper->currentPosition();
 
-            // Clear emergency stop to allow recovery movement
-            emergencyStopActive = false;
-            needsLimitRecovery = false;
+            // Only recover if we're not already at the limit position
+            if (currentPos != limitRecoveryPosition)
+            {
+                LOG_INFO("Deceleration complete at position %ld, recovering to limit position %ld",
+                         currentPos, limitRecoveryPosition);
 
-            // Move back to limit position at slow speed
-            stepper->setMaxSpeed(MIN_SPEED * 5); // 5x minimum speed = slow recovery
-            stepper->moveTo(limitRecoveryPosition);
+                // Clear emergency stop to allow recovery movement
+                emergencyStopActive = false;
+                needsLimitRecovery = false;
 
-            LOG_INFO("Recovery move started");
+                // Move back to limit position at slow speed
+                stepper->setMaxSpeed(MIN_SPEED * 5); // 5x minimum speed = slow recovery
+                stepper->moveTo(limitRecoveryPosition);
+
+                LOG_INFO("Recovery move started");
+            }
+            else
+            {
+                // Already at limit position, just clear recovery flag but keep emergency stop
+                needsLimitRecovery = false;
+                LOG_INFO("Already at limit position %ld, emergency stop remains active", limitRecoveryPosition);
+            }
         }
     }
     else
