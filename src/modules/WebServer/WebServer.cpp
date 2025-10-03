@@ -318,7 +318,8 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
         }
         else if (command == "reset")
         {
-            motorController.clearEmergencyStop();
+            limitSwitch.clearTriggers(); // Clears both limit triggers and emergency stop
+            broadcastStatus(); // Send updated state to webapp
         }
         else if (command == "status")
         {
@@ -529,4 +530,10 @@ void WebServerClass::update()
         broadcastStatus();
         wasMovingLastUpdate = false;
     }
+}
+
+// Global helper function for limit switch callbacks
+void broadcastStatusFromLimitSwitch()
+{
+    webServer.broadcastStatus();
 }

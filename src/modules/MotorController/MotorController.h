@@ -4,13 +4,14 @@
 #include <TMCStepper.h>
 #include <SPI.h>
 
-class MotorController {
+class MotorController
+{
 private:
     // TMC2209 and stepper objects
-    HardwareSerial* serialDriver;
-    TMC2209Stepper* driver;
-    AccelStepper* stepper;
-    SPIClass* mt6816;
+    HardwareSerial *serialDriver;
+    TMC2209Stepper *driver;
+    AccelStepper *stepper;
+    SPIClass *mt6816;
 
     // Position and speed tracking
     static double lastLocation;
@@ -30,8 +31,8 @@ private:
     // Safety limits for motor configuration (based on TMC2209 capabilities)
     static constexpr long MIN_SPEED = 100;           // steps/sec
     static constexpr long MAX_SPEED = 100000;        // steps/sec (TMC2209 practical limit)
-    static constexpr long MIN_ACCELERATION = 100;     // steps/sec²
-    static constexpr long MAX_ACCELERATION = 500000;  // steps/sec² (TMC2209 practical limit)
+    static constexpr long MIN_ACCELERATION = 100;    // steps/sec²
+    static constexpr long MAX_ACCELERATION = 500000; // steps/sec² (TMC2209 practical limit)
 
 public:
     // Constructor
@@ -40,16 +41,13 @@ public:
     // Initialize motor system
     bool begin();
 
-    // Initialize encoder (call from InputTask after LED sequence)
+    // Initialize encoder (call from InputTask)
     bool initEncoder();
-
-    // Initialize LED sequence (call from InputTask)
-    void initLEDSequence();
 
     // Motor control methods
     void moveTo(long position, int speed);
     void stop();
-    void stopGently();  // Stop without triggering emergency stop (for jogging)
+    void stopGently(); // Stop without triggering emergency stop (for jogging)
     void emergencyStop();
     void clearEmergencyStop();
 

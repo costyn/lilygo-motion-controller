@@ -139,15 +139,12 @@ void InputTask(void *pvParameters)
 {
     LOG_INFO("Input Task started");
 
-    // Initialize LED sequence exactly like factory code
-    motorController.initLEDSequence();
-
     // Initialize buttons for debugging
     button1.attachClick(onButton1Click);
     button2.attachClick(onButton2Click);
     button3.attachClick(onButton3Click);
 
-    // Initialize encoder after LED sequence (like factory code)
+    // Initialize encoder
     motorController.initEncoder();
 
     // Task main loop
@@ -159,9 +156,9 @@ void InputTask(void *pvParameters)
         button3.tick();
 
         // Update limit switches
-        // limitSwitch.update();
+        limitSwitch.update();
 
-        // Calculate speed from encoder (like factory code)
+        // Calculate speed from encoder
         motorController.calculateSpeed(100);
 
         // 100ms update rate for input monitoring

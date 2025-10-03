@@ -18,10 +18,6 @@
 #define SPI_MISO 12
 #define SPI_MOSI 13
 
-// LED pins from factory code
-#define iStep 25
-#define iDIR 32
-#define iEN 33
 
 // Static member initialization
 double MotorController::lastLocation = 0;
@@ -103,41 +99,6 @@ bool MotorController::initEncoder()
     return true;
 }
 
-// LED initialization sequence exactly from factory code
-void MotorController::initLEDSequence()
-{
-    LOG_INFO("Initializing LEDC sequence...");
-
-    ledcSetup(0, 1500, 8);
-    ledcSetup(1, 1500, 8);
-    ledcSetup(2, 1500, 8);
-
-    ledcAttachPin(iStep, 0);
-    ledcAttachPin(iDIR, 1);
-    ledcAttachPin(iEN, 2);
-
-    ledcWrite(0, 0xFF);
-    ledcWrite(1, 0xFF);
-    ledcWrite(2, 0xFF);
-
-    for (uint8_t i = 0; i < 3; i++)
-    {
-        ledcWrite(i, 0x80);
-        delay(300);
-        ledcWrite(i, 0xFF);
-        delay(300);
-    }
-
-    ledcDetachPin(iStep);
-    ledcDetachPin(iDIR);
-    ledcDetachPin(iEN);
-
-    pinMode(iStep, INPUT);
-    pinMode(iDIR, INPUT);
-    pinMode(iEN, INPUT);
-
-    LOG_INFO("LEDC sequence completed");
-}
 
 void MotorController::moveTo(long position, int speed)
 {
@@ -148,8 +109,10 @@ void MotorController::moveTo(long position, int speed)
     }
 
     // Clamp speed to safe limits (already validated, but extra safety check)
-    if (speed < MIN_SPEED) speed = MIN_SPEED;
-    if (speed > MAX_SPEED) speed = MAX_SPEED;
+    if (speed < MIN_SPEED)
+        speed = MIN_SPEED;
+    if (speed > MAX_SPEED)
+        speed = MAX_SPEED;
 
     targetPosition = position;
     stepper->setMaxSpeed(speed);
@@ -286,10 +249,13 @@ void MotorController::update()
 void MotorController::setAcceleration(long accel)
 {
     // Clamp acceleration to safe limits
-    if (accel < MIN_ACCELERATION) {
+    if (accel < MIN_ACCELERATION)
+    {
         LOG_WARN("Acceleration %ld below minimum, clamping to %ld", accel, MIN_ACCELERATION);
         accel = MIN_ACCELERATION;
-    } else if (accel > MAX_ACCELERATION) {
+    }
+    else if (accel > MAX_ACCELERATION)
+    {
         LOG_WARN("Acceleration %ld above maximum, clamping to %ld", accel, MAX_ACCELERATION);
         accel = MAX_ACCELERATION;
     }
@@ -301,10 +267,13 @@ void MotorController::setAcceleration(long accel)
 void MotorController::setMaxSpeed(long speed)
 {
     // Clamp speed to safe limits
-    if (speed < MIN_SPEED) {
+    if (speed < MIN_SPEED)
+    {
         LOG_WARN("Speed %ld below minimum, clamping to %ld", speed, MIN_SPEED);
         speed = MIN_SPEED;
-    } else if (speed > MAX_SPEED) {
+    }
+    else if (speed > MAX_SPEED)
+    {
         LOG_WARN("Speed %ld above maximum, clamping to %ld", speed, MAX_SPEED);
         speed = MAX_SPEED;
     }
