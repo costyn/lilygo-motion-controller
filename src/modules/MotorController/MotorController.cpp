@@ -139,7 +139,7 @@ void MotorController::initLEDSequence()
     LOG_INFO("LEDC sequence completed");
 }
 
-void MotorController::moveTo(long position, int speedPercent)
+void MotorController::moveTo(long position, int speed)
 {
     if (emergencyStopActive)
     {
@@ -147,12 +147,15 @@ void MotorController::moveTo(long position, int speedPercent)
         return;
     }
 
+    // Clamp speed to safe limits (already validated, but extra safety check)
+    if (speed < MIN_SPEED) speed = MIN_SPEED;
+    if (speed > MAX_SPEED) speed = MAX_SPEED;
+
     targetPosition = position;
-    float actualSpeed = (speedPercent / 100.0) * config.getMaxSpeed();
-    stepper->setMaxSpeed(actualSpeed);
+    stepper->setMaxSpeed(speed);
     stepper->moveTo(position);
 
-    LOG_INFO("Moving to position: %ld at speed: %d%%", position, speedPercent);
+    LOG_INFO("Moving to position: %ld at speed: %d steps/sec", position, speed);
 }
 
 void MotorController::stop()
@@ -161,6 +164,15 @@ void MotorController::stop()
     stepper->setSpeed(0);
     stepper->stop();
     LOG_INFO("Motor stopped");
+}
+
+void MotorController::stopGently()
+{
+    // Stop motor movement without triggering emergency stop flag
+    // Use setCurrentPosition to stop immediately (no deceleration ramp)
+    stepper->setCurrentPosition(stepper->currentPosition());
+    stepper->setSpeed(0);
+    LOG_INFO("Motor stopped gently");
 }
 
 void MotorController::emergencyStop()
@@ -273,12 +285,32 @@ void MotorController::update()
 
 void MotorController::setAcceleration(long accel)
 {
+    // Clamp acceleration to safe limits
+    if (accel < MIN_ACCELERATION) {
+        LOG_WARN("Acceleration %ld below minimum, clamping to %ld", accel, MIN_ACCELERATION);
+        accel = MIN_ACCELERATION;
+    } else if (accel > MAX_ACCELERATION) {
+        LOG_WARN("Acceleration %ld above maximum, clamping to %ld", accel, MAX_ACCELERATION);
+        accel = MAX_ACCELERATION;
+    }
+
     stepper->setAcceleration(accel);
+    LOG_INFO("Acceleration set to: %ld steps/sec²", accel);
 }
 
 void MotorController::setMaxSpeed(long speed)
 {
+    // Clamp speed to safe limits
+    if (speed < MIN_SPEED) {
+        LOG_WARN("Speed %ld below minimum, clamping to %ld", speed, MIN_SPEED);
+        speed = MIN_SPEED;
+    } else if (speed > MAX_SPEED) {
+        LOG_WARN("Speed %ld above maximum, clamping to %ld", speed, MAX_SPEED);
+        speed = MAX_SPEED;
+    }
+
     stepper->setMaxSpeed(speed);
+    LOG_INFO("Max speed set to: %ld steps/sec", speed);
 }
 
 void MotorController::setCurrentPosition(long position)

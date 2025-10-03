@@ -1,7 +1,7 @@
-import React, { useCallback, useRef } from 'react'
+import { useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ChevronLeft, ChevronRight, Square, RotateCcw, ArrowLeft, ArrowRight } from 'lucide-react'
+import { Square, RotateCcw, ArrowLeft, ArrowRight } from 'lucide-react'
 
 interface JogControlsProps {
   isConnected: boolean
@@ -24,48 +24,37 @@ export function JogControls({
   onClearEmergencyStop,
   onMoveToLimit
 }: JogControlsProps) {
-  const jogIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const isJoggingRef = useRef(false)
 
-  const startJog = useCallback((direction: 'forward' | 'backward') => {
-    if (!isConnected || emergencyStop || isJoggingRef.current) return
-
+  const handleMouseDown = (direction: 'forward' | 'backward') => {
+    if (!isConnected || emergencyStop) return
     isJoggingRef.current = true
     onJogStart(direction)
-
-    // Continue jogging while button is held
-    jogIntervalRef.current = setInterval(() => {
-      onJogStart(direction)
-    }, 100) // Send jog commands every 100ms
-  }, [isConnected, emergencyStop, onJogStart])
-
-  const stopJog = useCallback(() => {
-    if (jogIntervalRef.current) {
-      clearInterval(jogIntervalRef.current)
-      jogIntervalRef.current = null
-    }
-
-    if (isJoggingRef.current) {
-      isJoggingRef.current = false
-      onJogStop()
-    }
-  }, [onJogStop])
-
-  const handleMouseDown = (direction: 'forward' | 'backward') => {
-    startJog(direction)
   }
 
   const handleMouseUp = () => {
-    stopJog()
+    if (!isConnected || !isJoggingRef.current) return
+    isJoggingRef.current = false
+    onJogStop()
   }
 
-  // Touch events for mobile
+  const handleMouseLeave = () => {
+    // Only stop if we were actually jogging (button was pressed)
+    if (!isConnected || !isJoggingRef.current) return
+    isJoggingRef.current = false
+    onJogStop()
+  }
+
   const handleTouchStart = (direction: 'forward' | 'backward') => {
-    startJog(direction)
+    if (!isConnected || emergencyStop) return
+    isJoggingRef.current = true
+    onJogStart(direction)
   }
 
   const handleTouchEnd = () => {
-    stopJog()
+    if (!isConnected || !isJoggingRef.current) return
+    isJoggingRef.current = false
+    onJogStop()
   }
 
   const controlsDisabled = !isConnected || emergencyStop
@@ -105,11 +94,10 @@ export function JogControls({
         <div className="grid grid-cols-2 gap-2">
           <Button
             variant="outline"
-            size="touch"
-            disabled={controlsDisabled || isMoving}
+            disabled={controlsDisabled}
             onMouseDown={() => handleMouseDown('backward')}
             onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
             onTouchStart={() => handleTouchStart('backward')}
             onTouchEnd={handleTouchEnd}
             className="h-16 touch-button select-none"
@@ -120,11 +108,10 @@ export function JogControls({
 
           <Button
             variant="outline"
-            size="touch"
-            disabled={controlsDisabled || isMoving}
+            disabled={controlsDisabled}
             onMouseDown={() => handleMouseDown('forward')}
             onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
             onTouchStart={() => handleTouchStart('forward')}
             onTouchEnd={handleTouchEnd}
             className="h-16 touch-button select-none"

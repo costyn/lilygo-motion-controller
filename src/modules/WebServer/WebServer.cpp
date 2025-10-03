@@ -125,37 +125,11 @@ void WebServerClass::setupRoutes()
     // Serve static files from SPIFFS
     server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
 
-    // API endpoints
+    // Read-only REST API endpoints (monitoring/debugging only)
+    // For control operations, use WebSocket interface at /ws
     server.on("/api/status", HTTP_GET, [this](AsyncWebServerRequest *request)
               { handleAPI(request); });
 
-    server.on("/api/move", HTTP_POST, [this](AsyncWebServerRequest *request)
-              {
-        if (request->hasParam("position", true) && request->hasParam("speed", true)) {
-            long position = request->getParam("position", true)->value().toInt();
-            int speed = request->getParam("speed", true)->value().toInt();
-
-            if (!limitSwitch.isAnyTriggered()) {
-                motorController.moveTo(position, speed);
-                request->send(200, "application/json", "{\"status\":\"moving\"}");
-            } else {
-                request->send(400, "application/json", "{\"error\":\"limit switch triggered\"}");
-            }
-        } else {
-            request->send(400, "application/json", "{\"error\":\"missing parameters\"}");
-        } });
-
-    server.on("/api/stop", HTTP_POST, [this](AsyncWebServerRequest *request)
-              {
-        motorController.stop();
-        request->send(200, "application/json", "{\"status\":\"stopped\"}"); });
-
-    server.on("/api/reset", HTTP_POST, [this](AsyncWebServerRequest *request)
-              {
-        motorController.clearEmergencyStop();
-        request->send(200, "application/json", "{\"status\":\"reset\"}"); });
-
-    // Configuration endpoints
     server.on("/api/config", HTTP_GET, [this](AsyncWebServerRequest *request)
               {
         JsonDocument doc;
@@ -168,45 +142,6 @@ void WebServerClass::setupRoutes()
         String response;
         serializeJson(doc, response);
         request->send(200, "application/json", response); });
-
-    server.on("/api/config", HTTP_POST, [this](AsyncWebServerRequest *request)
-              {
-        bool updated = false;
-        JsonDocument response;
-
-        if (request->hasParam("maxSpeed", true)) {
-            long maxSpeed = request->getParam("maxSpeed", true)->value().toInt();
-            config.setMaxSpeed(maxSpeed);
-            motorController.setMaxSpeed(maxSpeed);
-            updated = true;
-        }
-
-        if (request->hasParam("acceleration", true)) {
-            long acceleration = request->getParam("acceleration", true)->value().toInt();
-            config.setAcceleration(acceleration);
-            motorController.setAcceleration(acceleration);
-            updated = true;
-        }
-
-        if (request->hasParam("useStealthChop", true)) {
-            bool useStealthChop = request->getParam("useStealthChop", true)->value() == "true";
-            config.setUseStealthChop(useStealthChop);
-            motorController.setTMCMode(useStealthChop);
-            updated = true;
-        }
-
-        if (updated) {
-            config.saveConfiguration();
-            response["status"] = "success";
-            response["message"] = "Configuration updated";
-        } else {
-            response["status"] = "error";
-            response["message"] = "No valid parameters provided";
-        }
-
-        String responseStr;
-        serializeJson(response, responseStr);
-        request->send(200, "application/json", responseStr); });
 }
 
 void WebServerClass::setupWebSocket()
@@ -336,6 +271,49 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
 
             // Immediate broadcast of emergency stop state
             LOG_WARN("Emergency stop triggered - broadcasting status");
+            broadcastStatus();
+        }
+        else if (command == "jogStart")
+        {
+            if (doc["direction"].is<const char *>() || doc["direction"].is<String>())
+            {
+                String direction = doc["direction"].as<String>();
+
+                if (!limitSwitch.isAnyTriggered() && !motorController.isEmergencyStopActive())
+                {
+                    // Calculate jog speed (30% of max speed)
+                    int jogSpeed = config.getMaxSpeed() * 0.3;
+
+                    if (direction == "forward")
+                    {
+                        // Move to max limit at jog speed
+                        long targetPosition = config.getMaxLimit();
+                        motorController.moveTo(targetPosition, jogSpeed);
+                        LOG_INFO("Jog started: forward to %ld at speed %d", targetPosition, jogSpeed);
+                    }
+                    else if (direction == "backward")
+                    {
+                        // Move to min limit at jog speed
+                        long targetPosition = config.getMinLimit();
+                        motorController.moveTo(targetPosition, jogSpeed);
+                        LOG_INFO("Jog started: backward to %ld at speed %d", targetPosition, jogSpeed);
+                    }
+
+                    // Broadcast status to show movement started
+                    broadcastStatus();
+                    lastPositionBroadcast = millis();
+                    lastStatusBroadcast = millis();
+                }
+                else
+                {
+                    ws.textAll("{\"type\":\"error\",\"message\":\"Cannot jog: limit or emergency stop active\"}");
+                }
+            }
+        }
+        else if (command == "jogStop")
+        {
+            motorController.stopGently();
+            LOG_INFO("Jog stopped");
             broadcastStatus();
         }
         else if (command == "reset")

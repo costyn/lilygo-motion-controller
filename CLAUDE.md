@@ -33,6 +33,34 @@ LilyGo Motion Controller - Modular wireless stepper motor controller for LilyGo 
    - Free tier: Unlimited minutes for public repositories
    - **Usage**: `git tag -a v1.0.0 -m "Release" && git push origin v1.0.0`
 
+### ✅ WebApp Features (October 2025)
+13. **Continuous Jog Controls** - Press-and-hold buttons for smooth continuous movement
+   - Backend `jogStart`/`jogStop` commands for true continuous motion
+   - Ref-based state tracking to prevent spurious stops
+   - Mouse and touch event support with leave detection
+   - `stopGently()` method that doesn't trigger emergency flag
+14. **Motor Configuration UI** - Settings dialog for motor parameters
+   - Max Speed: 100-100,000 steps/sec with real-time validation
+   - Acceleration: 100-500,000 steps/sec² with real-time validation
+   - StealthChop mode toggle (Quiet vs Powerful)
+   - Read-only limit position display
+   - Changes auto-saved to ESP32 NVRAM
+   - Motor-agnostic ranges accommodate different hardware
+15. **Speed Slider Enhancement** - Replaced percentage input with actual speed values
+   - Direct steps/sec control (100 to maxSpeed)
+   - Dynamic range based on current configuration
+   - Touch-friendly slider interface
+16. **Backend Validation System** - Safety limits enforced on all inputs
+   - Constants: MIN/MAX_SPEED (100-100,000), MIN/MAX_ACCELERATION (100-500,000)
+   - Clamping behavior (not rejection) for better UX
+   - Warning logs when values are adjusted
+   - Protects against WebSocket, REST API, and internal calls
+17. **REST API Cleanup** - Simplified to read-only monitoring
+   - Removed all POST control endpoints (move, stop, reset, config)
+   - Kept GET endpoints for status and config monitoring
+   - WebSocket established as single control interface
+   - Saved 2KB flash memory
+
 ## Key Technical Details
 
 ### Library Dependencies (platformio.ini)
@@ -131,6 +159,7 @@ The `factory-example.cpp` provided by user was used as reference to ensure:
 ```
 src/modules/
 ├── Configuration/     # ESP32 Preferences, motor settings, limit positions
+├── DebugConsole/     # Serial logging is sent over websocket to a text field for display
 ├── MotorController/   # TMC2209 + MT6816, factory-accurate initialization
 ├── LimitSwitch/      # Debounced switches, position learning
 └── WebServer/        # WiFiManager, WebSocket, REST API
@@ -161,7 +190,8 @@ src/modules/
 ### REST Endpoints
 - `GET /api/status` - Full system status
 - `POST /api/move` - Move to position (params: position, speed)
-- `POST /api/stop` - Emergency stop
+- `POST /api/emergency-stop` - Emergency stop
+- `POST /api/stop` - Stop
 - `POST /api/reset` - Clear emergency stop
 - `GET /api/config` - Motor configuration
 
@@ -193,10 +223,6 @@ src/modules/
 - Minimal build (without WebServer): SUCCESS
 - Full build (with WebServer): SUCCESS
 - Memory usage within acceptable limits
-
-### ⚠️ Hardware Testing
-**Status**: Not possible - hardware at friend's location
-**Next Steps**: Ready for hardware deployment and testing
 
 ## Development Notes
 
