@@ -244,13 +244,18 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
 
         if (command == "move" || command == "goto")
         {
-            if (doc["position"].is<long>() && doc["speed"].is<int>())
+            // Support both int and float for speed (JavaScript sends numbers as float)
+            bool hasPosition = doc["position"].is<long>();
+            bool hasSpeed = doc["speed"].is<int>() || doc["speed"].is<float>() || doc["speed"].is<double>();
+
+            if (hasPosition && hasSpeed)
             {
                 long position = doc["position"];
-                int speed = doc["speed"];
+                int speed = doc["speed"].as<int>(); // Convert to int regardless of source type
 
                 if (!limitSwitch.isAnyTriggered())
                 {
+                    LOG_INFO("Move command: position=%ld, speed=%d", position, speed);
                     motorController.moveTo(position, speed);
 
                     // Immediate status broadcast on movement start
@@ -264,6 +269,13 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
                     ws.textAll("{\"error\":\"limit switch triggered\"}");
                 }
             }
+            else
+            {
+                LOG_WARN("Invalid move command - position: %s, speed: %s",
+                         hasPosition ? "ok" : "missing",
+                         hasSpeed ? "ok" : "missing");
+                ws.textAll("{\"type\":\"error\",\"message\":\"Invalid move parameters\"}");
+            }
         }
         else if (command == "stop")
         {
@@ -275,15 +287,16 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
         }
         else if (command == "jogStart")
         {
-            if (doc["direction"].is<const char *>() || doc["direction"].is<String>())
+            bool hasDirection = doc["direction"].is<const char *>() || doc["direction"].is<String>();
+            bool hasSpeed = doc["speed"].is<int>() || doc["speed"].is<float>() || doc["speed"].is<double>();
+
+            if (hasDirection && hasSpeed)
             {
                 String direction = doc["direction"].as<String>();
+                int jogSpeed = doc["speed"].as<int>();
 
                 if (!limitSwitch.isAnyTriggered() && !motorController.isEmergencyStopActive())
                 {
-                    // Calculate jog speed (30% of max speed)
-                    int jogSpeed = config.getMaxSpeed() * 0.3;
-
                     if (direction == "forward")
                     {
                         // Move to max limit (or limit switch will stop it if reached first)
@@ -308,6 +321,13 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
                 {
                     ws.textAll("{\"type\":\"error\",\"message\":\"Cannot jog: limit or emergency stop active\"}");
                 }
+            }
+            else
+            {
+                LOG_WARN("Invalid jogStart command - direction: %s, speed: %s",
+                         hasDirection ? "ok" : "missing",
+                         hasSpeed ? "ok" : "missing");
+                ws.textAll("{\"type\":\"error\",\"message\":\"Invalid jog parameters\"}");
             }
         }
         else if (command == "jogStop")

@@ -145,7 +145,7 @@ void InputTask(void *pvParameters)
     // Button 1: Jog backward (press and hold)
     button1.attachLongPressStart(onButton1Press);
     button1.attachLongPressStop(onButton1Release);
-    button1.setPressTicks(100); // Start jogging after 100ms
+    button1.setPressMs(100); // Start jogging after 100ms
 
     // Button 2: Emergency stop (click)
     button2.attachClick(onButton2Click);
@@ -153,7 +153,7 @@ void InputTask(void *pvParameters)
     // Button 3: Jog forward (press and hold)
     button3.attachLongPressStart(onButton3Press);
     button3.attachLongPressStop(onButton3Release);
-    button3.setPressTicks(100); // Start jogging after 100ms
+    button3.setPressMs(100); // Start jogging after 100ms
 
     // Initialize encoder
     motorController.initEncoder();

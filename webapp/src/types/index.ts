@@ -81,6 +81,7 @@ export interface SetConfigCommand {
 export interface JogStartCommand {
   command: 'jogStart';
   direction: 'forward' | 'backward';
+  speed: number;
 }
 
 export interface JogStopCommand {

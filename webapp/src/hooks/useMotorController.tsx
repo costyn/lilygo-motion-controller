@@ -194,8 +194,8 @@ export function useMotorController() {
     return sendCommand({ command: 'status' })
   }, [sendCommand])
 
-  const jogStart = useCallback((direction: 'forward' | 'backward') => {
-    return sendCommand({ command: 'jogStart', direction })
+  const jogStart = useCallback((direction: 'forward' | 'backward', speed: number) => {
+    return sendCommand({ command: 'jogStart', direction, speed })
   }, [sendCommand])
 
   const jogStop = useCallback(() => {

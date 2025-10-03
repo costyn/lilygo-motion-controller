@@ -27,8 +27,16 @@ function AppContent() {
     manualReconnect
   } = useMotorController()
 
-  const handleJogStart = (direction: 'forward' | 'backward') => {
-    jogStart(direction)
+  // Shared jog speed state (30% of max speed by default)
+  const [jogSpeed, setJogSpeed] = useState(Math.round(motorConfig.maxSpeed * 0.3))
+
+  // Update jog speed when motor config changes
+  React.useEffect(() => {
+    setJogSpeed(Math.round(motorConfig.maxSpeed * 0.3))
+  }, [motorConfig.maxSpeed])
+
+  const handleJogStart = (direction: 'forward' | 'backward', speed: number) => {
+    jogStart(direction, speed)
   }
 
   const handleJogStop = () => {
@@ -37,7 +45,7 @@ function AppContent() {
 
   const handleMoveToLimit = (limit: 'min' | 'max') => {
     const targetPosition = limit === 'min' ? motorConfig.minLimit : motorConfig.maxLimit
-    const speed = Math.round(motorConfig.maxSpeed * 0.5) // 50% speed for limit moves
+    const speed = jogSpeed // Use jog speed for limit moves
     moveTo(targetPosition, speed)
   }
 
@@ -104,6 +112,7 @@ function AppContent() {
             isConnected={isConnected}
             isMoving={motorStatus.isMoving}
             emergencyStop={motorStatus.emergencyStop}
+            jogSpeed={jogSpeed}
             onJogStart={handleJogStart}
             onJogStop={handleJogStop}
             onEmergencyStop={emergencyStop}
@@ -118,6 +127,8 @@ function AppContent() {
             emergencyStop={motorStatus.emergencyStop}
             currentPosition={motorStatus.position}
             motorConfig={motorConfig}
+            jogSpeed={jogSpeed}
+            onJogSpeedChange={setJogSpeed}
             onMoveTo={moveTo}
           />
         </div>
