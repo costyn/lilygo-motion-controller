@@ -37,54 +37,58 @@ void LimitSwitch::update()
     button2->tick();
 }
 
-void LimitSwitch::onSwitch1Pressed()
+// Unified handler for both limit switches (DRY principle)
+void LimitSwitch::handleSwitchPressed(int switchNumber)
 {
-    limitSwitch.switch1Triggered = true;
     long currentPos = motorController.getCurrentPosition();
 
-    LOG_WARN("Limit Switch 1 triggered at position: %ld", currentPos);
+    LOG_WARN("Limit Switch %d triggered at position: %ld", switchNumber, currentPos);
 
-    // Stop motor with recovery to limit position
+    // Set appropriate trigger flag
+    if (switchNumber == 1)
+    {
+        switch1Triggered = true;
+    }
+    else
+    {
+        switch2Triggered = true;
+    }
+
+    // Stop motor with emergency stop
     motorController.emergencyStop();
 
     // Save limit position
-    config.setLimitPos1(currentPos);
-    config.saveLimitPositions(currentPos, config.getLimitPos2());
+    if (switchNumber == 1)
+    {
+        config.setLimitPos1(currentPos);
+        config.saveLimitPositions(currentPos, config.getLimitPos2());
+    }
+    else
+    {
+        config.setLimitPos2(currentPos);
+        config.saveLimitPositions(config.getLimitPos1(), currentPos);
+    }
 
     // Broadcast status update to webapp
     extern void broadcastStatusFromLimitSwitch();
     broadcastStatusFromLimitSwitch();
 
     // Call callback if set
-    if (limitSwitch.onLimitTriggered)
+    if (onLimitTriggered)
     {
-        limitSwitch.onLimitTriggered(1, currentPos);
+        onLimitTriggered(switchNumber, currentPos);
     }
+}
+
+// Static callbacks (required by OneButton library)
+void LimitSwitch::onSwitch1Pressed()
+{
+    limitSwitch.handleSwitchPressed(1);
 }
 
 void LimitSwitch::onSwitch2Pressed()
 {
-    limitSwitch.switch2Triggered = true;
-    long currentPos = motorController.getCurrentPosition();
-
-    LOG_WARN("Limit Switch 2 triggered at position: %ld", currentPos);
-
-    // Stop motor with recovery to limit position
-    motorController.emergencyStop();
-
-    // Save limit position
-    config.setLimitPos2(currentPos);
-    config.saveLimitPositions(config.getLimitPos1(), currentPos);
-
-    // Broadcast status update to webapp
-    extern void broadcastStatusFromLimitSwitch();
-    broadcastStatusFromLimitSwitch();
-
-    // Call callback if set
-    if (limitSwitch.onLimitTriggered)
-    {
-        limitSwitch.onLimitTriggered(2, currentPos);
-    }
+    limitSwitch.handleSwitchPressed(2);
 }
 
 void LimitSwitch::clearTriggers()

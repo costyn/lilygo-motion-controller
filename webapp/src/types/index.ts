@@ -51,12 +51,8 @@ export interface MoveCommand {
   speed: number;
 }
 
-export interface StopCommand {
-  command: 'stop';
-}
-
 export interface EmergencyStopCommand {
-  command: 'emergency-stop';
+  command: 'emergencyStop';
 }
 
 export interface ResetCommand {
@@ -90,7 +86,6 @@ export interface JogStopCommand {
 
 export type ControlCommand =
   | MoveCommand
-  | StopCommand
   | EmergencyStopCommand
   | ResetCommand
   | StatusCommand

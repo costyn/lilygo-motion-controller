@@ -209,7 +209,7 @@ void onButton1Press()
 void onButton1Release()
 {
     LOG_INFO("Button 1 release - Stop jog");
-    motorController.stopGently();
+    motorController.jogStop();
 }
 
 void onButton2Click()
@@ -234,5 +234,5 @@ void onButton3Press()
 void onButton3Release()
 {
     LOG_INFO("Button 3 release - Stop jog");
-    motorController.stopGently();
+    motorController.jogStop();
 }

@@ -14,6 +14,9 @@ private:
     typedef void (*LimitSwitchCallback)(int switchNumber, long position);
     LimitSwitchCallback onLimitTriggered;
 
+    // Unified handler (called by static callbacks)
+    void handleSwitchPressed(int switchNumber);
+
     // Static callback handlers (required for OneButton)
     static void onSwitch1Pressed();
     static void onSwitch2Pressed();

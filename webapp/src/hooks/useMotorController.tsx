@@ -173,12 +173,8 @@ export function useMotorController() {
     return sendCommand({ command: 'move', position, speed })
   }, [sendCommand])
 
-  const stop = useCallback(() => {
-    return sendCommand({ command: 'stop' })
-  }, [sendCommand])
-
   const emergencyStop = useCallback(() => {
-    return sendCommand({ command: 'emergency-stop' })
+    return sendCommand({ command: 'emergencyStop' })
   }, [sendCommand])
 
   const clearEmergencyStop = useCallback(() => {
@@ -242,7 +238,6 @@ export function useMotorController() {
 
     // Control methods
     moveTo,
-    stop,
     emergencyStop,
     clearEmergencyStop,
     updateConfig,

@@ -119,26 +119,20 @@ void MotorController::moveTo(long position, int speed)
     LOG_INFO("Moving to position: %ld at speed: %d steps/sec", position, speed);
 }
 
-void MotorController::stop()
-{
-    emergencyStopActive = true;
-    stepper->setSpeed(0);
-    stepper->stop();
-    LOG_INFO("Motor stopped");
-}
-
-void MotorController::stopGently()
+void MotorController::jogStop()
 {
     // Stop motor movement without triggering emergency stop flag
     // Use setCurrentPosition to stop immediately (no deceleration ramp)
     stepper->setCurrentPosition(stepper->currentPosition());
     stepper->setSpeed(0);
-    LOG_INFO("Motor stopped gently");
+    LOG_INFO("Motor jog stopped");
 }
 
 void MotorController::emergencyStop()
 {
-    stop();
+    emergencyStopActive = true;
+    stepper->setSpeed(0);
+    stepper->stop();
     LOG_WARN("EMERGENCY STOP ACTIVATED");
 }
 
