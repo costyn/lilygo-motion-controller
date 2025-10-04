@@ -211,7 +211,7 @@ export function useMotorController() {
 
   // Initialize connection
   useEffect(() => {
-    const timeoutId = setTimeout(connect, 500) // Small delay to allow component mounting
+    connect()
 
     const handleBeforeUnload = () => {
       cleanup()
@@ -220,7 +220,6 @@ export function useMotorController() {
     window.addEventListener('beforeunload', handleBeforeUnload)
 
     return () => {
-      clearTimeout(timeoutId)
       window.removeEventListener('beforeunload', handleBeforeUnload)
       cleanup()
     }

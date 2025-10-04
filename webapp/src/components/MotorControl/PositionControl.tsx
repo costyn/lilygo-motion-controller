@@ -112,6 +112,11 @@ export function PositionControl({
           </div>
         </div>
 
+        {/* Info Text */}
+        <div className="text-xs text-muted-foreground text-center py-1">
+          Drag slider or use quick positions. Motor moves when you release the slider.
+        </div>
+
         {/* Speed Slider */}
         <div>
           <div className="flex justify-between items-center mb-2">
@@ -139,10 +144,6 @@ export function PositionControl({
           </div>
         </div>
 
-        {/* Info Text */}
-        <div className="text-xs text-muted-foreground text-center py-1">
-          Drag slider or use quick positions. Motor moves when you release the slider.
-        </div>
 
         {/* Quick Position Buttons */}
         <div className="border-t pt-4">
