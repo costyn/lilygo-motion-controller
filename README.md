@@ -2,6 +2,64 @@
 
 A modular wireless stepper motor controller for LilyGo T-Motor hardware with TMC2209 driver and MT6816 encoder.
 
+## Quick Start
+
+### 1. Get the Hardware
+
+- **[LilyGo TTGO T-Motor ESP32 Driver Module](https://www.tinytronics.nl/en/development-boards/microcontroller-boards/with-wi-fi/lilygo-ttgo-t-motor-esp32-motor-driver-module-tmc2209)** - ESP32 board with TMC2209 driver and MT6816 encoder
+- **[Stepper Motor](https://www.tinytronics.nl/en/mechanics-and-actuators/motors/stepper-motors)** - NEMA 17 (e.g., 17HS19-2004S1)
+- **[2x Limit Switches](https://www.tinytronics.nl/en/switches/manual-switches/micro-switches/micro-switch-with-lever)** - Micro switches with lever (normally open)
+- **Power Supply** - 12V DC (max 12V!)
+  - **[USB-C PD Trigger Board](https://www.amazon.nl/-/en/6pcs-power-supply-trigger-module/dp/B0DGXHN5CT)** - Nice to use as a universal power supply.
+
+### 2. Hardware Connections
+
+#### Power Supply
+Connect 12-24V DC power to the **JST-XH 6P port**:
+- **Pin 1**: Positive (+)
+- **Pin 2**: Ground (-)
+- **Pins 3-6**: Unused in this project
+
+#### Stepper Motor
+Connect motor phases to screw terminals:
+- Check your motor's datasheet for correct **A+, A-, B+, B-** pinout
+- Phase order varies by manufacturer - incorrect wiring won't damage hardware but motor won't move correctly
+
+#### Limit Switches
+- **Switch 1** → GPIO 21 + GND (min limit)
+- **Switch 2** → GPIO 22 + GND (max limit)
+- Switches are normally open with internal pull-up resistors
+
+### 3. Software Setup
+
+1. **Flash Firmware** - See [Building and Flashing](#building-and-flashing) section below
+2. **Connect to WiFi Portal** - Device creates "LilyGo-MotionController" access point on first boot
+3. **Configure WiFi** - Connect to AP and configure via captive portal (192.168.4.1)
+4. **Access Web Interface** - Navigate to `http://lilygo-motioncontroller.local/` or device IP address
+
+### 4. Initial Calibration
+
+1. **Test Movement** - Use web interface jog buttons to verify motor direction
+2. **Set Limits** - Move motor to both extreme positions to trigger limit switches
+3. **Configure Settings** - Adjust max speed and acceleration via Settings dialog if needed
+
+## Web Interface
+
+### Main Control Interface
+![Main Control Interface](docs/images/Main%20Control%20Interface.png)
+
+Control motor position with jog buttons, go-to-position commands, and real-time feedback.
+
+### Configuration Dialog
+![Configuration Dialog](docs/images/Configuration%20Dialog.png)
+
+Adjust motor parameters: max speed (100-100,000 steps/sec), acceleration (100-500,000 steps/sec²), and StealthChop mode.
+
+### Debug Console
+![Debug Console](docs/images/Debug%20Console.png)
+
+Real-time debug output via WebSocket for monitoring system events and troubleshooting.
+
 ## Features
 
 ### Core Functionality
