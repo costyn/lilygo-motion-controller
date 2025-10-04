@@ -10,7 +10,7 @@ Configuration::Configuration() {
     motorConfig.acceleration = 1000 * 80; // 80 steps per mm
     motorConfig.maxSpeed = 180 * 80; // 180 * steps_per_mm
     motorConfig.limitPos1 = 0;
-    motorConfig.limitPos2 = 2500;
+    motorConfig.limitPos2 = 2000; // Sane default to allow motor movement even without calibration
     motorConfig.useStealthChop = true;
 }
 

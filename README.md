@@ -7,6 +7,7 @@ A modular wireless stepper motor controller for LilyGo T-Motor hardware with TMC
 ### 1. Get the Hardware
 
 - **[LilyGo TTGO T-Motor ESP32 Driver Module](https://www.tinytronics.nl/en/development-boards/microcontroller-boards/with-wi-fi/lilygo-ttgo-t-motor-esp32-motor-driver-module-tmc2209)** - ESP32 board with TMC2209 driver and MT6816 encoder
+- **[LilyGO TTGO TTL USB Serial Port Adapter for T-Internet PoE](https://www.tinytronics.nl/en/communication-and-signals/serial/usb/lilygo-ttgo-ttl-usb-serial-port-adapter-for-t-internet-poe)** - USB Serial port adapter needed for 1st programming of the board (can use OTA after)
 - **[Stepper Motor](https://www.tinytronics.nl/en/mechanics-and-actuators/motors/stepper-motors)** - NEMA 17 (e.g., 17HS19-2004S1)
 - **[2x Limit Switches](https://www.tinytronics.nl/en/switches/manual-switches/micro-switches/micro-switch-with-lever)** - Micro switches with lever (normally open)
 - **Power Supply** - 12V DC (max 12V!)
