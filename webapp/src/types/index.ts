@@ -51,12 +51,8 @@ export interface MoveCommand {
   speed: number;
 }
 
-export interface StopCommand {
-  command: 'stop';
-}
-
 export interface EmergencyStopCommand {
-  command: 'emergency-stop';
+  command: 'emergencyStop';
 }
 
 export interface ResetCommand {
@@ -81,6 +77,7 @@ export interface SetConfigCommand {
 export interface JogStartCommand {
   command: 'jogStart';
   direction: 'forward' | 'backward';
+  speed: number;
 }
 
 export interface JogStopCommand {
@@ -89,7 +86,6 @@ export interface JogStopCommand {
 
 export type ControlCommand =
   | MoveCommand
-  | StopCommand
   | EmergencyStopCommand
   | ResetCommand
   | StatusCommand

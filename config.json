@@ -1,9 +1,9 @@
 {
     "command": "setConfig",
-    "maxSpeed": 700,
-    "acceleration": 500,
+    "maxSpeed": 10000,
+    "acceleration": 5000,
     "minLimit": 0,
-    "maxLimit": 5500,
+    "maxLimit": 30000,
     "useStealthChop": true
 }
 

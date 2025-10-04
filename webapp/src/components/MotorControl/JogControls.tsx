@@ -7,7 +7,8 @@ interface JogControlsProps {
   isConnected: boolean
   isMoving: boolean
   emergencyStop: boolean
-  onJogStart: (direction: 'forward' | 'backward') => void
+  jogSpeed: number
+  onJogStart: (direction: 'forward' | 'backward', speed: number) => void
   onJogStop: () => void
   onEmergencyStop: () => void
   onClearEmergencyStop: () => void
@@ -18,6 +19,7 @@ export function JogControls({
   isConnected,
   isMoving,
   emergencyStop,
+  jogSpeed,
   onJogStart,
   onJogStop,
   onEmergencyStop,
@@ -29,7 +31,7 @@ export function JogControls({
   const handleMouseDown = (direction: 'forward' | 'backward') => {
     if (!isConnected || emergencyStop) return
     isJoggingRef.current = true
-    onJogStart(direction)
+    onJogStart(direction, jogSpeed)
   }
 
   const handleMouseUp = () => {
@@ -48,7 +50,7 @@ export function JogControls({
   const handleTouchStart = (direction: 'forward' | 'backward') => {
     if (!isConnected || emergencyStop) return
     isJoggingRef.current = true
-    onJogStart(direction)
+    onJogStart(direction, jogSpeed)
   }
 
   const handleTouchEnd = () => {

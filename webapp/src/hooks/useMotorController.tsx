@@ -173,12 +173,8 @@ export function useMotorController() {
     return sendCommand({ command: 'move', position, speed })
   }, [sendCommand])
 
-  const stop = useCallback(() => {
-    return sendCommand({ command: 'stop' })
-  }, [sendCommand])
-
   const emergencyStop = useCallback(() => {
-    return sendCommand({ command: 'emergency-stop' })
+    return sendCommand({ command: 'emergencyStop' })
   }, [sendCommand])
 
   const clearEmergencyStop = useCallback(() => {
@@ -194,8 +190,8 @@ export function useMotorController() {
     return sendCommand({ command: 'status' })
   }, [sendCommand])
 
-  const jogStart = useCallback((direction: 'forward' | 'backward') => {
-    return sendCommand({ command: 'jogStart', direction })
+  const jogStart = useCallback((direction: 'forward' | 'backward', speed: number) => {
+    return sendCommand({ command: 'jogStart', direction, speed })
   }, [sendCommand])
 
   const jogStop = useCallback(() => {
@@ -215,7 +211,7 @@ export function useMotorController() {
 
   // Initialize connection
   useEffect(() => {
-    const timeoutId = setTimeout(connect, 500) // Small delay to allow component mounting
+    connect()
 
     const handleBeforeUnload = () => {
       cleanup()
@@ -224,7 +220,6 @@ export function useMotorController() {
     window.addEventListener('beforeunload', handleBeforeUnload)
 
     return () => {
-      clearTimeout(timeoutId)
       window.removeEventListener('beforeunload', handleBeforeUnload)
       cleanup()
     }
@@ -242,7 +237,6 @@ export function useMotorController() {
 
     // Control methods
     moveTo,
-    stop,
     emergencyStop,
     clearEmergencyStop,
     updateConfig,

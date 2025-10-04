@@ -6,100 +6,95 @@
 // Global instance
 LimitSwitch limitSwitch;
 
-LimitSwitch::LimitSwitch(uint8_t limitPin1, uint8_t limitPin2) {
-    pin1 = limitPin1;
-    pin2 = limitPin2;
+LimitSwitch::LimitSwitch(uint8_t limitPin1, uint8_t limitPin2)
+{
+    button1 = new OneButton(limitPin1, true); // true = INPUT_PULLUP, active LOW
+    button2 = new OneButton(limitPin2, true);
     switch1Triggered = false;
     switch2Triggered = false;
-    lastState1 = false;
-    lastState2 = false;
-    debounceDelay = 50; // 50ms debounce
-    lastDebounceTime1 = 0;
-    lastDebounceTime2 = 0;
     onLimitTriggered = nullptr;
 }
 
-bool LimitSwitch::begin() {
-    pinMode(pin1, INPUT_PULLUP);
-    pinMode(pin2, INPUT_PULLUP);
+bool LimitSwitch::begin()
+{
+    // Attach click handlers for limit switches
+    button1->attachClick(onSwitch1Pressed);
+    button2->attachClick(onSwitch2Pressed);
 
-    LOG_INFO("Limit switches initialized on pins %d and %d", pin1, pin2);
+    LOG_INFO("Limit switches initialized on pins %d and %d", button1->pin(), button2->pin());
     return true;
 }
 
-void LimitSwitch::setLimitCallback(LimitSwitchCallback callback) {
+void LimitSwitch::setLimitCallback(LimitSwitchCallback callback)
+{
     onLimitTriggered = callback;
 }
 
-void LimitSwitch::update() {
-    // Read limit switch states with debouncing (active low)
-    bool limit1Active = !debouncedRead(pin1, lastState1, lastDebounceTime1);
-    bool limit2Active = !debouncedRead(pin2, lastState2, lastDebounceTime2);
+void LimitSwitch::update()
+{
+    // OneButton handles all the debouncing
+    button1->tick();
+    button2->tick();
+}
 
-    // Handle limit switch 1
-    if (limit1Active && !switch1Triggered) {
+// Unified handler for both limit switches (DRY principle)
+void LimitSwitch::handleSwitchPressed(int switchNumber)
+{
+    long currentPos = motorController.getCurrentPosition();
+
+    LOG_WARN("Limit Switch %d triggered at position: %ld", switchNumber, currentPos);
+
+    // Set appropriate trigger flag
+    if (switchNumber == 1)
+    {
         switch1Triggered = true;
-        long currentPos = motorController.getCurrentPosition();
+    }
+    else
+    {
+        switch2Triggered = true;
+    }
 
-        LOG_WARN("Limit Switch 1 triggered at position: %ld", currentPos);
+    // Stop motor with emergency stop
+    motorController.emergencyStop();
 
-        // Stop motor immediately
-        motorController.emergencyStop();
-
-        // Save limit position
+    // Save limit position
+    if (switchNumber == 1)
+    {
         config.setLimitPos1(currentPos);
         config.saveLimitPositions(currentPos, config.getLimitPos2());
-
-        // Call callback if set
-        if (onLimitTriggered) {
-            onLimitTriggered(1, currentPos);
-        }
-    } else if (!limit1Active && switch1Triggered) {
-        // Switch released - don't clear trigger automatically
-        // This requires manual clearTriggers() call
     }
-
-    // Handle limit switch 2
-    if (limit2Active && !switch2Triggered) {
-        switch2Triggered = true;
-        long currentPos = motorController.getCurrentPosition();
-
-        LOG_WARN("Limit Switch 2 triggered at position: %ld", currentPos);
-
-        // Stop motor immediately
-        motorController.emergencyStop();
-
-        // Save limit position
+    else
+    {
         config.setLimitPos2(currentPos);
         config.saveLimitPositions(config.getLimitPos1(), currentPos);
+    }
 
-        // Call callback if set
-        if (onLimitTriggered) {
-            onLimitTriggered(2, currentPos);
-        }
-    } else if (!limit2Active && switch2Triggered) {
-        // Switch released - don't clear trigger automatically
+    // Broadcast status update to webapp
+    extern void broadcastStatusFromLimitSwitch();
+    broadcastStatusFromLimitSwitch();
+
+    // Call callback if set
+    if (onLimitTriggered)
+    {
+        onLimitTriggered(switchNumber, currentPos);
     }
 }
 
-void LimitSwitch::clearTriggers() {
+// Static callbacks (required by OneButton library)
+void LimitSwitch::onSwitch1Pressed()
+{
+    limitSwitch.handleSwitchPressed(1);
+}
+
+void LimitSwitch::onSwitch2Pressed()
+{
+    limitSwitch.handleSwitchPressed(2);
+}
+
+void LimitSwitch::clearTriggers()
+{
     switch1Triggered = false;
     switch2Triggered = false;
-    LOG_INFO("Limit switch triggers cleared");
-}
-
-bool LimitSwitch::debouncedRead(uint8_t pin, bool& lastState, unsigned long& lastDebounceTime) {
-    bool currentReading = digitalRead(pin);
-
-    if (currentReading != lastState) {
-        lastDebounceTime = millis();
-    }
-
-    bool stableReading = lastState;
-    if ((millis() - lastDebounceTime) > debounceDelay) {
-        stableReading = currentReading;
-    }
-
-    lastState = currentReading;
-    return stableReading;
+    motorController.clearEmergencyStop(); // Also clear the emergency stop
+    LOG_INFO("Limit switch triggers and emergency stop cleared");
 }

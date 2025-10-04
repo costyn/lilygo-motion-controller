@@ -12,6 +12,8 @@ interface PositionControlProps {
   emergencyStop: boolean
   currentPosition: number
   motorConfig: MotorConfig
+  jogSpeed: number
+  onJogSpeedChange: (speed: number) => void
   onMoveTo: (position: number, speed: number) => void
 }
 
@@ -21,12 +23,11 @@ export function PositionControl({
   emergencyStop,
   currentPosition,
   motorConfig,
+  jogSpeed,
+  onJogSpeedChange,
   onMoveTo
 }: PositionControlProps) {
   const [targetPosition, setTargetPosition] = useState([motorConfig.minLimit])
-  // Default to 50% of max speed in actual steps/sec
-  const defaultSpeed = Math.round(motorConfig.maxSpeed * 0.5)
-  const [targetSpeed, setTargetSpeed] = useState([defaultSpeed])
 
   // Calculate position progress
   const range = motorConfig.maxLimit - motorConfig.minLimit
@@ -40,28 +41,26 @@ export function PositionControl({
   }
 
   const handleSpeedChange = (value: number[]) => {
-    setTargetSpeed(value)
+    onJogSpeedChange(value[0])
   }
 
   const handleQuickPosition = (percentage: number) => {
     const range = motorConfig.maxLimit - motorConfig.minLimit
     const position = motorConfig.minLimit + Math.round((percentage / 100) * range)
-    const speed = targetSpeed[0]
 
     // Update slider position and move motor
     setTargetPosition([position])
-    onMoveTo(position, speed)
+    onMoveTo(position, jogSpeed)
   }
 
   // Handle slider commit (when user stops dragging)
   const handleSliderCommit = (value: number[]) => {
     const position = value[0]
-    const speed = targetSpeed[0]
-
-    onMoveTo(position, speed)
+    onMoveTo(position, jogSpeed)
   }
 
-  const controlsDisabled = !isConnected || emergencyStop
+  const controlsDisabled = !isConnected || emergencyStop || isMoving
+
 
   return (
     <Card>
@@ -113,6 +112,11 @@ export function PositionControl({
           </div>
         </div>
 
+        {/* Info Text */}
+        <div className="text-xs text-muted-foreground text-center py-1">
+          Drag slider or use quick positions. Motor moves when you release the slider.
+        </div>
+
         {/* Speed Slider */}
         <div>
           <div className="flex justify-between items-center mb-2">
@@ -120,12 +124,12 @@ export function PositionControl({
               Speed
             </label>
             <span className="text-sm text-muted-foreground font-mono">
-              {targetSpeed[0].toLocaleString()} steps/s
+              {jogSpeed.toLocaleString()} steps/s
             </span>
           </div>
           <div className="px-2">
             <Slider
-              value={targetSpeed}
+              value={[jogSpeed]}
               onValueChange={handleSpeedChange}
               min={100}
               max={motorConfig.maxSpeed}
@@ -140,10 +144,6 @@ export function PositionControl({
           </div>
         </div>
 
-        {/* Info Text */}
-        <div className="text-xs text-muted-foreground text-center py-1">
-          Drag slider or use quick positions. Motor moves when you release the slider.
-        </div>
 
         {/* Quick Position Buttons */}
         <div className="border-t pt-4">
@@ -155,7 +155,7 @@ export function PositionControl({
                 variant="outline"
                 size="sm"
                 onClick={() => handleQuickPosition(percentage)}
-                disabled={controlsDisabled || isMoving}
+                disabled={controlsDisabled}
                 className="text-xs"
               >
                 {percentage}%

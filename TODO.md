@@ -9,6 +9,15 @@
 - [X] **Unified output with timestamps to Serial** - All serial output should be written out in similar format, with a timestamp, then the name of the function that's doing the output. Now using LOG_ERROR/WARN/INFO/DEBUG macros with format: `[HH:MM:SS.mmm] [LEVEL] [FUNCTION]: message` ✅ **COMPLETED**
 - [X] **Unit Tests** - Test modules: priority is MotorController calculation functions like calculateSpeed() and updateTMCMode() ✅ **COMPLETED**
 
+### Tech Debt
+- Abstraction layer: datamodel between webcontoller and motorcontroller. Web controller is doing too much calculations and knows too much about motorcontroller
+- Too much hardware button logic in main.ccp. Needs to be moved to a separate component.
+- Check for duplicate or very similar code. Keep it DRY! :) 
+  - onSwitch1Pressed and onSwitch2Pressed are very similar. 
+- stopGently has no corresponding json command but is just called jogStop. May be a bit confusing.
+- massive chains of if-else statements in handleWebSocketMessage(). Can this be made more elegant? Also code duplication of log messages and broadcastStatus(); littered around. 
+
+
 ### Medium Priority - Could Have
 - [X] **Dynamic TMC2209 Mode Switching** - Advanced SpreadCycle/StealthChop optimization based on load/speed: Already in updateTMCMode()?
 - [ ] **Smooth Acceleration/Deceleration** - Currently using basic AccelStepper, may need custom curves (is the same as easing?)

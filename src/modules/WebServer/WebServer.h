@@ -49,6 +49,16 @@ private:
     void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
                           AwsEventType type, void *arg, uint8_t *data, size_t len);
 
+    // Command handlers (dispatch table pattern)
+    void handleMoveCommand(JsonDocument& doc);
+    void handleJogStartCommand(JsonDocument& doc);
+    void handleJogStopCommand(JsonDocument& doc);
+    void handleEmergencyStopCommand(JsonDocument& doc);
+    void handleResetCommand(JsonDocument& doc);
+    void handleStatusCommand(JsonDocument& doc);
+    void handleGetConfigCommand(JsonDocument& doc);
+    void handleSetConfigCommand(JsonDocument& doc);
+
     // Debug WebSocket handlers
     void onDebugWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
                                AwsEventType type, void *arg, uint8_t *data, size_t len);
@@ -69,6 +79,7 @@ public:
     bool begin();
     void update();
     void broadcastStatus();
+    void broadcastConfig();
     void broadcastPosition(long position);
     void broadcastDebugMessage(const String& message);
 };

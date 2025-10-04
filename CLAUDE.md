@@ -185,15 +185,6 @@ src/modules/
 - **LimitSwitch**: `isMinTriggered()`, `isMaxTriggered()` convenience methods
 - **MotorController**: `isMoving()`, `isEmergencyStopActive()` for WebServer integration
 
-## API Specification
-
-### REST Endpoints
-- `GET /api/status` - Full system status
-- `POST /api/move` - Move to position (params: position, speed)
-- `POST /api/emergency-stop` - Emergency stop
-- `POST /api/stop` - Stop
-- `POST /api/reset` - Clear emergency stop
-- `GET /api/config` - Motor configuration
 
 ### WebSocket Protocol
 - Connect to `/ws`

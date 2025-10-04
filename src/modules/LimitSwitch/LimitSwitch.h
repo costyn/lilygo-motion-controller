@@ -1,19 +1,25 @@
 #pragma once
 
 #include <Arduino.h>
+#include <OneButton.h>
 
 class LimitSwitch {
 private:
-    uint8_t pin1, pin2;
+    OneButton* button1;
+    OneButton* button2;
     volatile bool switch1Triggered;
     volatile bool switch2Triggered;
-    bool lastState1, lastState2;
-    unsigned long debounceDelay;
-    unsigned long lastDebounceTime1, lastDebounceTime2;
 
     // Callback function type for limit switch events
     typedef void (*LimitSwitchCallback)(int switchNumber, long position);
     LimitSwitchCallback onLimitTriggered;
+
+    // Unified handler (called by static callbacks)
+    void handleSwitchPressed(int switchNumber);
+
+    // Static callback handlers (required for OneButton)
+    static void onSwitch1Pressed();
+    static void onSwitch2Pressed();
 
 public:
     // Constructor
@@ -38,9 +44,9 @@ public:
     // Manual reset (for clearing after safe movement)
     void clearTriggers();
 
-private:
-    // Debounced digital read
-    bool debouncedRead(uint8_t pin, bool& lastState, unsigned long& lastDebounceTime);
+    // Allow static callbacks to access private members
+    friend void onSwitch1Pressed();
+    friend void onSwitch2Pressed();
 };
 
 extern LimitSwitch limitSwitch;

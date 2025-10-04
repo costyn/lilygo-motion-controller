@@ -204,6 +204,165 @@ void WebServerClass::onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClie
     }
 }
 
+// Command handler implementations
+void WebServerClass::handleMoveCommand(JsonDocument& doc)
+{
+    // Support both int and float for speed (JavaScript sends numbers as float)
+    bool hasPosition = doc["position"].is<long>();
+    bool hasSpeed = doc["speed"].is<int>() || doc["speed"].is<float>() || doc["speed"].is<double>();
+
+    if (hasPosition && hasSpeed)
+    {
+        long position = doc["position"];
+        int speed = doc["speed"].as<int>(); // Convert to int regardless of source type
+
+        if (!limitSwitch.isAnyTriggered())
+        {
+            LOG_INFO("Move command: position=%ld, speed=%d", position, speed);
+            motorController.moveTo(position, speed);
+
+            // Immediate status broadcast on movement start
+            broadcastStatus();
+            lastPositionBroadcast = millis();
+            lastStatusBroadcast = millis();
+        }
+        else
+        {
+            ws.textAll("{\"error\":\"limit switch triggered\"}");
+        }
+    }
+    else
+    {
+        LOG_WARN("Invalid move command - position: %s, speed: %s",
+                 hasPosition ? "ok" : "missing",
+                 hasSpeed ? "ok" : "missing");
+        ws.textAll("{\"type\":\"error\",\"message\":\"Invalid move parameters\"}");
+    }
+}
+
+void WebServerClass::handleJogStartCommand(JsonDocument& doc)
+{
+    bool hasDirection = doc["direction"].is<const char *>() || doc["direction"].is<String>();
+    bool hasSpeed = doc["speed"].is<int>() || doc["speed"].is<float>() || doc["speed"].is<double>();
+
+    if (hasDirection && hasSpeed)
+    {
+        String direction = doc["direction"].as<String>();
+        int jogSpeed = doc["speed"].as<int>();
+
+        if (!limitSwitch.isAnyTriggered() && !motorController.isEmergencyStopActive())
+        {
+            if (direction == "forward")
+            {
+                long targetPosition = config.getMaxLimit();
+                motorController.moveTo(targetPosition, jogSpeed);
+                LOG_INFO("Jog started: forward to %ld at speed %d", targetPosition, jogSpeed);
+            }
+            else if (direction == "backward")
+            {
+                long targetPosition = config.getMinLimit();
+                motorController.moveTo(targetPosition, jogSpeed);
+                LOG_INFO("Jog started: backward to %ld at speed %d", targetPosition, jogSpeed);
+            }
+
+            broadcastStatus();
+            lastPositionBroadcast = millis();
+            lastStatusBroadcast = millis();
+        }
+        else
+        {
+            ws.textAll("{\"type\":\"error\",\"message\":\"Cannot jog: limit or emergency stop active\"}");
+        }
+    }
+    else
+    {
+        LOG_WARN("Invalid jogStart command - direction: %s, speed: %s",
+                 hasDirection ? "ok" : "missing",
+                 hasSpeed ? "ok" : "missing");
+        ws.textAll("{\"type\":\"error\",\"message\":\"Invalid jog parameters\"}");
+    }
+}
+
+void WebServerClass::handleJogStopCommand(JsonDocument& doc)
+{
+    motorController.jogStop();
+    LOG_INFO("Jog stopped");
+    broadcastStatus();
+}
+
+void WebServerClass::handleEmergencyStopCommand(JsonDocument& doc)
+{
+    motorController.emergencyStop();
+    LOG_WARN("Emergency stop triggered");
+    broadcastStatus();
+}
+
+void WebServerClass::handleResetCommand(JsonDocument& doc)
+{
+    limitSwitch.clearTriggers(); // Clears both limit triggers and emergency stop
+    LOG_INFO("System reset");
+    broadcastStatus();
+}
+
+void WebServerClass::handleStatusCommand(JsonDocument& doc)
+{
+    broadcastStatus();
+}
+
+void WebServerClass::handleGetConfigCommand(JsonDocument& doc)
+{
+    broadcastConfig();
+}
+
+void WebServerClass::handleSetConfigCommand(JsonDocument& doc)
+{
+    bool updated = false;
+
+    if (doc["maxSpeed"].is<long>())
+    {
+        config.setMaxSpeed(doc["maxSpeed"]);
+        motorController.setMaxSpeed(doc["maxSpeed"]);
+        updated = true;
+    }
+
+    if (doc["acceleration"].is<long>())
+    {
+        config.setAcceleration(doc["acceleration"]);
+        motorController.setAcceleration(doc["acceleration"]);
+        updated = true;
+    }
+
+    if (doc["minLimit"].is<long>())
+    {
+        config.setLimitPos1(doc["minLimit"]);
+        updated = true;
+    }
+
+    if (doc["maxLimit"].is<long>())
+    {
+        config.setLimitPos2(doc["maxLimit"]);
+        updated = true;
+    }
+
+    if (doc["useStealthChop"].is<bool>())
+    {
+        config.setUseStealthChop(doc["useStealthChop"]);
+        motorController.setTMCMode(doc["useStealthChop"]);
+        updated = true;
+    }
+
+    if (updated)
+    {
+        config.saveConfiguration();
+        ws.textAll("{\"type\":\"configUpdated\",\"status\":\"success\"}");
+        broadcastConfig(); // Broadcast updated config to all clients
+    }
+    else
+    {
+        ws.textAll("{\"type\":\"error\",\"message\":\"Invalid configuration parameters\"}");
+    }
+}
+
 void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
 {
     AwsFrameInfo *info = (AwsFrameInfo *)arg;
@@ -220,183 +379,64 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
             return;
         }
 
-        // Log incoming command for debugging
         LOG_DEBUG("WebSocket raw data received: %s", (char *)data);
 
-        // Check for command field (support both "command" and "cmd" for compatibility)
+        // Extract command field
         String command;
         if (doc["command"].is<const char *>() || doc["command"].is<String>())
         {
             command = doc["command"].as<String>();
         }
-        else if (doc["cmd"].is<const char *>() || doc["cmd"].is<String>())
-        {
-            command = doc["cmd"].as<String>();
-            LOG_DEBUG("Using legacy 'cmd' field, consider updating webapp to use 'command'");
-        }
         else
         {
-            LOG_WARN("WebSocket message missing 'command' or 'cmd' field in: %s", (char *)data);
+            LOG_WARN("WebSocket message missing 'command' field");
             return;
         }
 
         LOG_INFO("Processing WebSocket command: %s", command.c_str());
 
-        if (command == "move" || command == "goto")
+        // Dispatch table: maps command names to handler methods
+        // NOTE: We have two stop variants:
+        //   - "jogStop" = gentle stop without emergency flag (for ending jog operations)
+        //   - "emergencyStop" = full emergency stop with flag that requires manual reset
+        // There is intentionally NO generic "stop" command to avoid ambiguity.
+
+        if (command == "move")
         {
-            if (doc["position"].is<long>() && doc["speed"].is<int>())
-            {
-                long position = doc["position"];
-                int speed = doc["speed"];
-
-                if (!limitSwitch.isAnyTriggered())
-                {
-                    motorController.moveTo(position, speed);
-
-                    // Immediate status broadcast on movement start
-                    LOG_INFO("Movement started to position %ld - broadcasting initial status", position);
-                    broadcastStatus();
-                    lastPositionBroadcast = millis();
-                    lastStatusBroadcast = millis();
-                }
-                else
-                {
-                    ws.textAll("{\"error\":\"limit switch triggered\"}");
-                }
-            }
-        }
-        else if (command == "stop")
-        {
-            motorController.stop();
-
-            // Immediate broadcast of emergency stop state
-            LOG_WARN("Emergency stop triggered - broadcasting status");
-            broadcastStatus();
+            handleMoveCommand(doc);
         }
         else if (command == "jogStart")
         {
-            if (doc["direction"].is<const char *>() || doc["direction"].is<String>())
-            {
-                String direction = doc["direction"].as<String>();
-
-                if (!limitSwitch.isAnyTriggered() && !motorController.isEmergencyStopActive())
-                {
-                    // Calculate jog speed (30% of max speed)
-                    int jogSpeed = config.getMaxSpeed() * 0.3;
-
-                    if (direction == "forward")
-                    {
-                        // Move to max limit at jog speed
-                        long targetPosition = config.getMaxLimit();
-                        motorController.moveTo(targetPosition, jogSpeed);
-                        LOG_INFO("Jog started: forward to %ld at speed %d", targetPosition, jogSpeed);
-                    }
-                    else if (direction == "backward")
-                    {
-                        // Move to min limit at jog speed
-                        long targetPosition = config.getMinLimit();
-                        motorController.moveTo(targetPosition, jogSpeed);
-                        LOG_INFO("Jog started: backward to %ld at speed %d", targetPosition, jogSpeed);
-                    }
-
-                    // Broadcast status to show movement started
-                    broadcastStatus();
-                    lastPositionBroadcast = millis();
-                    lastStatusBroadcast = millis();
-                }
-                else
-                {
-                    ws.textAll("{\"type\":\"error\",\"message\":\"Cannot jog: limit or emergency stop active\"}");
-                }
-            }
+            handleJogStartCommand(doc);
         }
         else if (command == "jogStop")
         {
-            motorController.stopGently();
-            LOG_INFO("Jog stopped");
-            broadcastStatus();
+            handleJogStopCommand(doc);
+        }
+        else if (command == "emergencyStop")
+        {
+            handleEmergencyStopCommand(doc);
         }
         else if (command == "reset")
         {
-            motorController.clearEmergencyStop();
+            handleResetCommand(doc);
         }
         else if (command == "status")
         {
-            broadcastStatus();
+            handleStatusCommand(doc);
         }
         else if (command == "getConfig")
         {
-            JsonDocument configDoc;
-            configDoc["type"] = "config";
-            configDoc["maxSpeed"] = config.getMaxSpeed();
-            configDoc["acceleration"] = config.getAcceleration();
-            configDoc["minLimit"] = config.getMinLimit();
-            configDoc["maxLimit"] = config.getMaxLimit();
-            configDoc["useStealthChop"] = config.getUseStealthChop();
-
-            String configMessage;
-            serializeJson(configDoc, configMessage);
-            ws.textAll(configMessage);
+            handleGetConfigCommand(doc);
         }
         else if (command == "setConfig")
         {
-            bool updated = false;
-
-            if (doc["maxSpeed"].is<long>())
-            {
-                config.setMaxSpeed(doc["maxSpeed"]);
-                motorController.setMaxSpeed(doc["maxSpeed"]);
-                updated = true;
-            }
-
-            if (doc["acceleration"].is<long>())
-            {
-                config.setAcceleration(doc["acceleration"]);
-                motorController.setAcceleration(doc["acceleration"]);
-                updated = true;
-            }
-
-            if (doc["minLimit"].is<long>())
-            {
-                config.setLimitPos1(doc["minLimit"]);
-                updated = true;
-            }
-
-            if (doc["maxLimit"].is<long>())
-            {
-                config.setLimitPos2(doc["maxLimit"]);
-                updated = true;
-            }
-
-            if (doc["useStealthChop"].is<bool>())
-            {
-                config.setUseStealthChop(doc["useStealthChop"]);
-                motorController.setTMCMode(doc["useStealthChop"]);
-                updated = true;
-            }
-
-            if (updated)
-            {
-                config.saveConfiguration();
-                ws.textAll("{\"type\":\"configUpdated\",\"status\":\"success\"}");
-
-                // Broadcast updated config to all clients
-                JsonDocument configDoc;
-                configDoc["type"] = "config";
-                configDoc["maxSpeed"] = config.getMaxSpeed();
-                configDoc["acceleration"] = config.getAcceleration();
-                configDoc["minLimit"] = config.getMinLimit();
-                configDoc["maxLimit"] = config.getMaxLimit();
-                configDoc["useStealthChop"] = config.getUseStealthChop();
-
-                String configMessage;
-                serializeJson(configDoc, configMessage);
-                ws.textAll(configMessage);
-            }
-            else
-            {
-                ws.textAll("{\"type\":\"error\",\"message\":\"Invalid configuration parameters\"}");
-            }
+            handleSetConfigCommand(doc);
+        }
+        else
+        {
+            LOG_WARN("Unknown WebSocket command: %s", command.c_str());
+            ws.textAll("{\"type\":\"error\",\"message\":\"Unknown command\"}");
         }
     }
 }
@@ -416,6 +456,10 @@ void WebServerClass::handleAPI(AsyncWebServerRequest *request)
     request->send(200, "application/json", response);
 }
 
+// Broadcast full motor status to all connected WebSocket clients
+// Usage: Called on state changes (movement start/stop, emergency stop, limit triggers)
+// Frequency: ~2Hz during movement (500ms interval), on-demand for events
+// Payload: Complete status including position, movement state, emergency stop, limit switches
 void WebServerClass::broadcastStatus()
 {
     if (!initialized)
@@ -435,6 +479,36 @@ void WebServerClass::broadcastStatus()
     ws.textAll(message);
 }
 
+// Broadcast motor configuration to all connected WebSocket clients
+// Usage: Called after configuration changes (setConfig command, limit position updates)
+// Frequency: On-demand only (configuration changes are infrequent)
+// Payload: Motor parameters (maxSpeed, acceleration, limits, TMC mode)
+void WebServerClass::broadcastConfig()
+{
+    if (!initialized)
+        return;
+
+    JsonDocument doc;
+    doc["type"] = "config";
+    doc["maxSpeed"] = config.getMaxSpeed();
+    doc["acceleration"] = config.getAcceleration();
+    doc["minLimit"] = config.getMinLimit();
+    doc["maxLimit"] = config.getMaxLimit();
+    doc["useStealthChop"] = config.getUseStealthChop();
+
+    String message;
+    serializeJson(doc, message);
+    ws.textAll(message);
+}
+
+// Broadcast position-only update to all connected WebSocket clients
+// Usage: High-frequency position updates during active movement
+// Frequency: ~10Hz during movement (100ms interval)
+// Payload: Position ONLY - intentionally minimal for reduced bandwidth
+// Note: This is kept separate from broadcastStatus() because we need frequent position
+//       updates during movement, but don't want to send the full status payload (with
+//       emergency stop flags, limit switches, etc.) 10 times per second. Use this for
+//       smooth real-time position tracking, use broadcastStatus() for state changes.
 void WebServerClass::broadcastPosition(long position)
 {
     if (!initialized)
@@ -529,4 +603,11 @@ void WebServerClass::update()
         broadcastStatus();
         wasMovingLastUpdate = false;
     }
+}
+
+// Global helper function for limit switch callbacks
+void broadcastStatusFromLimitSwitch()
+{
+    webServer.broadcastStatus();
+    webServer.broadcastConfig();
 }

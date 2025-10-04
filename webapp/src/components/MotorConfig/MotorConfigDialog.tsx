@@ -25,10 +25,14 @@ export function MotorConfigDialog({
   const [maxSpeed, setMaxSpeed] = useState(currentConfig.maxSpeed)
   const [acceleration, setAcceleration] = useState(currentConfig.acceleration)
   const [useStealthChop, setUseStealthChop] = useState(currentConfig.useStealthChop)
+  const [minLimit, setMinLimit] = useState(currentConfig.minLimit)
+  const [maxLimit, setMaxLimit] = useState(currentConfig.maxLimit)
 
   // Validation state
   const [maxSpeedError, setMaxSpeedError] = useState<string | null>(null)
   const [accelerationError, setAccelerationError] = useState<string | null>(null)
+  const [minLimitError, setMinLimitError] = useState<string | null>(null)
+  const [maxLimitError, setMaxLimitError] = useState<string | null>(null)
 
   // Reset form when dialog opens or config changes
   useEffect(() => {
@@ -36,8 +40,12 @@ export function MotorConfigDialog({
       setMaxSpeed(currentConfig.maxSpeed)
       setAcceleration(currentConfig.acceleration)
       setUseStealthChop(currentConfig.useStealthChop)
+      setMinLimit(currentConfig.minLimit)
+      setMaxLimit(currentConfig.maxLimit)
       setMaxSpeedError(null)
       setAccelerationError(null)
+      setMinLimitError(null)
+      setMaxLimitError(null)
     }
   }, [open, currentConfig])
 
@@ -54,6 +62,13 @@ export function MotorConfigDialog({
       return "Acceleration must be between 100 and 500,000 steps/sec²"
     }
     return null
+  }
+
+  const validateLimits = (min: number, max: number) => {
+    if (min >= max) {
+      return { min: "Min must be less than max", max: "Max must be greater than min" }
+    }
+    return { min: null, max: null }
   }
 
   // Handle input changes with validation
@@ -81,22 +96,56 @@ export function MotorConfigDialog({
     }
   }
 
+  const handleMinLimitChange = (value: string) => {
+    const numValue = parseInt(value)
+    if (value === '' || isNaN(numValue)) {
+      setMinLimit(value === '' ? 0 : numValue)
+      setMinLimitError(value === '' ? 'Required' : 'Invalid number')
+      setMaxLimitError(null)
+    } else {
+      setMinLimit(numValue)
+      const errors = validateLimits(numValue, maxLimit)
+      setMinLimitError(errors.min)
+      setMaxLimitError(errors.max)
+    }
+  }
+
+  const handleMaxLimitChange = (value: string) => {
+    const numValue = parseInt(value)
+    if (value === '' || isNaN(numValue)) {
+      setMaxLimit(value === '' ? 0 : numValue)
+      setMaxLimitError(value === '' ? 'Required' : 'Invalid number')
+      setMinLimitError(null)
+    } else {
+      setMaxLimit(numValue)
+      const errors = validateLimits(minLimit, numValue)
+      setMinLimitError(errors.min)
+      setMaxLimitError(errors.max)
+    }
+  }
+
   // Check if form is valid (must have values and pass validation)
-  const isFormValid = maxSpeed > 0 && acceleration > 0 && !maxSpeedError && !accelerationError
+  const isFormValid = maxSpeed > 0 && acceleration > 0 && !maxSpeedError && !accelerationError && !minLimitError && !maxLimitError
 
   // Check if form has changes
   const hasChanges =
     maxSpeed !== currentConfig.maxSpeed ||
     acceleration !== currentConfig.acceleration ||
-    useStealthChop !== currentConfig.useStealthChop
+    useStealthChop !== currentConfig.useStealthChop ||
+    minLimit !== currentConfig.minLimit ||
+    maxLimit !== currentConfig.maxLimit
 
   // Handle revert
   const handleRevert = () => {
     setMaxSpeed(currentConfig.maxSpeed)
     setAcceleration(currentConfig.acceleration)
     setUseStealthChop(currentConfig.useStealthChop)
+    setMinLimit(currentConfig.minLimit)
+    setMaxLimit(currentConfig.maxLimit)
     setMaxSpeedError(null)
     setAccelerationError(null)
+    setMinLimitError(null)
+    setMaxLimitError(null)
   }
 
   // Handle apply
@@ -107,6 +156,8 @@ export function MotorConfigDialog({
     if (maxSpeed !== currentConfig.maxSpeed) changes.maxSpeed = maxSpeed
     if (acceleration !== currentConfig.acceleration) changes.acceleration = acceleration
     if (useStealthChop !== currentConfig.useStealthChop) changes.useStealthChop = useStealthChop
+    if (minLimit !== currentConfig.minLimit) changes.minLimit = minLimit
+    if (maxLimit !== currentConfig.maxLimit) changes.maxLimit = maxLimit
 
     onApply(changes)
     onOpenChange(false)
@@ -180,16 +231,45 @@ export function MotorConfigDialog({
             </p>
           </div>
 
-          {/* Limit Positions (Read-only) */}
+          {/* Limit Positions */}
           <div className="grid gap-2 pt-4 border-t">
-            <Label className="text-muted-foreground">
-              Limit Positions (Read-only)
-            </Label>
-            <p className="text-sm">
-              Min: {currentConfig.minLimit} · Max: {currentConfig.maxLimit}
-            </p>
+            <Label>Limit Positions</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-2">
+                <Label htmlFor="minLimit" className="text-sm">Min Limit</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="minLimit"
+                    type="number"
+                    value={minLimit}
+                    onChange={(e) => handleMinLimitChange(e.target.value)}
+                    className={minLimitError ? "border-red-500" : ""}
+                  />
+                  <span className="text-sm text-muted-foreground">steps</span>
+                </div>
+                {minLimitError && (
+                  <p className="text-sm text-red-500">{minLimitError}</p>
+                )}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="maxLimit" className="text-sm">Max Limit</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="maxLimit"
+                    type="number"
+                    value={maxLimit}
+                    onChange={(e) => handleMaxLimitChange(e.target.value)}
+                    className={maxLimitError ? "border-red-500" : ""}
+                  />
+                  <span className="text-sm text-muted-foreground">steps</span>
+                </div>
+                {maxLimitError && (
+                  <p className="text-sm text-red-500">{maxLimitError}</p>
+                )}
+              </div>
+            </div>
             <p className="text-xs text-muted-foreground">
-              Configured via physical limit switches
+              Set manually or via physical limit switches. Limit switches will override these values if triggered.
             </p>
           </div>
         </div>
