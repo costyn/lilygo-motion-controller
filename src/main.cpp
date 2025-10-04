@@ -1,11 +1,11 @@
 #include <Arduino.h>
-#include <OneButton.h>
 
 // Import our modules
 #include "util.h"
 #include "modules/Configuration/Configuration.h"
 #include "modules/MotorController/MotorController.h"
 #include "modules/LimitSwitch/LimitSwitch.h"
+#include "modules/ButtonController/ButtonController.h"
 #include "modules/WebServer/WebServer.h"
 
 /*
@@ -30,15 +30,6 @@
  * - Limit switches on IO21 and IO22
  */
 
-// Button definitions (for debugging/testing)
-#define BTN1 36
-#define BTN2 34
-#define BTN3 35
-
-OneButton button1(BTN1, true);
-OneButton button2(BTN2, true);
-OneButton button3(BTN3, true);
-
 // Task handles
 TaskHandle_t inputTaskHandle = NULL;
 TaskHandle_t webServerTaskHandle = NULL;
@@ -46,13 +37,6 @@ TaskHandle_t webServerTaskHandle = NULL;
 // Task function declarations
 void InputTask(void *pvParameters);
 void WebServerTask(void *pvParameters);
-
-// Button callback functions
-void onButton1Press();
-void onButton1Release();
-void onButton2Click();
-void onButton3Press();
-void onButton3Release();
 
 void setup()
 {
@@ -89,7 +73,15 @@ void setup()
             delay(1000);
     }
 
-    // 4. Web server
+    // 4. Button controller
+    if (!buttonController.begin())
+    {
+        LOG_ERROR("FATAL: Failed to initialize Button Controller");
+        while (1)
+            delay(1000);
+    }
+
+    // 5. Web server
     if (!webServer.begin())
     {
         LOG_ERROR("FATAL: Failed to initialize Web Server");
@@ -141,30 +133,14 @@ void InputTask(void *pvParameters)
 {
     LOG_INFO("Input Task started");
 
-    // Initialize buttons
-    // Button 1: Jog backward (press and hold)
-    button1.attachLongPressStart(onButton1Press);
-    button1.attachLongPressStop(onButton1Release);
-    button1.setPressMs(100); // Start jogging after 100ms
-
-    // Button 2: Emergency stop (click)
-    button2.attachClick(onButton2Click);
-
-    // Button 3: Jog forward (press and hold)
-    button3.attachLongPressStart(onButton3Press);
-    button3.attachLongPressStop(onButton3Release);
-    button3.setPressMs(100); // Start jogging after 100ms
-
     // Initialize encoder
     motorController.initEncoder();
 
     // Task main loop
     while (1)
     {
-        // Update button states
-        button1.tick();
-        button2.tick();
-        button3.tick();
+        // Update button controller
+        buttonController.update();
 
         // Update limit switches
         limitSwitch.update();
@@ -190,49 +166,4 @@ void WebServerTask(void *pvParameters)
         // 50ms update rate for web operations
         vTaskDelay(pdMS_TO_TICKS(50));
     }
-}
-
-// Button callback functions
-void onButton1Press()
-{
-    // Button 1: Jog backward (to min limit)
-    LOG_INFO("Button 1 press - Jog backward");
-    if (!limitSwitch.isAnyTriggered() && !motorController.isEmergencyStopActive())
-    {
-        int jogSpeed = config.getMaxSpeed() * 0.3; // 30% of max speed
-        long targetPosition = config.getMinLimit();
-        motorController.moveTo(targetPosition, jogSpeed);
-        LOG_INFO("Jog backward started to %ld at speed %d", targetPosition, jogSpeed);
-    }
-}
-
-void onButton1Release()
-{
-    LOG_INFO("Button 1 release - Stop jog");
-    motorController.jogStop();
-}
-
-void onButton2Click()
-{
-    LOG_INFO("Button 2 pressed - Emergency stop");
-    motorController.emergencyStop();
-}
-
-void onButton3Press()
-{
-    // Button 3: Jog forward (to max limit)
-    LOG_INFO("Button 3 press - Jog forward");
-    if (!limitSwitch.isAnyTriggered() && !motorController.isEmergencyStopActive())
-    {
-        int jogSpeed = config.getMaxSpeed() * 0.3; // 30% of max speed
-        long targetPosition = config.getMaxLimit();
-        motorController.moveTo(targetPosition, jogSpeed);
-        LOG_INFO("Jog forward started to %ld at speed %d", targetPosition, jogSpeed);
-    }
-}
-
-void onButton3Release()
-{
-    LOG_INFO("Button 3 release - Stop jog");
-    motorController.jogStop();
 }

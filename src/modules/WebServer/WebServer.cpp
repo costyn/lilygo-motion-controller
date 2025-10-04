@@ -456,6 +456,10 @@ void WebServerClass::handleAPI(AsyncWebServerRequest *request)
     request->send(200, "application/json", response);
 }
 
+// Broadcast full motor status to all connected WebSocket clients
+// Usage: Called on state changes (movement start/stop, emergency stop, limit triggers)
+// Frequency: ~2Hz during movement (500ms interval), on-demand for events
+// Payload: Complete status including position, movement state, emergency stop, limit switches
 void WebServerClass::broadcastStatus()
 {
     if (!initialized)
@@ -475,6 +479,10 @@ void WebServerClass::broadcastStatus()
     ws.textAll(message);
 }
 
+// Broadcast motor configuration to all connected WebSocket clients
+// Usage: Called after configuration changes (setConfig command, limit position updates)
+// Frequency: On-demand only (configuration changes are infrequent)
+// Payload: Motor parameters (maxSpeed, acceleration, limits, TMC mode)
 void WebServerClass::broadcastConfig()
 {
     if (!initialized)
@@ -493,6 +501,14 @@ void WebServerClass::broadcastConfig()
     ws.textAll(message);
 }
 
+// Broadcast position-only update to all connected WebSocket clients
+// Usage: High-frequency position updates during active movement
+// Frequency: ~10Hz during movement (100ms interval)
+// Payload: Position ONLY - intentionally minimal for reduced bandwidth
+// Note: This is kept separate from broadcastStatus() because we need frequent position
+//       updates during movement, but don't want to send the full status payload (with
+//       emergency stop flags, limit switches, etc.) 10 times per second. Use this for
+//       smooth real-time position tracking, use broadcastStatus() for state changes.
 void WebServerClass::broadcastPosition(long position)
 {
     if (!initialized)
