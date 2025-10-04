@@ -50,9 +50,10 @@ public:
 
     // Motor control methods
     void moveTo(long position, int speed);
-    void stop();
-    void stopGently(); // Stop without triggering emergency stop (for jogging)
-    void emergencyStop();
+
+    // Stop methods: We have TWO distinct stop variants (no generic "stop" to avoid confusion)
+    void jogStop(); // Gentle stop without emergency flag (for ending jog operations)
+    void emergencyStop(); // Full emergency stop with flag (requires manual reset via clearEmergencyStop)
     void emergencyStopWithRecovery(long limitPosition); // Emergency stop with return to limit position
     void clearEmergencyStop();
 
