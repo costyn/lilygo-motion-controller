@@ -1,8 +1,8 @@
 # Unit Test Coverage Expansion Plan
 
 **Date:** 2025-10-04
-**Status:** ✅ **Phase 1 & Phase 3 COMPLETE** - 95 tests passing
-**Current Coverage:** 95 tests (C++: 25 | WebApp: 70)
+**Status:** ✅ **Phase 1, Phase 3, & Phase 4.1 COMPLETE** - 107 tests passing
+**Current Coverage:** 107 tests (C++: 25 | WebApp: 82)
 **Goal:** Comprehensive coverage for all modules and critical paths
 
 ---
@@ -20,10 +20,11 @@
 - `JogControls` component - 19 tests ✅
 - `PositionControl` component - 15 tests ✅
 - `MotorConfigDialog` component - 17 tests ✅
-- **WebApp Total: 70 tests - ALL PASSING ✅**
+- **WebSocket Protocol Compliance** - 12 tests ✅
+- **WebApp Total: 82 tests - ALL PASSING ✅**
 
 ### 📊 Overall Status
-**Total: 95 tests passing (25 C++ + 70 WebApp)**
+**Total: 107 tests passing (25 C++ + 82 WebApp)**
 
 ### ❌ What's NOT Tested (C++)
 - **LimitSwitch Module** - 0 tests
@@ -482,20 +483,32 @@ import '@testing-library/jest-dom'
 
 ## Phase 4: Advanced Tests (LOWER PRIORITY)
 
-### 4.1 WebSocket Protocol Compliance Tests
+### 4.1 WebSocket Protocol Compliance Tests ✅
 **File:** `webapp/src/test/integration/websocket-protocol.test.ts`
 
-**Test Cases (8 tests):**
+**Test Cases (12 tests):**
 ```typescript
-- test_all_commands_match_backend_spec
-- test_json_structure_validation
-- test_type_field_required_in_all_messages
-- test_command_field_required_in_commands
-- test_position_updates_high_frequency
-- test_status_updates_medium_frequency
-- test_config_updates_low_frequency
-- test_reconnection_resends_initial_requests
+- [x] should send all commands with "command" field as specified by backend
+- [x] should validate JSON structure for move command
+- [x] should validate JSON structure for jogStart command
+- [x] should validate JSON structure for setConfig command
+- [x] should verify "type" field is present in all server messages
+- [x] should handle status message structure from backend
+- [x] should handle config message structure from backend
+- [x] should handle position-only message structure from backend
+- [x] should handle high-frequency position updates (~10Hz)
+- [x] should handle medium-frequency status updates (~2Hz)
+- [x] should handle low-frequency config updates (on-change only)
+- [x] should send initial status and config requests on every connection
 ```
+
+**Implementation Notes:**
+- ✅ Tests verify exact JSON structure matches backend ESP32 protocol (WebServer.cpp)
+- ✅ Command validation: all commands have "command" field
+- ✅ Response validation: all responses have "type" field
+- ✅ Message frequency patterns verified (position: ~10Hz, status: ~2Hz, config: on-change)
+- ✅ Connection lifecycle verified (initial requests sent on connect/reconnect)
+- ✅ References backend code line numbers in test comments for traceability
 
 ---
 
@@ -549,13 +562,13 @@ import '@testing-library/jest-dom'
 3. ✅ PositionControl component (15 tests) - **COMPLETE**
 4. ✅ MotorConfigDialog component (17 tests) - **COMPLETE**
 
-**Total WebApp Tests: 70/70 passing ✅**
+**Total WebApp Component Tests: 70/70 passing ✅**
 
-### Step 4: Integration & Edge Cases (Week 5)
-1. WebSocket command handler tests
-2. Protocol compliance tests
-3. Edge case coverage
-4. Performance/load tests
+### Step 4: Integration & Protocol Tests ✅ **PHASE 4.1 COMPLETE**
+1. ✅ WebSocket protocol compliance tests (12 tests) - **COMPLETE**
+2. ⏭️ Edge case tests (Phase 4.2) - **NEXT PRIORITY**
+
+**Total WebApp Tests: 82/82 passing ✅**
 
 ---
 
@@ -776,10 +789,76 @@ jobs:
    - Network resilience
    - State recovery after reconnect
 
-4. **CI/CD Integration**
-   - Add webapp tests to GitHub Actions workflow
-   - Set up coverage reporting
-   - Add quality gates
+4. **CI/CD Integration** ✅
+   - ✅ Add webapp tests to GitHub Actions workflow
+   - ✅ Set up coverage reporting (61.32% webapp coverage)
+   - ✅ Add quality gates
 
 **Estimated Effort for Remaining:** 2-3 weeks
-**Current Progress:** 54% complete (95/175 tests)
+**Current Progress:** 61% complete (107/175 tests)
+
+---
+
+## 📋 Completion Summary (As of 2025-10-04)
+
+### ✅ Completed Phases
+
+#### Phase 1: C++ Core Module Tests ✅
+- **Configuration Module**: 15 tests passing
+- **MotorController Calculations**: 10 tests passing
+- **Total C++ Tests**: 25/25 passing
+
+#### Phase 3: WebApp Component Tests ✅
+- **useMotorController Hook**: 19 tests passing
+- **JogControls Component**: 19 tests passing
+- **PositionControl Component**: 15 tests passing
+- **MotorConfigDialog Component**: 17 tests passing
+- **Total Component Tests**: 70/70 passing
+
+#### Phase 4.1: WebSocket Protocol Compliance Tests ✅
+- **Protocol Compliance**: 12 tests passing
+- **Command Format Validation**: 4 tests
+- **Response Message Validation**: 4 tests
+- **Message Frequency Patterns**: 3 tests
+- **Connection Lifecycle**: 1 test
+- **Total Integration Tests**: 12/12 passing
+
+### 📊 Final Test Count
+**Total Tests**: 107 tests passing (25 C++ + 82 WebApp)
+- No warnings or errors
+- All tests include proper `act()` wrapping for React state updates
+- Backend protocol references included in test comments for traceability
+
+### 🎯 Key Achievements
+1. ✅ Fixed all `act()` warnings in webapp tests
+2. ✅ Comprehensive WebSocket protocol compliance validation
+3. ✅ Message frequency pattern verification (~10Hz position, ~2Hz status, on-change config)
+4. ✅ Connection lifecycle testing (initial request verification)
+5. ✅ JSON structure validation matching backend ESP32 code (WebServer.cpp)
+6. ✅ CI/CD pipeline with automated testing on push/PR
+7. ✅ Code coverage reporting (61.32% webapp coverage)
+
+### 🚀 CI/CD Infrastructure
+**Workflow File**: `.github/workflows/test.yml`
+
+**Features**:
+- Runs on every push to main/dev branches and all pull requests
+- Parallel execution: C++ tests and webapp tests run simultaneously
+- Coverage reporting with Codecov integration (optional)
+- Test summary in GitHub Actions output
+- Quality gates: PR merge blocked if tests fail
+
+**Triggers**:
+```yaml
+- Push to: main, dev, adding-unit-tests branches
+- Pull requests to: main, dev branches
+```
+
+**Jobs**:
+1. **cpp-tests**: Runs PlatformIO native tests (25 tests)
+2. **webapp-tests**: Runs Vitest tests with coverage (82 tests)
+3. **test-summary**: Aggregates results and enforces quality gates
+
+### ⏭️ Next Priority: Phase 4.2 Edge Case Tests
+- C++ edge cases (8 tests planned)
+- WebApp edge cases (7 tests planned)

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor, act } from '@testing-library/react'
 import { useMotorController } from './useMotorController'
 import { MockWebSocket } from '../test/setup'
 
@@ -66,12 +66,14 @@ describe('useMotorController - Message Handling', () => {
     await waitFor(() => expect(result.current.isConnected).toBe(true))
 
     const ws = MockWebSocket.getLastInstance()!
-    ws.simulateMessage({
-      type: 'status',
-      position: 1234,
-      isMoving: true,
-      emergencyStop: false,
-      limitSwitches: { min: false, max: false, any: false }
+    act(() => {
+      ws.simulateMessage({
+        type: 'status',
+        position: 1234,
+        isMoving: true,
+        emergencyStop: false,
+        limitSwitches: { min: false, max: false, any: false }
+      })
     })
 
     await waitFor(() => expect(result.current.motorStatus.position).toBe(1234))
@@ -83,17 +85,21 @@ describe('useMotorController - Message Handling', () => {
     await waitFor(() => expect(result.current.isConnected).toBe(true))
 
     const ws = MockWebSocket.getLastInstance()!
-    ws.simulateMessage({
-      type: 'status',
-      position: 100,
-      isMoving: true,
-      emergencyStop: false,
-      limitSwitches: { min: false, max: false, any: false }
+    act(() => {
+      ws.simulateMessage({
+        type: 'status',
+        position: 100,
+        isMoving: true,
+        emergencyStop: false,
+        limitSwitches: { min: false, max: false, any: false }
+      })
     })
 
     await waitFor(() => expect(result.current.motorStatus.position).toBe(100))
 
-    ws.simulateMessage({ type: 'position', position: 500 })
+    act(() => {
+      ws.simulateMessage({ type: 'position', position: 500 })
+    })
 
     await waitFor(() => expect(result.current.motorStatus.position).toBe(500))
     expect(result.current.motorStatus.isMoving).toBe(true)
@@ -104,13 +110,15 @@ describe('useMotorController - Message Handling', () => {
     await waitFor(() => expect(result.current.isConnected).toBe(true))
 
     const ws = MockWebSocket.getLastInstance()!
-    ws.simulateMessage({
-      type: 'config',
-      maxSpeed: 10000,
-      acceleration: 20000,
-      minLimit: -1000,
-      maxLimit: 1000,
-      useStealthChop: false
+    act(() => {
+      ws.simulateMessage({
+        type: 'config',
+        maxSpeed: 10000,
+        acceleration: 20000,
+        minLimit: -1000,
+        maxLimit: 1000,
+        useStealthChop: false
+      })
     })
 
     await waitFor(() => expect(result.current.motorConfig.maxSpeed).toBe(10000))
@@ -123,9 +131,11 @@ describe('useMotorController - Message Handling', () => {
     await waitFor(() => expect(result.current.isConnected).toBe(true))
 
     const ws = MockWebSocket.getLastInstance()!
-    ws.simulateMessage({
-      type: 'error',
-      message: 'Motor fault detected'
+    act(() => {
+      ws.simulateMessage({
+        type: 'error',
+        message: 'Motor fault detected'
+      })
     })
 
     await waitFor(() => expect(result.current.connectionState.lastError).toBe('Motor fault detected'))
@@ -283,13 +293,15 @@ describe('useMotorController - State Defaults', () => {
     await waitFor(() => expect(result.current.isConnected).toBe(true))
 
     const ws = MockWebSocket.getLastInstance()!
-    ws.simulateMessage({
-      type: 'config',
-      maxSpeed: 15000,
-      acceleration: 30000,
-      minLimit: -2000,
-      maxLimit: 2000,
-      useStealthChop: false
+    act(() => {
+      ws.simulateMessage({
+        type: 'config',
+        maxSpeed: 15000,
+        acceleration: 30000,
+        minLimit: -2000,
+        maxLimit: 2000,
+        useStealthChop: false
+      })
     })
 
     await waitFor(() => expect(result.current.motorConfig.maxSpeed).toBe(15000))
