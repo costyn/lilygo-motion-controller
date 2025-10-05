@@ -2,69 +2,69 @@
 
 ## 🔴 Missing Features (from original requirements, and those added afterwards)
 
+### Bugs & New Feature Wishes
+- [ ] Config feature to add: freewheel after movement or not. Partially implemented now by manipulating digitalWrite(EN_PIN, HIGH); in various places, but it now only works after jogging and e-stop. Does not work after slider or quick positions
+- [ ] Bug: when not in freewheel mode after movement, the motor slightly buzzes and gets warm, also the tmc controller gets warm.
+- [ ] Bug: I never see the automatic switch between stealthchop and spreadcycle happen in the logs
+
 ### High Priority - Should Have
-- [X] **mDNS Support** - Access device via `lilygo-motioncontroller.local` ✅ **COMPLETED**
-- [X] **Debug Serial WebSocket Stream** - Separate WebSocket path (`/debug`) for serial output streaming when client is connected ✅ **COMPLETED**
-- [X] **Write incoming websocket commands to serial** - Even though in production there will be no serial attached, for development purposes it's useful to have incoming websocket commands be written to serial output. ✅ **COMPLETED**
-- [X] **Unified output with timestamps to Serial** - All serial output should be written out in similar format, with a timestamp, then the name of the function that's doing the output. Now using LOG_ERROR/WARN/INFO/DEBUG macros with format: `[HH:MM:SS.mmm] [LEVEL] [FUNCTION]: message` ✅ **COMPLETED**
-- [X] **Unit Tests** - Test modules: priority is MotorController calculation functions like calculateSpeed() and updateTMCMode() ✅ **COMPLETED**
+- [✅] **mDNS Support** - Access device via `lilygo-motioncontroller.local` ✅ **COMPLETED**
+- [✅] **Debug Serial WebSocket Stream** - Separate WebSocket path (`/debug`) for serial output streaming when client is connected ✅ **COMPLETED**
+- [✅] **Write incoming websocket commands to serial** - Even though in production there will be no serial attached, for development purposes it's useful to have incoming websocket commands be written to serial output. ✅ **COMPLETED**
+- [✅] **Unified output with timestamps to Serial** - All serial output should be written out in similar format, with a timestamp, then the name of the function that's doing the output. Now using LOG_ERROR/WARN/INFO/DEBUG macros with format: `[HH:MM:SS.mmm] [LEVEL] [FUNCTION]: message` ✅ **COMPLETED**
+- [✅] **Unit Tests** - Test modules: priority is MotorController calculation functions like calculateSpeed() and updateTMCMode() ✅ **COMPLETED**
 
 ### Tech Debt
-- Abstraction layer: datamodel between webcontoller and motorcontroller. Web controller is doing too much calculations and knows too much about motorcontroller
-- Too much hardware button logic in main.ccp. Needs to be moved to a separate component.
-- Check for duplicate or very similar code. Keep it DRY! :) 
+- 🔴 Abstraction layer: datamodel between webcontoller and motorcontroller. Web controller is doing too much calculations and knows too much about motorcontroller [not doing because not needed]
+- ✅ Too much hardware button logic in main.ccp. Needs to be moved to a separate component.
+- ✅ Check for duplicate or very similar code. Keep it DRY! :) 
   - onSwitch1Pressed and onSwitch2Pressed are very similar. 
-- stopGently has no corresponding json command but is just called jogStop. May be a bit confusing.
-- massive chains of if-else statements in handleWebSocketMessage(). Can this be made more elegant? Also code duplication of log messages and broadcastStatus(); littered around. 
+- ✅ stopGently has no corresponding json command but is just called jogStop. May be a bit confusing.
+- ✅ massive chains of if-else statements in handleWebSocketMessage(). Can this be made more elegant? Also code duplication of log messages and broadcastStatus(); littered around. 
 
 
-### Medium Priority - Could Have
-- [X] **Dynamic TMC2209 Mode Switching** - Advanced SpreadCycle/StealthChop optimization based on load/speed: Already in updateTMCMode()?
-- [ ] **Smooth Acceleration/Deceleration** - Currently using basic AccelStepper, may need custom curves (is the same as easing?)
-- [ ] **Physical Button Controls**
-  - Button 1: Jog clockwise until limit switch hit
+### Medium Priority Features - Could Have
+- [✅] **Dynamic TMC2209 Mode Switching** - Advanced SpreadCycle/StealthChop optimization based on load/speed: Already in updateTMCMode()?
+- [✅] **Smooth Acceleration/Deceleration** - Currently using basic AccelStepper, may need custom curves (is the same as easing?)
+- [✅] **Physical Button Controls**
+  - Button 1: Jog clockwise until min
   - Button 2: Emergency stop (✅ partially implemented)
-  - Button 3: Jog counterclockwise until limit switch hit
+  - Button 3: Jog counterclockwise until max
 - [ ] **Standalone mode auto redirect** - When the wifimanager isn't used and times out, the project should create it's own AP without a password. If the user then connects to the AP, would be cool if they were automatically directed to the webapp. 
 - [ ] **Custom Movement Playlists** - Predetermined movement sequences/loops
 - [ ] **Playlist WebSocket Control** - Send movement sequences from webapp
 
-### Low Priority - Nice to Have
-- [ ] **Bluetooth Support** - Original requirement mentioned "wifi and bluetooth" control
+### Low Priority Features - Nice to Have
 - [ ] **Position Profiles** - Save/recall common positions
 - [ ] **Advanced Speed Ramping** - More sophisticated acceleration profiles
-- [ ] **OLED Display Support** - Basic status display (hardware supported)
 
 ## 🟡 Infrastructure Improvements
 
 ### Code Quality
-- [ ] **Unit Tests** - Test individual modules
-- [ ] **Integration Tests** - Test WebSocket/REST API
-- [ ] **Hardware-in-Loop Testing** - Automated hardware testing setup
-- [ ] **Performance Profiling** - Memory usage and timing analysis
+- [✅] **Unit Tests** - Test individual modules
+- [✅] **Integration Tests** - Test WebSocket/REST API
+- [🔴] **Hardware-in-Loop Testing** - Automated hardware testing setup [won't do]
+- [🔴] **Performance Profiling** - Memory usage and timing analysis [won't do ]
 
 ### Documentation
-- [ ] **API Documentation** - OpenAPI/Swagger spec
-- [ ] **Web UI Examples** - Sample HTML/JS client implementations
+- [🔴] **API Documentation** - OpenAPI/Swagger spec
+- [✅] **Web UI Examples** - Sample HTML/JS client implementations
 - [ ] **Hardware Setup Guide** - Wiring diagrams and assembly instructions
-- [ ] **Troubleshooting Database** - Common issues and solutions
+- [✅] **Troubleshooting Database** - Common issues and solutions
 
 ### Development Experience
-- [ ] **VSCode Tasks** - Build/upload/monitor shortcuts
-- [ ] **GitHub Actions** - CI/CD pipeline
-- [ ] **Pre-commit Hooks** - Code formatting and basic checks
-- [ ] **Development Docker Container** - Consistent dev environment
+- [✅] **VSCode Tasks** - Build/upload/monitor shortcuts
+- [✅] **GitHub Actions** - CI/CD pipeline
 
 ## 🟢 Architecture Enhancements
 
 ### Security
 - [ ] **Rate Limiting** - Prevent API abuse
-- [ ] **Input Validation** - Robust parameter checking
+- [✅] **Input Validation** - Robust parameter checking
 
 ### Reliability
 - [ ] **Watchdog Timer** - Hardware reset on system hang
 - [ ] **Error Recovery** - Graceful handling of communication failures
-- [ ] **Firmware Rollback** - Safe OTA update with rollback capability
 
 ### Performance
 - [ ] **Real-time Priority** - FreeRTOS task priority optimization
@@ -86,15 +86,9 @@
 ## 🟣 Future Platform Support
 
 ### Communication
-- [ ] **Ethernet Support** - Wired network option
 - [ ] **ArtNet Support** - Control through ArtNet/DMX
 - [ ] **WLED Support** - Control from WLED through API calls
 
-### Compatibility
-- [ ] **Different Stepper Drivers** - Support TMC5160, DRV8825, etc.
-- [ ] **Multiple ESP32 Variants** - ESP32-S2, ESP32-S3, ESP32-C3
-- [ ] **Arduino Framework Updates** - Keep up with ESP-IDF changes
-- [ ] **Platform.IO Updates** - Maintain compatibility
 
 ## 📋 Implementation Notes
 
@@ -106,15 +100,7 @@
 
 ### Architecture Decisions Needed
 - **Movement Playlist Storage** - SPIFFS vs NVRAM vs external storage
-- **Bluetooth Implementation** - Classic vs BLE vs both
-- **Multi-motor Architecture** - Single controller vs distributed
 - **Real-time Requirements** - Current timing analysis and optimization
-
-### Dependencies to Monitor
-- **ESP32Async/ESPAsyncWebServer** - Watch for updates/changes
-- **ArduinoJson v7+** - API changes and performance improvements
-- **TMCStepper Library** - New features and bug fixes
-- **AccelStepper** - Alternative libraries for smoother motion
 
 ## 🎯 Version Planning
 
@@ -128,12 +114,6 @@
 - Movement playlists
 - Advanced TMC2209 optimization
 - Performance profiling and optimization
-
-### v2.0 - Platform Extensions
-- Bluetooth support
-- Multi-motor capability
-- Security features
-- Comprehensive testing suite
 
 ---
 

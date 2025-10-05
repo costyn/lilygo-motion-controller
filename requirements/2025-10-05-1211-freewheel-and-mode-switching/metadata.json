@@ -1,0 +1,13 @@
+{
+  "id": "freewheel-and-mode-switching",
+  "started": "2025-10-05T12:11:00Z",
+  "lastUpdated": "2025-10-05T12:11:00Z",
+  "status": "active",
+  "phase": "detail",
+  "progress": {
+    "discovery": { "answered": 5, "total": 5 },
+    "detail": { "answered": 1, "total": 5 }
+  },
+  "contextFiles": [],
+  "relatedFeatures": []
+}
