@@ -10,7 +10,8 @@ describe('MotorConfigDialog - Dialog Behavior', () => {
     acceleration: 20000,
     minLimit: -5000,
     maxLimit: 5000,
-    useStealthChop: true
+    useStealthChop: true,
+    freewheelAfterMove: false
   }
 
   const defaultProps = {
@@ -55,7 +56,8 @@ describe('MotorConfigDialog - Input Validation', () => {
     acceleration: 20000,
     minLimit: -5000,
     maxLimit: 5000,
-    useStealthChop: true
+    useStealthChop: true,
+    freewheelAfterMove: false
   }
 
   const defaultProps = {
@@ -132,7 +134,8 @@ describe('MotorConfigDialog - Apply Changes', () => {
     acceleration: 20000,
     minLimit: -5000,
     maxLimit: 5000,
-    useStealthChop: true
+    useStealthChop: true,
+    freewheelAfterMove: false
   }
 
   const defaultProps = {
@@ -212,7 +215,8 @@ describe('MotorConfigDialog - Revert Functionality', () => {
     acceleration: 20000,
     minLimit: -5000,
     maxLimit: 5000,
-    useStealthChop: true
+    useStealthChop: true,
+    freewheelAfterMove: false
   }
 
   const defaultProps = {

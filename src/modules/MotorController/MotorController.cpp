@@ -53,7 +53,7 @@ bool MotorController::begin()
     pinMode(EN_PIN, OUTPUT);
     pinMode(STEP_PIN, OUTPUT);
     pinMode(DIR_PIN, OUTPUT);
-    digitalWrite(EN_PIN, LOW); // Enable driver in hardware
+    digitalWrite(EN_PIN, HIGH); // Disable driver until movement
 
     // Initialize TMC2209 exactly like factory code
     serialDriver->begin(115200, SERIAL_8N1, SW_RX, SW_TX);
@@ -67,7 +67,7 @@ bool MotorController::begin()
 
     driver->toff(5);           // Enables driver in software
     driver->rms_current(2000); // Set motor RMS current
-    driver->microsteps(16);    // Set microsteps to 1/16th
+    driver->microsteps(8);     // Set microsteps to 1/8th
     driver->ihold(1);
 
     driver->en_spreadCycle(true); // Toggle spreadCycle on TMC2208/2209/2224
@@ -105,6 +105,7 @@ void MotorController::moveTo(long position, int speed)
         LOG_WARN("Cannot move - emergency stop active");
         return;
     }
+    digitalWrite(EN_PIN, LOW); // Enable motor
 
     // Clamp speed to safe limits (already validated, but extra safety check)
     if (speed < MIN_SPEED)
@@ -125,6 +126,13 @@ void MotorController::jogStop()
     // Use setCurrentPosition to stop immediately (no deceleration ramp)
     stepper->setCurrentPosition(stepper->currentPosition());
     stepper->setSpeed(0);
+
+    // Respect freewheel configuration
+    if (config.getFreewheelAfterMove())
+    {
+        digitalWrite(EN_PIN, HIGH); // Freewheel
+    }
+
     LOG_INFO("Motor jog stopped");
 }
 
@@ -133,6 +141,7 @@ void MotorController::emergencyStop()
     emergencyStopActive = true;
     stepper->setSpeed(0);
     stepper->stop();
+    digitalWrite(EN_PIN, HIGH); // Disable motor => freewheel
     LOG_WARN("EMERGENCY STOP ACTIVATED");
 }
 
@@ -196,14 +205,18 @@ double MotorController::calculateSpeed(float ms)
 
 void MotorController::updateTMCMode()
 {
-    float currentSpeedPercent = abs(motorSpeed) / (float)config.getMaxSpeed();
+    // Use commanded speed from AccelStepper (not encoder)
+    float currentSpeedPercent = abs(stepper->speed()) / (float)config.getMaxSpeed();
     bool shouldUseStealthChop = currentSpeedPercent < STEALTH_CHOP_THRESHOLD;
 
     if (shouldUseStealthChop != useStealthChop)
     {
         useStealthChop = shouldUseStealthChop;
         driver->en_spreadCycle(!useStealthChop);
-        LOG_DEBUG("TMC mode switched to %s", useStealthChop ? "StealthChop" : "SpreadCycle");
+        LOG_DEBUG("TMC mode switched to %s (speed: %.0f steps/sec, %.0f%% of max)",
+                  useStealthChop ? "StealthChop" : "SpreadCycle",
+                  abs(stepper->speed()),
+                  currentSpeedPercent * 100);
     }
 }
 
@@ -221,21 +234,41 @@ uint32_t MotorController::getTMCStatus()
 
 void MotorController::update()
 {
-    // Calculate current speed from encoder
-    monitorSpeed = calculateSpeed(100);
+    // Track movement state for completion detection
+    static bool wasMoving = false;
+    bool isMoving = (stepper->distanceToGo() != 0);
 
-    // Update TMC mode based on speed
+    // Update TMC mode based on current commanded speed
     updateTMCMode();
 
     // Handle movement
     if (emergencyStopActive)
     {
         stepper->setSpeed(0);
+        digitalWrite(EN_PIN, HIGH); // Always freewheel during emergency stop
     }
-    else
+    else if (isMoving)
     {
+        // Motor is moving - call run() to step motor
         stepper->run();
+        wasMoving = true;
     }
+    else if (wasMoving)
+    {
+        // Motor just stopped moving
+        if (config.getFreewheelAfterMove())
+        {
+            digitalWrite(EN_PIN, HIGH); // Freewheel
+            LOG_INFO("Movement complete - freewheeling");
+        }
+        else
+        {
+            // Motor enabled but idle - holding position
+            LOG_INFO("Movement complete - holding position");
+        }
+        wasMoving = false;
+    }
+    // else: motor is stopped and we've already logged it
 }
 
 void MotorController::setAcceleration(long accel)

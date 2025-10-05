@@ -17,6 +17,7 @@ public:
         long limitPos1;
         long limitPos2;
         bool useStealthChop;
+        bool freewheelAfterMove;
     } motorConfig;
 
     // Constructor
@@ -42,6 +43,7 @@ public:
     long getMinLimit() const { return min(motorConfig.limitPos1, motorConfig.limitPos2); }
     long getMaxLimit() const { return max(motorConfig.limitPos1, motorConfig.limitPos2); }
     bool getUseStealthChop() const { return motorConfig.useStealthChop; }
+    bool getFreewheelAfterMove() const { return motorConfig.freewheelAfterMove; }
 
     // Set configuration values
     void setAcceleration(long accel);
@@ -49,6 +51,7 @@ public:
     void setLimitPos1(long pos) { motorConfig.limitPos1 = pos; }
     void setLimitPos2(long pos) { motorConfig.limitPos2 = pos; }
     void setUseStealthChop(bool use) { motorConfig.useStealthChop = use; }
+    void setFreewheelAfterMove(bool value);
 };
 
 extern Configuration config;

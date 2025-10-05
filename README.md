@@ -54,7 +54,11 @@ Control motor position with jog buttons, go-to-position commands, and real-time 
 ### Configuration Dialog
 ![Configuration Dialog](docs/images/Configuration%20Dialog.png)
 
-Adjust motor parameters: max speed (100-100,000 steps/sec), acceleration (100-500,000 steps/sec²), and StealthChop mode.
+Adjust motor parameters:
+- **Max Speed**: 100-100,000 steps/sec
+- **Acceleration**: 100-500,000 steps/sec²
+- **StealthChop Mode**: Enable for quiet operation, disable for more torque
+- **Freewheel After Movement**: Enable to let motor spin freely after movement completes, disable to hold position (uses power)
 
 ### Debug Console
 ![Debug Console](docs/images/Debug%20Console.png)
@@ -66,7 +70,8 @@ Real-time debug output via WebSocket for monitoring system events and troublesho
 ### Core Functionality
 - **WebSocket-based Control Interface** - Real-time motor control via web browser
 - **Smart Limit Switch Handling** - Automatic position learning and persistence
-- **Automatic TMC2209 Optimization** - Dynamic switching between StealthChop/SpreadCycle modes
+- **Automatic TMC2209 Optimization** - Dynamic switching between StealthChop/SpreadCycle modes based on actual motor speed
+- **Configurable Freewheel Mode** - Choose between holding position (motor powered) or freewheeling (motor spins freely) after movement completes
 - **Configuration Persistence** - Settings saved to ESP32 NVRAM
 - **Over-the-Air Updates** - Wireless firmware updates via ElegantOTA
 - **Real-time Position Feedback** - High-precision encoder position reporting

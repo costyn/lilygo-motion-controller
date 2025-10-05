@@ -242,7 +242,8 @@ describe('useMotorController - Command Sending', () => {
     result.current.updateConfig({
       maxSpeed: 12000,
       acceleration: 25000,
-      useStealthChop: true
+      useStealthChop: true,
+    freewheelAfterMove: false
     })
 
     const ws = MockWebSocket.getLastInstance()!
@@ -256,7 +257,8 @@ describe('useMotorController - Command Sending', () => {
       command: 'setConfig',
       maxSpeed: 12000,
       acceleration: 25000,
-      useStealthChop: true
+      useStealthChop: true,
+    freewheelAfterMove: false
     })
   })
 

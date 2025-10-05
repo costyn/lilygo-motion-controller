@@ -138,6 +138,7 @@ void WebServerClass::setupRoutes()
         doc["minLimit"] = config.getMinLimit();
         doc["maxLimit"] = config.getMaxLimit();
         doc["useStealthChop"] = config.getUseStealthChop();
+        doc["freewheelAfterMove"] = config.getFreewheelAfterMove();
 
         String response;
         serializeJson(doc, response);
@@ -351,6 +352,12 @@ void WebServerClass::handleSetConfigCommand(JsonDocument& doc)
         updated = true;
     }
 
+    if (doc["freewheelAfterMove"].is<bool>())
+    {
+        config.setFreewheelAfterMove(doc["freewheelAfterMove"]);
+        updated = true;
+    }
+
     if (updated)
     {
         config.saveConfiguration();
@@ -495,6 +502,7 @@ void WebServerClass::broadcastConfig()
     doc["minLimit"] = config.getMinLimit();
     doc["maxLimit"] = config.getMaxLimit();
     doc["useStealthChop"] = config.getUseStealthChop();
+    doc["freewheelAfterMove"] = config.getFreewheelAfterMove();
 
     String message;
     serializeJson(doc, message);
