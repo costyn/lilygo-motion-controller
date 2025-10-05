@@ -24,6 +24,7 @@ export interface MotorConfig {
   minLimit: number;
   maxLimit: number;
   useStealthChop: boolean;
+  freewheelAfterMove: boolean;
 }
 
 export interface ConfigUpdatedResponse {
@@ -72,6 +73,7 @@ export interface SetConfigCommand {
   maxSpeed?: number;
   acceleration?: number;
   useStealthChop?: boolean;
+  freewheelAfterMove?: boolean;
 }
 
 export interface JogStartCommand {

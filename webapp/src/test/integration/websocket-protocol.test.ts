@@ -123,7 +123,8 @@ describe('WebSocket Protocol Compliance', () => {
       result.current.updateConfig({
         maxSpeed: 12000,
         acceleration: 25000,
-        useStealthChop: true
+        useStealthChop: true,
+    freewheelAfterMove: false
       })
 
       await waitFor(() => {
@@ -138,7 +139,8 @@ describe('WebSocket Protocol Compliance', () => {
         command: 'setConfig',
         maxSpeed: 12000,
         acceleration: 25000,
-        useStealthChop: true
+        useStealthChop: true,
+    freewheelAfterMove: false
       })
     })
   })
@@ -340,7 +342,8 @@ describe('WebSocket Protocol Compliance', () => {
         acceleration: 16000,
         minLimit: -1000,
         maxLimit: 1000,
-        useStealthChop: true
+        useStealthChop: true,
+    freewheelAfterMove: false
       }
 
       act(() => {

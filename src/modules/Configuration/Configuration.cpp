@@ -12,6 +12,7 @@ Configuration::Configuration() {
     motorConfig.limitPos1 = 0;
     motorConfig.limitPos2 = 2500;
     motorConfig.useStealthChop = true;
+    motorConfig.freewheelAfterMove = false; // Disabled by default - motor holds position
 }
 
 bool Configuration::begin() {
@@ -31,9 +32,11 @@ void Configuration::loadConfiguration() {
     motorConfig.limitPos1 = preferences.getLong("limitPos1", motorConfig.limitPos1);
     motorConfig.limitPos2 = preferences.getLong("limitPos2", motorConfig.limitPos2);
     motorConfig.useStealthChop = preferences.getBool("stealthChop", motorConfig.useStealthChop);
+    motorConfig.freewheelAfterMove = preferences.getBool("freewheel", motorConfig.freewheelAfterMove);
 
-    LOG_INFO("Configuration loaded - Accel: %ld, MaxSpeed: %ld, Limit1: %ld, Limit2: %ld",
-             motorConfig.acceleration, motorConfig.maxSpeed, motorConfig.limitPos1, motorConfig.limitPos2);
+    LOG_INFO("Configuration loaded - Accel: %ld, MaxSpeed: %ld, Limit1: %ld, Limit2: %ld, Freewheel: %d",
+             motorConfig.acceleration, motorConfig.maxSpeed, motorConfig.limitPos1, motorConfig.limitPos2,
+             motorConfig.freewheelAfterMove);
 }
 
 void Configuration::saveConfiguration() {
@@ -42,6 +45,7 @@ void Configuration::saveConfiguration() {
     preferences.putLong("limitPos1", motorConfig.limitPos1);
     preferences.putLong("limitPos2", motorConfig.limitPos2);
     preferences.putBool("stealthChop", motorConfig.useStealthChop);
+    preferences.putBool("freewheel", motorConfig.freewheelAfterMove);
     LOG_INFO("Configuration saved");
 }
 
@@ -61,4 +65,9 @@ void Configuration::setAcceleration(long accel) {
 void Configuration::setMaxSpeed(long speed) {
     motorConfig.maxSpeed = speed;
     preferences.putLong("maxSpeed", speed);
+}
+
+void Configuration::setFreewheelAfterMove(bool value) {
+    motorConfig.freewheelAfterMove = value;
+    preferences.putBool("freewheel", value);
 }

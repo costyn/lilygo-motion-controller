@@ -25,6 +25,7 @@ export function MotorConfigDialog({
   const [maxSpeed, setMaxSpeed] = useState(currentConfig.maxSpeed)
   const [acceleration, setAcceleration] = useState(currentConfig.acceleration)
   const [useStealthChop, setUseStealthChop] = useState(currentConfig.useStealthChop)
+  const [freewheelAfterMove, setFreewheelAfterMove] = useState(currentConfig.freewheelAfterMove)
   const [minLimit, setMinLimit] = useState(currentConfig.minLimit)
   const [maxLimit, setMaxLimit] = useState(currentConfig.maxLimit)
 
@@ -40,6 +41,7 @@ export function MotorConfigDialog({
       setMaxSpeed(currentConfig.maxSpeed)
       setAcceleration(currentConfig.acceleration)
       setUseStealthChop(currentConfig.useStealthChop)
+      setFreewheelAfterMove(currentConfig.freewheelAfterMove)
       setMinLimit(currentConfig.minLimit)
       setMaxLimit(currentConfig.maxLimit)
       setMaxSpeedError(null)
@@ -132,6 +134,7 @@ export function MotorConfigDialog({
     maxSpeed !== currentConfig.maxSpeed ||
     acceleration !== currentConfig.acceleration ||
     useStealthChop !== currentConfig.useStealthChop ||
+    freewheelAfterMove !== currentConfig.freewheelAfterMove ||
     minLimit !== currentConfig.minLimit ||
     maxLimit !== currentConfig.maxLimit
 
@@ -140,6 +143,7 @@ export function MotorConfigDialog({
     setMaxSpeed(currentConfig.maxSpeed)
     setAcceleration(currentConfig.acceleration)
     setUseStealthChop(currentConfig.useStealthChop)
+    setFreewheelAfterMove(currentConfig.freewheelAfterMove)
     setMinLimit(currentConfig.minLimit)
     setMaxLimit(currentConfig.maxLimit)
     setMaxSpeedError(null)
@@ -156,6 +160,7 @@ export function MotorConfigDialog({
     if (maxSpeed !== currentConfig.maxSpeed) changes.maxSpeed = maxSpeed
     if (acceleration !== currentConfig.acceleration) changes.acceleration = acceleration
     if (useStealthChop !== currentConfig.useStealthChop) changes.useStealthChop = useStealthChop
+    if (freewheelAfterMove !== currentConfig.freewheelAfterMove) changes.freewheelAfterMove = freewheelAfterMove
     if (minLimit !== currentConfig.minLimit) changes.minLimit = minLimit
     if (maxLimit !== currentConfig.maxLimit) changes.maxLimit = maxLimit
 
@@ -228,6 +233,24 @@ export function MotorConfigDialog({
             </div>
             <p className="text-xs text-muted-foreground">
               Enable for quieter operation, disable for more torque
+            </p>
+          </div>
+
+          {/* Freewheel Mode */}
+          <div className="grid gap-2">
+            <Label htmlFor="freewheel">Freewheel After Movement</Label>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="freewheel"
+                checked={freewheelAfterMove}
+                onCheckedChange={setFreewheelAfterMove}
+              />
+              <span className="text-sm">
+                {freewheelAfterMove ? "Enabled (Motor spins freely)" : "Disabled (Holds position)"}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Enable to let motor spin freely after movement completes. Disable to hold position (uses power).
             </p>
           </div>
 

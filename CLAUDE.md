@@ -43,6 +43,7 @@ LilyGo Motion Controller - Modular wireless stepper motor controller for LilyGo 
    - Max Speed: 100-100,000 steps/sec with real-time validation
    - Acceleration: 100-500,000 steps/sec² with real-time validation
    - StealthChop mode toggle (Quiet vs Powerful)
+   - Freewheel After Movement toggle (Hold position vs spin freely)
    - Read-only limit position display
    - Changes auto-saved to ESP32 NVRAM
    - Motor-agnostic ranges accommodate different hardware
@@ -60,6 +61,22 @@ LilyGo Motion Controller - Modular wireless stepper motor controller for LilyGo 
    - Kept GET endpoints for status and config monitoring
    - WebSocket established as single control interface
    - Saved 2KB flash memory
+
+### ✅ Bug Fixes & Optimizations (October 2025)
+18. **Motor Buzzing Fix** - Eliminated buzzing when motor holds position
+   - Root cause: `stepper->run()` called continuously even when motor at target position
+   - Solution: Only call `run()` when `distanceToGo() != 0`
+   - Result: Silent operation in hold mode, no excessive heating
+19. **TMC2209 Mode Switching Fix** - Automatic StealthChop/SpreadCycle switching now works
+   - Root cause: `motorSpeed` variable never assigned (always 0)
+   - Solution: Use `abs(stepper->speed())` for actual commanded speed
+   - Enhanced logging shows speed and percentage during transitions
+20. **Freewheel Configuration** - Unified behavior across all movement types
+   - Added `freewheelAfterMove` boolean to Configuration with NVRAM persistence
+   - Simple state machine detects movement completion
+   - Applies consistently to jog, slider, and quick position commands
+   - Emergency stop always freewheels (safety override)
+   - Default: disabled (motor holds position for backward compatibility)
 
 ## Key Technical Details
 
