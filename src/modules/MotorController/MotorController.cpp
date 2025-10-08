@@ -124,7 +124,9 @@ void MotorController::moveTo(long position, int speed)
 void MotorController::jogStop()
 {
     // Stop motor movement without triggering emergency stop flag
-    // Use setCurrentPosition to stop immediately (no deceleration ramp)
+    // CRITICAL: Call stop() first to clear AccelStepper's internal target state
+    stepper->stop(); // This sets new target to current position with deceleration
+    // Then override with immediate stop (no deceleration ramp)
     stepper->setCurrentPosition(stepper->currentPosition());
     stepper->setSpeed(0);
 
@@ -140,11 +142,11 @@ void MotorController::jogStop()
 void MotorController::emergencyStop()
 {
     // Stop motor immediately
-    digitalWrite(EN_PIN, HIGH);                              // Disable motor => freewheel
-    stepper->setCurrentPosition(stepper->currentPosition()); // Stop NOW
-    emergencyStopActive = true;
+    stepper->stop(); // Clear AccelStepper's internal target state first
+    stepper->setCurrentPosition(stepper->currentPosition()); // Stop NOW (override deceleration)
     stepper->setSpeed(0);
-    stepper->stop();
+    digitalWrite(EN_PIN, HIGH); // Disable motor => freewheel
+    emergencyStopActive = true;
     LOG_WARN("EMERGENCY STOP ACTIVATED");
 }
 
