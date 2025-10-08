@@ -10,6 +10,9 @@ import { useMotorController } from './hooks/useMotorController'
 import { Button } from './components/ui/button'
 import { ExternalLink, RefreshCw, Settings } from 'lucide-react'
 
+// Build-time constants injected by Vite
+declare const __BUILD_TIME__: string
+
 function AppContent() {
   const [configDialogOpen, setConfigDialogOpen] = useState(false)
 
@@ -143,6 +146,9 @@ function AppContent() {
           <p>
             LilyGo Motion Controller WebApp - Connect via{' '}
             <code className="bg-muted px-1 rounded">lilygo-motioncontroller.local</code>
+          </p>
+          <p className="text-xs mt-1 opacity-60">
+            Build: {new Date(__BUILD_TIME__).toLocaleString()}
           </p>
         </div>
       </footer>

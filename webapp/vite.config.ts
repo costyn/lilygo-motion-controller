@@ -5,6 +5,9 @@ import fs from 'fs';
 import path from 'path';
 
 export default defineConfig({
+  define: {
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
   plugins: [
     react(),
     viteCompression({

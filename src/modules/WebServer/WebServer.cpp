@@ -122,8 +122,12 @@ bool WebServerClass::setupSPIFFS()
 
 void WebServerClass::setupRoutes()
 {
-    // Serve static files from SPIFFS
-    server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
+    // Serve static files from SPIFFS with cache control
+    // HTML: no-cache (always revalidate to get latest version)
+    // Hashed assets (JS/CSS): cache for 1 year (immutable due to content hash in filename)
+    server.serveStatic("/", SPIFFS, "/")
+        .setDefaultFile("index.html")
+        .setCacheControl("no-cache, no-store, must-revalidate");
 
     // Read-only REST API endpoints (monitoring/debugging only)
     // For control operations, use WebSocket interface at /ws
