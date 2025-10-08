@@ -217,7 +217,7 @@ void WebServerClass::handleMoveCommand(JsonDocument& doc)
         long position = doc["position"];
         int speed = doc["speed"].as<int>(); // Convert to int regardless of source type
 
-        if (!limitSwitch.isAnyTriggered())
+        if (!motorController.isEmergencyStopActive())
         {
             LOG_INFO("Move command: position=%ld, speed=%d", position, speed);
             motorController.moveTo(position, speed);
@@ -251,7 +251,7 @@ void WebServerClass::handleJogStartCommand(JsonDocument& doc)
         String direction = doc["direction"].as<String>();
         int jogSpeed = doc["speed"].as<int>();
 
-        if (!limitSwitch.isAnyTriggered() && !motorController.isEmergencyStopActive())
+        if (!motorController.isEmergencyStopActive())
         {
             if (direction == "forward")
             {
@@ -300,7 +300,9 @@ void WebServerClass::handleEmergencyStopCommand(JsonDocument& doc)
 
 void WebServerClass::handleResetCommand(JsonDocument& doc)
 {
-    limitSwitch.clearTriggers(); // Clears both limit triggers and emergency stop
+    minLimitSwitch.clearTrigger();
+    maxLimitSwitch.clearTrigger();
+    motorController.clearEmergencyStop();
     LOG_INFO("System reset");
     broadcastStatus();
 }
@@ -454,9 +456,9 @@ void WebServerClass::handleAPI(AsyncWebServerRequest *request)
     doc["position"] = motorController.getCurrentPosition();
     doc["isMoving"] = motorController.isMoving();
     doc["emergencyStop"] = motorController.isEmergencyStopActive();
-    doc["limitSwitches"]["min"] = limitSwitch.isMinTriggered();
-    doc["limitSwitches"]["max"] = limitSwitch.isMaxTriggered();
-    doc["limitSwitches"]["any"] = limitSwitch.isAnyTriggered();
+    doc["limitSwitches"]["min"] = minLimitSwitch.isTriggered();
+    doc["limitSwitches"]["max"] = maxLimitSwitch.isTriggered();
+    doc["limitSwitches"]["any"] = minLimitSwitch.isTriggered() || maxLimitSwitch.isTriggered();
 
     String response;
     serializeJson(doc, response);
@@ -477,9 +479,9 @@ void WebServerClass::broadcastStatus()
     doc["position"] = motorController.getCurrentPosition();
     doc["isMoving"] = motorController.isMoving();
     doc["emergencyStop"] = motorController.isEmergencyStopActive();
-    doc["limitSwitches"]["min"] = limitSwitch.isMinTriggered();
-    doc["limitSwitches"]["max"] = limitSwitch.isMaxTriggered();
-    doc["limitSwitches"]["any"] = limitSwitch.isAnyTriggered();
+    doc["limitSwitches"]["min"] = minLimitSwitch.isTriggered();
+    doc["limitSwitches"]["max"] = maxLimitSwitch.isTriggered();
+    doc["limitSwitches"]["any"] = minLimitSwitch.isTriggered() || maxLimitSwitch.isTriggered();
 
     String message;
     serializeJson(doc, message);

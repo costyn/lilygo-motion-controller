@@ -4,31 +4,28 @@
 
 class LimitSwitch {
 private:
-    uint8_t pin1;
-    uint8_t pin2;
-    volatile bool switch1Triggered;
-    volatile bool switch2Triggered;
-
-    // Pending interrupt flags (set by ISR, cleared by update())
-    volatile bool switch1Pending;
-    volatile bool switch2Pending;
+    uint8_t pin;
+    long storedPosition;
+    volatile bool triggered;
+    volatile bool pending;
 
     // Callback function type for limit switch events
-    typedef void (*LimitSwitchCallback)(int switchNumber, long position);
+    typedef void (*LimitSwitchCallback)(long position);
     LimitSwitchCallback onLimitTriggered;
 
-    // Unified handler (called by static ISRs)
-    void handleSwitchPressed(int switchNumber);
+    // ISR handler (must be static for attachInterrupt)
+    static void IRAM_ATTR onISR();
 
-    // Static ISR handlers (must be static for attachInterrupt)
-    static void IRAM_ATTR onSwitch1ISR();
-    static void IRAM_ATTR onSwitch2ISR();
+    // Instance tracking for ISR routing
+    static LimitSwitch* instances[2];
+    static uint8_t instanceCount;
+    uint8_t instanceIndex;
 
 public:
     // Constructor
-    LimitSwitch(uint8_t limitPin1 = 21, uint8_t limitPin2 = 22);
+    LimitSwitch(uint8_t limitPin);
 
-    // Initialize limit switches
+    // Initialize limit switch
     bool begin();
 
     // Set callback for limit switch events
@@ -38,18 +35,16 @@ public:
     void update();
 
     // Status getters
-    bool isSwitch1Triggered() const { return switch1Triggered; }
-    bool isSwitch2Triggered() const { return switch2Triggered; }
-    bool isMinTriggered() const { return switch1Triggered; }  // Assume switch1 is min limit
-    bool isMaxTriggered() const { return switch2Triggered; }  // Assume switch2 is max limit
-    bool isAnyTriggered() const { return switch1Triggered || switch2Triggered; }
+    bool isTriggered() const { return triggered; }
+    long getStoredPosition() const { return storedPosition; }
 
     // Manual reset (for clearing after safe movement)
-    void clearTriggers();
+    void clearTrigger();
 
-    // Allow static ISRs to access private members
-    friend void IRAM_ATTR onSwitch1ISR();
-    friend void IRAM_ATTR onSwitch2ISR();
+    // Save position when triggered
+    void setStoredPosition(long pos) { storedPosition = pos; }
 };
 
-extern LimitSwitch limitSwitch;
+// Global instances
+extern LimitSwitch minLimitSwitch;
+extern LimitSwitch maxLimitSwitch;

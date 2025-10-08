@@ -49,7 +49,7 @@ void ButtonController::onButton1Press()
 {
     // Button 1: Jog backward (to min limit)
     LOG_INFO("Button 1 press - Jog backward");
-    if (!limitSwitch.isAnyTriggered() && !motorController.isEmergencyStopActive())
+    if (!motorController.isEmergencyStopActive())
     {
         int jogSpeed = config.getMaxSpeed() * 0.3; // 30% of max speed
         long targetPosition = config.getMinLimit();
@@ -74,7 +74,7 @@ void ButtonController::onButton3Press()
 {
     // Button 3: Jog forward (to max limit)
     LOG_INFO("Button 3 press - Jog forward");
-    if (!limitSwitch.isAnyTriggered() && !motorController.isEmergencyStopActive())
+    if (!motorController.isEmergencyStopActive())
     {
         int jogSpeed = config.getMaxSpeed() * 0.3; // 30% of max speed
         long targetPosition = config.getMaxLimit();

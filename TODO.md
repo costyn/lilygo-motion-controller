@@ -3,9 +3,10 @@
 ## 🔴 Missing Features (from original requirements, and those added afterwards)
 
 ### Bugs & New Feature Wishes
-- [ ] Config feature to add: freewheel after movement or not. Partially implemented now by manipulating digitalWrite(EN_PIN, HIGH); in various places, but it now only works after jogging and e-stop. Does not work after slider or quick positions
-- [ ] Bug: when not in freewheel mode after movement, the motor slightly buzzes and gets warm, also the tmc controller gets warm.
-- [ ] Bug: I never see the automatic switch between stealthchop and spreadcycle happen in the logs
+- [✅] Config feature to add: freewheel after movement or not. ✅ **COMPLETED** - Works for all movement types (jog, slider, quick positions)
+- [✅] Bug: when not in freewheel mode after movement, the motor slightly buzzes and gets warm. ✅ **FIXED** - Only call `stepper->run()` when `distanceToGo() != 0`
+- [✅] Bug: I never see the automatic switch between stealthchop and spreadcycle happen in the logs ✅ **FIXED** - Use `abs(stepper->speed())` instead of uninitialized `motorSpeed`
+- [✅] Bug: 200-500ms delay between hitting limit switch and motor stopping ✅ **FIXED** - Replaced OneButton polling with ESP32 hardware interrupts (microsecond response)
 
 ### High Priority - Should Have
 - [✅] **mDNS Support** - Access device via `lilygo-motioncontroller.local` ✅ **COMPLETED**
@@ -17,8 +18,9 @@
 ### Tech Debt
 - 🔴 Abstraction layer: datamodel between webcontoller and motorcontroller. Web controller is doing too much calculations and knows too much about motorcontroller [not doing because not needed]
 - ✅ Too much hardware button logic in main.ccp. Needs to be moved to a separate component.
-- ✅ Check for duplicate or very similar code. Keep it DRY! :) 
-  - onSwitch1Pressed and onSwitch2Pressed are very similar. 
+- ✅ Check for duplicate or very similar code. Keep it DRY! :)
+  - ✅ onSwitch1Pressed and onSwitch2Pressed were very similar - **REFACTORED** to single-switch LimitSwitch class with two instances
+  - ✅ Redundant safety checks (`!minLimitSwitch.isTriggered() && !maxLimitSwitch.isTriggered() && !motorController.isEmergencyStopActive()`) simplified to just `!motorController.isEmergencyStopActive()`
 - ✅ stopGently has no corresponding json command but is just called jogStop. May be a bit confusing.
 - ✅ massive chains of if-else statements in handleWebSocketMessage(). Can this be made more elegant? Also code duplication of log messages and broadcastStatus(); littered around. 
 
@@ -117,5 +119,5 @@
 
 ---
 
-**Last Updated**: [Current Date]
-**Status**: Core functionality complete, extensions in planning
+**Last Updated**: October 8, 2025
+**Status**: Core functionality complete with all major bugs fixed, extensions in planning

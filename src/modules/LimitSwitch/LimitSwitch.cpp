@@ -3,30 +3,34 @@
 #include "../Configuration/Configuration.h"
 #include "util.h"
 
-// Global instance
-LimitSwitch limitSwitch;
+// Global instances
+LimitSwitch minLimitSwitch(21);
+LimitSwitch maxLimitSwitch(22);
 
-LimitSwitch::LimitSwitch(uint8_t limitPin1, uint8_t limitPin2)
-    : pin1(limitPin1), pin2(limitPin2)
+// Static member initialization
+LimitSwitch* LimitSwitch::instances[2] = {nullptr, nullptr};
+uint8_t LimitSwitch::instanceCount = 0;
+
+LimitSwitch::LimitSwitch(uint8_t limitPin)
+    : pin(limitPin), storedPosition(0), triggered(false), pending(false),
+      onLimitTriggered(nullptr), instanceIndex(instanceCount++)
 {
-    switch1Triggered = false;
-    switch2Triggered = false;
-    switch1Pending = false;
-    switch2Pending = false;
-    onLimitTriggered = nullptr;
+    // Register this instance for ISR routing
+    if (instanceIndex < 2)
+    {
+        instances[instanceIndex] = this;
+    }
 }
 
 bool LimitSwitch::begin()
 {
-    // Configure pins as INPUT_PULLUP (switches are active LOW)
-    pinMode(pin1, INPUT_PULLUP);
-    pinMode(pin2, INPUT_PULLUP);
+    // Configure pin as INPUT_PULLUP (switch is active LOW)
+    pinMode(pin, INPUT_PULLUP);
 
-    // Attach hardware interrupts on FALLING edge (switch closes to ground)
-    attachInterrupt(digitalPinToInterrupt(pin1), onSwitch1ISR, FALLING);
-    attachInterrupt(digitalPinToInterrupt(pin2), onSwitch2ISR, FALLING);
+    // Attach hardware interrupt on FALLING edge (switch closes to ground)
+    attachInterrupt(digitalPinToInterrupt(pin), onISR, FALLING);
 
-    LOG_INFO("Limit switches initialized with interrupts on pins %d and %d", pin1, pin2);
+    LOG_INFO("Limit switch initialized with interrupt on pin %d", pin);
     return true;
 }
 
@@ -37,93 +41,67 @@ void LimitSwitch::setLimitCallback(LimitSwitchCallback callback)
 
 void LimitSwitch::update()
 {
-    // Process any pending limit switch triggers from ISR
+    // Process any pending limit switch trigger from ISR
     // This runs in InputTask and handles non-ISR-safe operations
 
-    if (switch1Pending)
+    if (pending)
     {
-        switch1Pending = false;
+        pending = false;
+        triggered = true;
+
         // Stop motor immediately (safe in task context)
         motorController.emergencyStop();
-        handleSwitchPressed(1);
-    }
 
-    if (switch2Pending)
-    {
-        switch2Pending = false;
-        // Stop motor immediately (safe in task context)
-        motorController.emergencyStop();
-        handleSwitchPressed(2);
-    }
-}
+        // Get current position
+        long currentPos = motorController.getCurrentPosition();
+        storedPosition = currentPos;
 
-// Unified handler for both limit switches (called from update(), NOT ISR)
-void LimitSwitch::handleSwitchPressed(int switchNumber)
-{
-    long currentPos = motorController.getCurrentPosition();
+        // Determine which limit switch this is and save position
+        if (this == &minLimitSwitch)
+        {
+            config.setLimitPos1(currentPos);
+            config.saveLimitPositions(currentPos, config.getLimitPos2());
+            LOG_WARN("MIN limit switch triggered at position: %ld", currentPos);
+        }
+        else if (this == &maxLimitSwitch)
+        {
+            config.setLimitPos2(currentPos);
+            config.saveLimitPositions(config.getLimitPos1(), currentPos);
+            LOG_WARN("MAX limit switch triggered at position: %ld", currentPos);
+        }
 
-    LOG_WARN("Limit Switch %d triggered at position: %ld", switchNumber, currentPos);
+        // Broadcast status update to webapp (WebSocket - NOT ISR-safe)
+        extern void broadcastStatusFromLimitSwitch();
+        broadcastStatusFromLimitSwitch();
 
-    // Set appropriate trigger flag
-    if (switchNumber == 1)
-    {
-        switch1Triggered = true;
-    }
-    else
-    {
-        switch2Triggered = true;
-    }
-
-    // Save limit position (NVRAM write - NOT ISR-safe)
-    if (switchNumber == 1)
-    {
-        config.setLimitPos1(currentPos);
-        config.saveLimitPositions(currentPos, config.getLimitPos2());
-    }
-    else
-    {
-        config.setLimitPos2(currentPos);
-        config.saveLimitPositions(config.getLimitPos1(), currentPos);
-    }
-
-    // Broadcast status update to webapp (WebSocket - NOT ISR-safe)
-    extern void broadcastStatusFromLimitSwitch();
-    broadcastStatusFromLimitSwitch();
-
-    // Call callback if set
-    if (onLimitTriggered)
-    {
-        onLimitTriggered(switchNumber, currentPos);
+        // Call callback if set
+        if (onLimitTriggered)
+        {
+            onLimitTriggered(currentPos);
+        }
     }
 }
 
-// Static ISR handlers (IRAM_ATTR ensures they're in RAM for fast execution)
-// CRITICAL: ISRs must be MINIMAL - only set flags
-// Motor stop happens in update() to avoid ISR conflicts
-void IRAM_ATTR LimitSwitch::onSwitch1ISR()
+// Static ISR handler (IRAM_ATTR ensures it's in RAM for fast execution)
+// CRITICAL: ISR must be MINIMAL - only set flags
+void IRAM_ATTR LimitSwitch::onISR()
 {
-    // Only trigger once - ignore subsequent bounces until cleared
-    if (!limitSwitch.switch1Pending)
+    // Check which instance triggered by reading pin states
+    for (uint8_t i = 0; i < instanceCount; i++)
     {
-        limitSwitch.switch1Pending = true;
+        if (instances[i] && digitalRead(instances[i]->pin) == LOW)
+        {
+            // Only trigger once - ignore subsequent bounces until cleared
+            if (!instances[i]->pending)
+            {
+                instances[i]->pending = true;
+            }
+        }
     }
 }
 
-void IRAM_ATTR LimitSwitch::onSwitch2ISR()
+void LimitSwitch::clearTrigger()
 {
-    // Only trigger once - ignore subsequent bounces until cleared
-    if (!limitSwitch.switch2Pending)
-    {
-        limitSwitch.switch2Pending = true;
-    }
-}
-
-void LimitSwitch::clearTriggers()
-{
-    switch1Triggered = false;
-    switch2Triggered = false;
-    switch1Pending = false;
-    switch2Pending = false;
-    motorController.clearEmergencyStop(); // Also clear the emergency stop
-    LOG_INFO("Limit switch triggers and emergency stop cleared");
+    triggered = false;
+    pending = false;
 }

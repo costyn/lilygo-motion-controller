@@ -77,6 +77,22 @@ LilyGo Motion Controller - Modular wireless stepper motor controller for LilyGo 
    - Applies consistently to jog, slider, and quick position commands
    - Emergency stop always freewheels (safety override)
    - Default: disabled (motor holds position for backward compatibility)
+21. **Hardware Interrupt Limit Switches** - Instant response instead of 100ms polling delay
+   - Replaced OneButton polling with ESP32 hardware interrupts (`attachInterrupt`)
+   - ISR sets pending flag only (minimal work), update() handles logging/NVRAM/WebSocket
+   - No debounce in ISR (safety-first: react immediately to any trigger)
+   - Response time: microseconds instead of up to 100ms
+   - FreeRTOS-safe: All slow operations moved to InputTask context
+22. **LimitSwitch Architecture Refactor** - Single Responsibility Principle applied
+   - Changed from one class managing two switches to two instances of single-switch class
+   - Before: `LimitSwitch limitSwitch(21, 22)` with parallel `switch1`/`switch2` logic
+   - After: `LimitSwitch minLimitSwitch(21)` + `LimitSwitch maxLimitSwitch(22)`
+   - Eliminated code duplication and improved scalability
+   - Static ISR routing array supports multiple instances automatically
+23. **Simplified Safety Checks** - Removed redundant limit switch checks
+   - All movement commands now check only `!motorController.isEmergencyStopActive()`
+   - Limit switch triggers always call `emergencyStop()`, so checking emergency flag is sufficient
+   - Cleaner code, single source of truth for "can motor move?"
 
 ## Key Technical Details
 
@@ -85,11 +101,13 @@ LilyGo Motion Controller - Modular wireless stepper motor controller for LilyGo 
 lib_deps =
     AccelStepper
     TMCStepper
-    OneButton
+    OneButton  ; Still used by ButtonController (debug buttons)
     tzapu/WiFiManager
     ESP32Async/ESPAsyncWebServer  # CRITICAL: Use maintained repository
     ayushsharma82/ElegantOTA
     bblanchon/ArduinoJson
+
+# NOTE: LimitSwitch module uses native ESP32 hardware interrupts (no OneButton)
 
 build_flags =
     -std=c++14
