@@ -53,7 +53,6 @@ bool MotorController::begin()
     pinMode(EN_PIN, OUTPUT);
     pinMode(STEP_PIN, OUTPUT);
     pinMode(DIR_PIN, OUTPUT);
-    digitalWrite(EN_PIN, HIGH); // Disable driver until movement
 
     // Initialize TMC2209 exactly like factory code
     serialDriver->begin(115200, SERIAL_8N1, SW_RX, SW_TX);
@@ -79,6 +78,8 @@ bool MotorController::begin()
     stepper->setEnablePin(EN_PIN);
     stepper->setPinsInverted(false, false, true);
     stepper->enableOutputs();
+
+    digitalWrite(EN_PIN, HIGH); // Disable driver until movement
 
     LOG_INFO("Motor Controller initialized successfully");
     return true;
@@ -138,10 +139,12 @@ void MotorController::jogStop()
 
 void MotorController::emergencyStop()
 {
+    // Stop motor immediately
+    digitalWrite(EN_PIN, HIGH);                              // Disable motor => freewheel
+    stepper->setCurrentPosition(stepper->currentPosition()); // Stop NOW
     emergencyStopActive = true;
     stepper->setSpeed(0);
     stepper->stop();
-    digitalWrite(EN_PIN, HIGH); // Disable motor => freewheel
     LOG_WARN("EMERGENCY STOP ACTIVATED");
 }
 

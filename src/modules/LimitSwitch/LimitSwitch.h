@@ -1,25 +1,28 @@
 #pragma once
 
 #include <Arduino.h>
-#include <OneButton.h>
 
 class LimitSwitch {
 private:
-    OneButton* button1;
-    OneButton* button2;
+    uint8_t pin1;
+    uint8_t pin2;
     volatile bool switch1Triggered;
     volatile bool switch2Triggered;
+
+    // Pending interrupt flags (set by ISR, cleared by update())
+    volatile bool switch1Pending;
+    volatile bool switch2Pending;
 
     // Callback function type for limit switch events
     typedef void (*LimitSwitchCallback)(int switchNumber, long position);
     LimitSwitchCallback onLimitTriggered;
 
-    // Unified handler (called by static callbacks)
+    // Unified handler (called by static ISRs)
     void handleSwitchPressed(int switchNumber);
 
-    // Static callback handlers (required for OneButton)
-    static void onSwitch1Pressed();
-    static void onSwitch2Pressed();
+    // Static ISR handlers (must be static for attachInterrupt)
+    static void IRAM_ATTR onSwitch1ISR();
+    static void IRAM_ATTR onSwitch2ISR();
 
 public:
     // Constructor
@@ -31,7 +34,7 @@ public:
     // Set callback for limit switch events
     void setLimitCallback(LimitSwitchCallback callback);
 
-    // Update function (call from task loop)
+    // Update function (processes pending interrupts from main loop)
     void update();
 
     // Status getters
@@ -44,9 +47,9 @@ public:
     // Manual reset (for clearing after safe movement)
     void clearTriggers();
 
-    // Allow static callbacks to access private members
-    friend void onSwitch1Pressed();
-    friend void onSwitch2Pressed();
+    // Allow static ISRs to access private members
+    friend void IRAM_ATTR onSwitch1ISR();
+    friend void IRAM_ATTR onSwitch2ISR();
 };
 
 extern LimitSwitch limitSwitch;

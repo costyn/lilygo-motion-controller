@@ -7,21 +7,26 @@
 LimitSwitch limitSwitch;
 
 LimitSwitch::LimitSwitch(uint8_t limitPin1, uint8_t limitPin2)
+    : pin1(limitPin1), pin2(limitPin2)
 {
-    button1 = new OneButton(limitPin1, true); // true = INPUT_PULLUP, active LOW
-    button2 = new OneButton(limitPin2, true);
     switch1Triggered = false;
     switch2Triggered = false;
+    switch1Pending = false;
+    switch2Pending = false;
     onLimitTriggered = nullptr;
 }
 
 bool LimitSwitch::begin()
 {
-    // Attach click handlers for limit switches
-    button1->attachClick(onSwitch1Pressed);
-    button2->attachClick(onSwitch2Pressed);
+    // Configure pins as INPUT_PULLUP (switches are active LOW)
+    pinMode(pin1, INPUT_PULLUP);
+    pinMode(pin2, INPUT_PULLUP);
 
-    LOG_INFO("Limit switches initialized on pins %d and %d", button1->pin(), button2->pin());
+    // Attach hardware interrupts on FALLING edge (switch closes to ground)
+    attachInterrupt(digitalPinToInterrupt(pin1), onSwitch1ISR, FALLING);
+    attachInterrupt(digitalPinToInterrupt(pin2), onSwitch2ISR, FALLING);
+
+    LOG_INFO("Limit switches initialized with interrupts on pins %d and %d", pin1, pin2);
     return true;
 }
 
@@ -32,12 +37,27 @@ void LimitSwitch::setLimitCallback(LimitSwitchCallback callback)
 
 void LimitSwitch::update()
 {
-    // OneButton handles all the debouncing
-    button1->tick();
-    button2->tick();
+    // Process any pending limit switch triggers from ISR
+    // This runs in InputTask and handles non-ISR-safe operations
+
+    if (switch1Pending)
+    {
+        switch1Pending = false;
+        // Stop motor immediately (safe in task context)
+        motorController.emergencyStop();
+        handleSwitchPressed(1);
+    }
+
+    if (switch2Pending)
+    {
+        switch2Pending = false;
+        // Stop motor immediately (safe in task context)
+        motorController.emergencyStop();
+        handleSwitchPressed(2);
+    }
 }
 
-// Unified handler for both limit switches (DRY principle)
+// Unified handler for both limit switches (called from update(), NOT ISR)
 void LimitSwitch::handleSwitchPressed(int switchNumber)
 {
     long currentPos = motorController.getCurrentPosition();
@@ -54,10 +74,7 @@ void LimitSwitch::handleSwitchPressed(int switchNumber)
         switch2Triggered = true;
     }
 
-    // Stop motor with emergency stop
-    motorController.emergencyStop();
-
-    // Save limit position
+    // Save limit position (NVRAM write - NOT ISR-safe)
     if (switchNumber == 1)
     {
         config.setLimitPos1(currentPos);
@@ -69,7 +86,7 @@ void LimitSwitch::handleSwitchPressed(int switchNumber)
         config.saveLimitPositions(config.getLimitPos1(), currentPos);
     }
 
-    // Broadcast status update to webapp
+    // Broadcast status update to webapp (WebSocket - NOT ISR-safe)
     extern void broadcastStatusFromLimitSwitch();
     broadcastStatusFromLimitSwitch();
 
@@ -80,21 +97,33 @@ void LimitSwitch::handleSwitchPressed(int switchNumber)
     }
 }
 
-// Static callbacks (required by OneButton library)
-void LimitSwitch::onSwitch1Pressed()
+// Static ISR handlers (IRAM_ATTR ensures they're in RAM for fast execution)
+// CRITICAL: ISRs must be MINIMAL - only set flags
+// Motor stop happens in update() to avoid ISR conflicts
+void IRAM_ATTR LimitSwitch::onSwitch1ISR()
 {
-    limitSwitch.handleSwitchPressed(1);
+    // Only trigger once - ignore subsequent bounces until cleared
+    if (!limitSwitch.switch1Pending)
+    {
+        limitSwitch.switch1Pending = true;
+    }
 }
 
-void LimitSwitch::onSwitch2Pressed()
+void IRAM_ATTR LimitSwitch::onSwitch2ISR()
 {
-    limitSwitch.handleSwitchPressed(2);
+    // Only trigger once - ignore subsequent bounces until cleared
+    if (!limitSwitch.switch2Pending)
+    {
+        limitSwitch.switch2Pending = true;
+    }
 }
 
 void LimitSwitch::clearTriggers()
 {
     switch1Triggered = false;
     switch2Triggered = false;
+    switch1Pending = false;
+    switch2Pending = false;
     motorController.clearEmergencyStop(); // Also clear the emergency stop
     LOG_INFO("Limit switch triggers and emergency stop cleared");
 }
