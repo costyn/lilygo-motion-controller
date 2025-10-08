@@ -99,7 +99,7 @@ jobs:
           echo "- \`checksums.txt\` - SHA256 checksums" >> release_notes.md
           echo "" >> release_notes.md
           echo "## Installation" >> release_notes.md
-          echo "Flash both files using esptool or PlatformIO." >> release_notes.md
+          echo "Flash both files using esptool or ElegantOTA at http://lilygo-motioncontroller.local/update" >> release_notes.md
         fi
 
     - name: Create GitHub Release

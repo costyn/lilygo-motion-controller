@@ -53,45 +53,47 @@ function AppContent() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">LilyGo Motion Controller</h1>
-          <div className="flex items-center gap-2">
-            {!isConnected && (
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <h1 className="text-2xl font-bold">LilyGo Motion Controller</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              {!isConnected && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={manualReconnect}
+                  disabled={connectionState.isConnecting}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${connectionState.isConnecting ? 'animate-spin' : ''
+                    }`} />
+                  Reconnect
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
-                onClick={manualReconnect}
-                disabled={connectionState.isConnecting}
+                onClick={() => setConfigDialogOpen(true)}
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${connectionState.isConnecting ? 'animate-spin' : ''
-                  }`} />
-                Reconnect
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
               </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setConfigDialogOpen(true)}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-            >
-              <a
-                href="/update"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center"
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
               >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                OTA Update
-              </a>
-            </Button>
-            <ThemeToggle />
+                <a
+                  href="/update"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  OTA Update
+                </a>
+              </Button>
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </header>

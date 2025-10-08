@@ -154,23 +154,24 @@ export function MotorConfigDialog({
 
   // Handle apply
   const handleApply = () => {
-    if (!isFormValid) return
+    // Always close dialog, but only apply changes if form is valid and has changes
+    if (isFormValid && hasChanges) {
+      const changes: Partial<Omit<MotorConfig, 'type'>> = {}
+      if (maxSpeed !== currentConfig.maxSpeed) changes.maxSpeed = maxSpeed
+      if (acceleration !== currentConfig.acceleration) changes.acceleration = acceleration
+      if (useStealthChop !== currentConfig.useStealthChop) changes.useStealthChop = useStealthChop
+      if (freewheelAfterMove !== currentConfig.freewheelAfterMove) changes.freewheelAfterMove = freewheelAfterMove
+      if (minLimit !== currentConfig.minLimit) changes.minLimit = minLimit
+      if (maxLimit !== currentConfig.maxLimit) changes.maxLimit = maxLimit
 
-    const changes: Partial<Omit<MotorConfig, 'type'>> = {}
-    if (maxSpeed !== currentConfig.maxSpeed) changes.maxSpeed = maxSpeed
-    if (acceleration !== currentConfig.acceleration) changes.acceleration = acceleration
-    if (useStealthChop !== currentConfig.useStealthChop) changes.useStealthChop = useStealthChop
-    if (freewheelAfterMove !== currentConfig.freewheelAfterMove) changes.freewheelAfterMove = freewheelAfterMove
-    if (minLimit !== currentConfig.minLimit) changes.minLimit = minLimit
-    if (maxLimit !== currentConfig.maxLimit) changes.maxLimit = maxLimit
-
-    onApply(changes)
+      onApply(changes)
+    }
     onOpenChange(false)
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px]" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Motor Configuration</DialogTitle>
         </DialogHeader>
@@ -307,7 +308,6 @@ export function MotorConfigDialog({
           </Button>
           <Button
             onClick={handleApply}
-            disabled={!isFormValid || !hasChanges || !isConnected}
           >
             Apply
           </Button>
