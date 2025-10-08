@@ -26,8 +26,8 @@ export function MotorConfigDialog({
   const [acceleration, setAcceleration] = useState(currentConfig.acceleration)
   const [useStealthChop, setUseStealthChop] = useState(currentConfig.useStealthChop)
   const [freewheelAfterMove, setFreewheelAfterMove] = useState(currentConfig.freewheelAfterMove)
-  const [minLimit, setMinLimit] = useState(currentConfig.minLimit)
-  const [maxLimit, setMaxLimit] = useState(currentConfig.maxLimit)
+  const [minLimit, setMinLimit] = useState<number | string>(currentConfig.minLimit)
+  const [maxLimit, setMaxLimit] = useState<number | string>(currentConfig.maxLimit)
 
   // Validation state
   const [maxSpeedError, setMaxSpeedError] = useState<string | null>(null)
@@ -101,28 +101,38 @@ export function MotorConfigDialog({
   const handleMinLimitChange = (value: string) => {
     const numValue = parseInt(value)
     if (value === '' || isNaN(numValue)) {
-      setMinLimit(value === '' ? 0 : numValue)
+      setMinLimit(value)
       setMinLimitError(value === '' ? 'Required' : 'Invalid number')
       setMaxLimitError(null)
     } else {
       setMinLimit(numValue)
-      const errors = validateLimits(numValue, maxLimit)
-      setMinLimitError(errors.min)
-      setMaxLimitError(errors.max)
+      const maxLimitNum = typeof maxLimit === 'string' ? parseInt(maxLimit) : maxLimit
+      if (!isNaN(maxLimitNum)) {
+        const errors = validateLimits(numValue, maxLimitNum)
+        setMinLimitError(errors.min)
+        setMaxLimitError(errors.max)
+      } else {
+        setMinLimitError(null)
+      }
     }
   }
 
   const handleMaxLimitChange = (value: string) => {
     const numValue = parseInt(value)
     if (value === '' || isNaN(numValue)) {
-      setMaxLimit(value === '' ? 0 : numValue)
+      setMaxLimit(value)
       setMaxLimitError(value === '' ? 'Required' : 'Invalid number')
       setMinLimitError(null)
     } else {
       setMaxLimit(numValue)
-      const errors = validateLimits(minLimit, numValue)
-      setMinLimitError(errors.min)
-      setMaxLimitError(errors.max)
+      const minLimitNum = typeof minLimit === 'string' ? parseInt(minLimit) : minLimit
+      if (!isNaN(minLimitNum)) {
+        const errors = validateLimits(minLimitNum, numValue)
+        setMinLimitError(errors.min)
+        setMaxLimitError(errors.max)
+      } else {
+        setMaxLimitError(null)
+      }
     }
   }
 
@@ -130,13 +140,15 @@ export function MotorConfigDialog({
   const isFormValid = maxSpeed > 0 && acceleration > 0 && !maxSpeedError && !accelerationError && !minLimitError && !maxLimitError
 
   // Check if form has changes
+  const minLimitNum = typeof minLimit === 'string' ? parseInt(minLimit) : minLimit
+  const maxLimitNum = typeof maxLimit === 'string' ? parseInt(maxLimit) : maxLimit
   const hasChanges =
     maxSpeed !== currentConfig.maxSpeed ||
     acceleration !== currentConfig.acceleration ||
     useStealthChop !== currentConfig.useStealthChop ||
     freewheelAfterMove !== currentConfig.freewheelAfterMove ||
-    minLimit !== currentConfig.minLimit ||
-    maxLimit !== currentConfig.maxLimit
+    (!isNaN(minLimitNum) && minLimitNum !== currentConfig.minLimit) ||
+    (!isNaN(maxLimitNum) && maxLimitNum !== currentConfig.maxLimit)
 
   // Handle revert
   const handleRevert = () => {
@@ -154,23 +166,24 @@ export function MotorConfigDialog({
 
   // Handle apply
   const handleApply = () => {
-    if (!isFormValid) return
+    // Always close dialog, but only apply changes if form is valid and has changes
+    if (isFormValid && hasChanges) {
+      const changes: Partial<Omit<MotorConfig, 'type'>> = {}
+      if (maxSpeed !== currentConfig.maxSpeed) changes.maxSpeed = maxSpeed
+      if (acceleration !== currentConfig.acceleration) changes.acceleration = acceleration
+      if (useStealthChop !== currentConfig.useStealthChop) changes.useStealthChop = useStealthChop
+      if (freewheelAfterMove !== currentConfig.freewheelAfterMove) changes.freewheelAfterMove = freewheelAfterMove
+      if (!isNaN(minLimitNum) && minLimitNum !== currentConfig.minLimit) changes.minLimit = minLimitNum
+      if (!isNaN(maxLimitNum) && maxLimitNum !== currentConfig.maxLimit) changes.maxLimit = maxLimitNum
 
-    const changes: Partial<Omit<MotorConfig, 'type'>> = {}
-    if (maxSpeed !== currentConfig.maxSpeed) changes.maxSpeed = maxSpeed
-    if (acceleration !== currentConfig.acceleration) changes.acceleration = acceleration
-    if (useStealthChop !== currentConfig.useStealthChop) changes.useStealthChop = useStealthChop
-    if (freewheelAfterMove !== currentConfig.freewheelAfterMove) changes.freewheelAfterMove = freewheelAfterMove
-    if (minLimit !== currentConfig.minLimit) changes.minLimit = minLimit
-    if (maxLimit !== currentConfig.maxLimit) changes.maxLimit = maxLimit
-
-    onApply(changes)
+      onApply(changes)
+    }
     onOpenChange(false)
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px]" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Motor Configuration</DialogTitle>
         </DialogHeader>
@@ -307,7 +320,6 @@ export function MotorConfigDialog({
           </Button>
           <Button
             onClick={handleApply}
-            disabled={!isFormValid || !hasChanges || !isConnected}
           >
             Apply
           </Button>

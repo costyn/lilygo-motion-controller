@@ -27,36 +27,89 @@ export function JogControls({
   onMoveToLimit
 }: JogControlsProps) {
   const isJoggingRef = useRef(false)
+  const activeDirectionRef = useRef<'forward' | 'backward' | null>(null)
+  const eventSourceRef = useRef<'touch' | 'mouse' | null>(null)
+  const touchIdentifierRef = useRef<number | null>(null)
 
-  const handleMouseDown = (direction: 'forward' | 'backward') => {
+  const handleMouseDown = (e: React.MouseEvent, direction: 'forward' | 'backward') => {
+    // Ignore mouse events if touch events were just used
+    if (eventSourceRef.current === 'touch') return
     if (!isConnected || emergencyStop) return
+
+    eventSourceRef.current = 'mouse'
     isJoggingRef.current = true
+    activeDirectionRef.current = direction
     onJogStart(direction, jogSpeed)
   }
 
-  const handleMouseUp = () => {
-    if (!isConnected || !isJoggingRef.current) return
+  const handleMouseUp = (e: React.MouseEvent) => {
+    // Only process if this was initiated by mouse
+    if (eventSourceRef.current !== 'mouse' || !isJoggingRef.current) return
+    if (!isConnected) return
+
     isJoggingRef.current = false
+    activeDirectionRef.current = null
     onJogStop()
   }
 
-  const handleMouseLeave = () => {
-    // Only stop if we were actually jogging (button was pressed)
-    if (!isConnected || !isJoggingRef.current) return
+  const handleMouseLeave = (e: React.MouseEvent) => {
+    // Only process if this was initiated by mouse and we're currently jogging
+    if (eventSourceRef.current !== 'mouse' || !isJoggingRef.current) return
+    if (!isConnected) return
+
     isJoggingRef.current = false
+    activeDirectionRef.current = null
     onJogStop()
   }
 
-  const handleTouchStart = (direction: 'forward' | 'backward') => {
+  const handleTouchStart = (e: React.TouchEvent, direction: 'forward' | 'backward') => {
     if (!isConnected || emergencyStop) return
+
+    // Store the first touch identifier
+    if (e.touches.length > 0) {
+      touchIdentifierRef.current = e.touches[0].identifier
+    }
+
+    eventSourceRef.current = 'touch'
     isJoggingRef.current = true
+    activeDirectionRef.current = direction
     onJogStart(direction, jogSpeed)
   }
 
-  const handleTouchEnd = () => {
-    if (!isConnected || !isJoggingRef.current) return
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    // Only process if this was initiated by touch
+    if (eventSourceRef.current !== 'touch' || !isJoggingRef.current) return
+    if (!isConnected) return
+
+    // Verify this is the same touch that started
+    const touchEnded = e.changedTouches[0]
+    if (touchIdentifierRef.current !== null && touchEnded.identifier !== touchIdentifierRef.current) {
+      return
+    }
+
     isJoggingRef.current = false
+    activeDirectionRef.current = null
+    touchIdentifierRef.current = null
     onJogStop()
+
+    // Reset event source after a brief delay to prevent mouse event interference
+    setTimeout(() => {
+      eventSourceRef.current = null
+    }, 300)
+  }
+
+  const handleTouchCancel = (e: React.TouchEvent) => {
+    // Handle touch cancellation (e.g., when touch is interrupted)
+    if (eventSourceRef.current !== 'touch') return
+
+    if (isJoggingRef.current) {
+      isJoggingRef.current = false
+      activeDirectionRef.current = null
+      touchIdentifierRef.current = null
+      onJogStop()
+    }
+
+    eventSourceRef.current = null
   }
 
   const controlsDisabled = !isConnected || emergencyStop
@@ -97,11 +150,12 @@ export function JogControls({
           <Button
             variant="outline"
             disabled={controlsDisabled}
-            onMouseDown={() => handleMouseDown('backward')}
+            onMouseDown={(e) => handleMouseDown(e, 'backward')}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
-            onTouchStart={() => handleTouchStart('backward')}
+            onTouchStart={(e) => handleTouchStart(e, 'backward')}
             onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchCancel}
             className="h-16 touch-button select-none"
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
@@ -111,11 +165,12 @@ export function JogControls({
           <Button
             variant="outline"
             disabled={controlsDisabled}
-            onMouseDown={() => handleMouseDown('forward')}
+            onMouseDown={(e) => handleMouseDown(e, 'forward')}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseLeave}
-            onTouchStart={() => handleTouchStart('forward')}
+            onTouchStart={(e) => handleTouchStart(e, 'forward')}
             onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchCancel}
             className="h-16 touch-button select-none"
           >
             <span>Jog Forward</span>

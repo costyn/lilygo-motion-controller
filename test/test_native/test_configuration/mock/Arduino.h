@@ -3,5 +3,9 @@
 #include <algorithm>
 
 // Mock Arduino functions for testing
-#define min(a, b) std::min(a, b)
-#define max(a, b) std::max(a, b)
+// Use inline functions instead of macros to avoid conflicts with std library
+template<typename T>
+inline T min(T a, T b) { return std::min(a, b); }
+
+template<typename T>
+inline T max(T a, T b) { return std::max(a, b); }

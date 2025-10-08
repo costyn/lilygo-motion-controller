@@ -38,6 +38,12 @@ Connect motor phases to screw terminals:
 3. **Configure WiFi** - Connect to AP and configure via captive portal (192.168.4.1)
 4. **Access Web Interface** - Navigate to `http://lilygo-motioncontroller.local/` or device IP address
 
+<p align="center">
+  <img src="webapp-qr-code.png" alt="Web Interface QR Code" width="200"/>
+  <br>
+  <em>Scan to access web interface from mobile device</em>
+</p>
+
 ### 4. Initial Calibration
 
 1. **Test Movement** - Use web interface jog buttons to verify motor direction

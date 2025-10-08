@@ -66,7 +66,7 @@ void setup()
     }
 
     // 3. Limit switches
-    if (!limitSwitch.begin())
+    if (!minLimitSwitch.begin() || !maxLimitSwitch.begin())
     {
         LOG_ERROR("FATAL: Failed to initialize Limit Switches");
         while (1)
@@ -143,7 +143,8 @@ void InputTask(void *pvParameters)
         buttonController.update();
 
         // Update limit switches
-        limitSwitch.update();
+        minLimitSwitch.update();
+        maxLimitSwitch.update();
 
         // Calculate speed from encoder
         motorController.calculateSpeed(100);

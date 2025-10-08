@@ -169,34 +169,34 @@ describe('MotorConfigDialog - Apply Changes', () => {
     expect(defaultProps.onOpenChange).toHaveBeenCalledWith(false)
   })
 
-  it('should disable apply button when disconnected', () => {
+  it('should keep apply button enabled when disconnected', () => {
     render(<MotorConfigDialog {...defaultProps} isConnected={false} />)
 
     const applyButton = screen.getByText('Apply')
-    expect(applyButton).toBeDisabled()
+    expect(applyButton).toBeEnabled()
   })
 
-  it('should disable apply button when no changes made', () => {
+  it('should keep apply button enabled when no changes made', () => {
     render(<MotorConfigDialog {...defaultProps} />)
 
     const applyButton = screen.getByText('Apply')
-    expect(applyButton).toBeDisabled()
+    expect(applyButton).toBeEnabled()
   })
 
-  it('should disable apply button when form is invalid', () => {
+  it('should keep apply button enabled when form is invalid', () => {
     render(<MotorConfigDialog {...defaultProps} />)
 
     const maxSpeedInput = screen.getByLabelText('Max Speed')
     fireEvent.change(maxSpeedInput, { target: { value: '50' } }) // Invalid: below 100
 
     const applyButton = screen.getByText('Apply')
-    expect(applyButton).toBeDisabled()
+    expect(applyButton).toBeEnabled()
   })
 
   it('should toggle StealthChop mode', () => {
     render(<MotorConfigDialog {...defaultProps} />)
 
-    const stealthChopSwitch = screen.getByRole('switch')
+    const stealthChopSwitch = screen.getByLabelText('StealthChop Mode')
     fireEvent.click(stealthChopSwitch)
 
     const applyButton = screen.getByText('Apply')
