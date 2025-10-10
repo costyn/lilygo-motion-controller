@@ -2,7 +2,11 @@
 
 ## 🔴 Missing Features (from original requirements, and those added afterwards)
 
-### Bugs & New Feature Wishes
+### Bugs & New Feature Wishes v1.5
+- [ ] Magnetic Encoder feedback
+- [ ] Optional SimpleFOC https://simplefoc.com/ integration
+
+### Bugs & New Feature Wishes v1.4
 - [✅] Config feature to add: freewheel after movement or not. ✅ **COMPLETED** - Works for all movement types (jog, slider, quick positions)
 - [✅] Bug: when not in freewheel mode after movement, the motor slightly buzzes and gets warm. ✅ **FIXED** - Only call `stepper->run()` when `distanceToGo() != 0`
 - [✅] Bug: I never see the automatic switch between stealthchop and spreadcycle happen in the logs ✅ **FIXED** - Use `abs(stepper->speed())` instead of uninitialized `motorSpeed`
@@ -91,33 +95,11 @@
 - [ ] **ArtNet Support** - Control through ArtNet/DMX
 - [ ] **WLED Support** - Control from WLED through API calls
 
-
-## 📋 Implementation Notes
-
-### Immediate Next Steps (when hardware available)
-1. **mDNS Setup** - Easy local network access
-2. **Hardware Testing** - Verify all modules work correctly
-3. **Debug Serial Stream** - High priority for debugging without serial access
-4. **Physical Button Implementation** - Complete the button control logic
-
 ### Architecture Decisions Needed
 - **Movement Playlist Storage** - SPIFFS vs NVRAM vs external storage
 - **Real-time Requirements** - Current timing analysis and optimization
 
-## 🎯 Version Planning
-
-### v1.1 - Basic Completeness
-- Debug serial WebSocket stream
-- Complete button controls
-- mDNS support
-- Hardware testing validation
-
-### v1.2 - Enhanced Control
-- Movement playlists
-- Advanced TMC2209 optimization
-- Performance profiling and optimization
-
 ---
 
-**Last Updated**: October 8, 2025
+**Last Updated**: October 10, 2025
 **Status**: Core functionality complete with all major bugs fixed, extensions in planning
