@@ -84,9 +84,7 @@ void setup()
     // 5. Web server
     if (!webServer.begin())
     {
-        LOG_ERROR("FATAL: Failed to initialize Web Server");
-        while (1)
-            delay(1000);
+        LOG_WARN("WARN: Failed to initialize Web Server. Only PCB buttons work!");
     }
 
     LOG_INFO("All modules initialized successfully");

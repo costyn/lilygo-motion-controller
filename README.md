@@ -7,10 +7,12 @@ A modular wireless stepper motor controller for LilyGo T-Motor hardware with TMC
 ### 1. Get the Hardware
 
 - **[LilyGo TTGO T-Motor ESP32 Driver Module](https://www.tinytronics.nl/en/development-boards/microcontroller-boards/with-wi-fi/lilygo-ttgo-t-motor-esp32-motor-driver-module-tmc2209)** - ESP32 board with TMC2209 driver and MT6816 encoder
+- **[LilyGO TTGO TTL USB Serial Port Adapter for T-Internet PoE](https://www.tinytronics.nl/en/communication-and-signals/serial/usb/lilygo-ttgo-ttl-usb-serial-port-adapter-for-t-internet-poe)** - USB Serial port adapter needed for 1st programming of the board (can use OTA after)
+- **1mm pitch female headers** Not necessary but handy to have to attach the usb serial adapter to the board.
 - **[Stepper Motor](https://www.tinytronics.nl/en/mechanics-and-actuators/motors/stepper-motors)** - NEMA 17 (e.g., 17HS19-2004S1)
 - **[2x Limit Switches](https://www.tinytronics.nl/en/switches/manual-switches/micro-switches/micro-switch-with-lever)** - Micro switches with lever (normally open)
 - **Power Supply** - 12V DC (max 12V!)
-  - **[USB-C PD Trigger Board](https://www.amazon.nl/-/en/6pcs-power-supply-trigger-module/dp/B0DGXHN5CT)** - Nice to use as a universal power supply.
+  - **[USB-C PD Trigger Board](https://www.amazon.nl/-/en/6pcs-power-supply-trigger-module/dp/B0DGXHN5CT)** (not an affiliate link) - Nice to use as a universal power supply.
 
 ### 2. Hardware Connections
 
@@ -403,14 +405,24 @@ The modular architecture makes extending functionality straightforward:
 
 ## License
 
-[License information to be added]
+MIT License
+
+Copyright 2025 Costyn van Dongen
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ## Contributing
 
-[Contributing guidelines to be added]
+Feel free to submit PR's or issues here in Github.
 
 ## Acknowledgments
 
-- LilyGo for T-Motor hardware platform
+- LilyGo for T-Motor hardware platform and [reference project](https://github.com/Xinyuan-LilyGO/T-Motor)
 - TMC2209 stepper driver reference implementations
 - ESP32 community libraries and examples
+- Claude Code for incredible agentic coding experience!
+- [Claude Requirements Gathering System](https://github.com/rizethereum/claude-code-requirements-builder)

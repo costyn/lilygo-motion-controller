@@ -142,7 +142,7 @@ void MotorController::jogStop()
 void MotorController::emergencyStop()
 {
     // Stop motor immediately
-    stepper->stop(); // Clear AccelStepper's internal target state first
+    stepper->stop();                                         // Clear AccelStepper's internal target state first
     stepper->setCurrentPosition(stepper->currentPosition()); // Stop NOW (override deceleration)
     stepper->setSpeed(0);
     digitalWrite(EN_PIN, HIGH); // Disable motor => freewheel
@@ -176,7 +176,13 @@ int MotorController::readEncoder()
     mt6816->endTransaction();
     digitalWrite(SPI_MT_CS, HIGH);
 
-    return (int)(temp[0] << 6 | temp[1] >> 2);
+    int position = (int)(temp[0] << 6 | temp[1] >> 2);
+
+    // Debug: Log encoder raw bytes and calculated position
+    LOG_DEBUG("Encoder raw: high=0x%02X low=0x%02X -> position=%d (%.1f°)",
+              temp[0], temp[1], position, (position * 360.0) / 16384.0);
+
+    return position;
 }
 
 double MotorController::calculateSpeed(float ms)

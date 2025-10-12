@@ -2,7 +2,25 @@
 
 ## 🔴 Missing Features (from original requirements, and those added afterwards)
 
-### Bugs & New Feature Wishes
+### Bugs & New Feature Wishes v1.5
+- [ ] Magnetic Encoder feedback
+- [ ] Optional SimpleFOC https://simplefoc.com/ integration
+- [ ] Failing to set up the web portal should not be a fatal error. Onboard buttons still work.
+- [ ] Autolearn limits, do a few bump stops 
+
+[ 30377][E][WebServer.cpp:638] _handleRequest(): request handler not found
+[ 30442][E][WebServer.cpp:638] _handleRequest(): request handler not found
+*wm:15 networks found
+[ 35027][E][WebServer.cpp:638] _handleRequest(): request handler not found
+*wm:config portal has timed out 
+*wm:config portal exiting 
+[00:01:06.097] [WARN] [begin]: Failed to connect to WiFi
+[00:01:06.098] [ERROR] [setup]: FATAL: Failed to initialize Web Server
+
+- [ ] What needs to be done to save multiple wifi passwords??
+
+
+### Bugs & New Feature Wishes v1.4
 - [✅] Config feature to add: freewheel after movement or not. ✅ **COMPLETED** - Works for all movement types (jog, slider, quick positions)
 - [✅] Bug: when not in freewheel mode after movement, the motor slightly buzzes and gets warm. ✅ **FIXED** - Only call `stepper->run()` when `distanceToGo() != 0`
 - [✅] Bug: I never see the automatic switch between stealthchop and spreadcycle happen in the logs ✅ **FIXED** - Use `abs(stepper->speed())` instead of uninitialized `motorSpeed`
