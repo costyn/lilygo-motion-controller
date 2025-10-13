@@ -614,8 +614,8 @@ void WebServerClass::update()
         // Send position updates every 100ms during movement
         if (currentMillis - lastPositionBroadcast >= POSITION_BROADCAST_INTERVAL_MS)
         {
-            LOG_DEBUG("Broadcasting position update: %ld", motorController.getCurrentPosition());
-            broadcastPosition(motorController.getCurrentPosition());
+            LOG_DEBUG("Broadcasting position update: %ld", closedLoopController.getEncoderPositionSteps());
+            broadcastPosition(closedLoopController.getEncoderPositionSteps());
             lastPositionBroadcast = currentMillis;
         }
 
@@ -636,6 +636,16 @@ void WebServerClass::update()
         LOG_INFO("Movement completed - sending final status");
         broadcastStatus();
         wasMovingLastUpdate = false;
+    }
+    else
+    {
+        // Motor idle - send position updates at slower rate to show manual shaft rotation
+        // Send position updates every 500ms when idle (same as status interval)
+        if (currentMillis - lastPositionBroadcast >= STATUS_BROADCAST_INTERVAL_MS)
+        {
+            broadcastPosition(closedLoopController.getEncoderPositionSteps());
+            lastPositionBroadcast = currentMillis;
+        }
     }
 }
 
