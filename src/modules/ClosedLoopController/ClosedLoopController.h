@@ -61,6 +61,7 @@ private:
 
     // Motor enable state tracking
     bool motorWasEnabled;
+    bool softLimitActive;  // Track if motor is actively holding a soft limit boundary
 
     // Coordinate conversion constants
     // Motor: 200 steps/rev × 16 microsteps = 3200 steps/rev

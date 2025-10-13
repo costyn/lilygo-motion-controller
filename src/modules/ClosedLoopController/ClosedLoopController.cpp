@@ -15,7 +15,8 @@ ClosedLoopController::ClosedLoopController()
       lastEncoderChangeTime(0),
       lastHealthCheckRaw(0),
       lastHealthCheckTime(0),
-      motorWasEnabled(false)
+      motorWasEnabled(false),
+      softLimitActive(false)
 {
 }
 
@@ -59,7 +60,7 @@ bool ClosedLoopController::begin()
 uint16_t ClosedLoopController::readEncoderRaw()
 {
     int rawValue = motorController.readEncoder();
-    return (uint16_t)(rawValue & 0x3FFF);  // 14-bit mask (0-16383)
+    return (uint16_t)(rawValue & 0x3FFF); // 14-bit mask (0-16383)
 }
 
 /**
@@ -251,7 +252,7 @@ void ClosedLoopController::update()
             lastHealthCheckTime = millis();
             // checkEncoderHealth() will be called on next update cycle
         }
-        return;  // Don't apply corrections in open-loop mode
+        return; // Don't apply corrections in open-loop mode
     }
 
     // ============================================================================
@@ -300,9 +301,86 @@ void ClosedLoopController::update()
     // - AccelStepper handles acceleration/deceleration smoothly
     // - Motor is already moving, so small target adjustments are imperceptible
 
+    // Soft limits work in RAW encoder coordinates (not negated)
+    // This avoids confusion with coordinate system conversions
+    long minLimit = -config.getMaxLimit(); // Negate: user maxLimit → motor minLimit
+    long maxLimit = -config.getMinLimit(); // Negate: user minLimit → motor maxLimit
+
+    // Soft limit boundary offset: move to this many steps inside the limit, then release
+    // This prevents the motor from constantly fighting at exactly the boundary
+    static constexpr long SOFT_LIMIT_INSET = 200; // 200 steps inside the limit
+
+    // Check if encoder is outside configured limits (using raw encoder coordinates)
+    bool outsideLimits = (encoderPositionSteps < minLimit || encoderPositionSteps > maxLimit);
+
     if (!motorEnabled)
     {
-        // Motor freewheeling - just track position, no corrections
+        // ============================================================================
+        // SOFT LIMITS: Enforce position boundaries during freewheel
+        // ============================================================================
+        // When motor is freewheeling, user can manually rotate the shaft.
+        // If shaft is rotated beyond configured limits, engage motor to push back
+        // slightly inside the boundary, then release.
+
+        if (outsideLimits)
+        {
+            if (encoderPositionSteps < minLimit)
+            {
+                // Encoder went below minimum - push back inside lower boundary
+                long recoveryPosition = minLimit + SOFT_LIMIT_INSET;
+                LOG_INFO("Soft limit: encoder below min (raw: %ld < %ld), pushing to recovery position %ld",
+                         encoderPositionSteps, minLimit, recoveryPosition);
+                motorController.moveTo(recoveryPosition, config.getMaxSpeed());
+                softLimitActive = true;
+            }
+            else if (encoderPositionSteps > maxLimit)
+            {
+                // Encoder went above maximum - push back inside upper boundary
+                long recoveryPosition = maxLimit - SOFT_LIMIT_INSET;
+                LOG_INFO("Soft limit: encoder above max (raw: %ld > %ld), pushing to recovery position %ld",
+                         encoderPositionSteps, maxLimit, recoveryPosition);
+                motorController.moveTo(recoveryPosition, config.getMaxSpeed());
+                softLimitActive = true;
+            }
+        }
+
+        // Otherwise: Motor freewheeling within limits - just track position, no corrections
+        return;
+    }
+
+    // ============================================================================
+    // SOFT LIMIT ACTIVE: Wait for recovery movement to complete, then release
+    // ============================================================================
+    if (softLimitActive)
+    {
+        // Check if motor has completed the recovery movement AND encoder is back within limits
+        bool motorStopped = !motorController.isMoving();
+        bool backWithinLimits = (encoderPositionSteps >= minLimit && encoderPositionSteps <= maxLimit);
+
+        if (motorStopped && backWithinLimits)
+        {
+            // Movement complete AND encoder confirmed within limits - safe to release
+            LOG_INFO("Soft limit: recovery complete at position %ld (within limits), releasing", currentEncoderPosition);
+            softLimitActive = false;
+
+            // If freewheeling is configured, disable motor now
+            if (config.getFreewheelAfterMove())
+            {
+                // Disable motor by setting EN_PIN HIGH directly (bypass normal freewheel logic)
+                pinMode(2, OUTPUT); // EN_PIN = 2
+                digitalWrite(2, HIGH);
+                LOG_INFO("Soft limit: freewheeling re-enabled");
+            }
+        }
+        else if (motorStopped && !backWithinLimits)
+        {
+            // Motor stopped but encoder STILL outside limits - this shouldn't happen normally
+            // Log error and re-trigger recovery attempt
+            LOG_WARN("Soft limit: motor stopped but encoder still outside limits (%ld), retriggering recovery",
+                     currentEncoderPosition);
+            softLimitActive = false; // Reset flag so next cycle will re-trigger
+        }
+        // Otherwise: Still moving to recovery position, let it continue
         return;
     }
 
