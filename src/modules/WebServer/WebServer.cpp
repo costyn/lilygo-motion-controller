@@ -2,6 +2,7 @@
 #include "../Configuration/Configuration.h"
 #include "../MotorController/MotorController.h"
 #include "../LimitSwitch/LimitSwitch.h"
+#include "../ClosedLoopController/ClosedLoopController.h"
 #include "util.h"
 #include <Arduino.h>
 
@@ -480,7 +481,26 @@ void WebServerClass::broadcastStatus()
 
     JsonDocument doc;
     doc["type"] = "status";
-    doc["position"] = motorController.getCurrentPosition();
+
+    // Closed-loop position reporting
+    if (closedLoopController.isEncoderHealthy())
+    {
+        // Encoder healthy: report actual encoder position as primary position
+        doc["position"] = closedLoopController.getEncoderPositionSteps();
+        doc["commandedPosition"] = motorController.getCurrentPosition();
+        doc["positionError"] = (long)closedLoopController.getPositionErrorSteps();
+        doc["encoderStatus"] = "ok";
+        doc["controlMode"] = "closed-loop";
+        doc["rotationCount"] = closedLoopController.getRotationCount();
+    }
+    else
+    {
+        // Encoder fault: fall back to open-loop reporting
+        doc["position"] = motorController.getCurrentPosition();
+        doc["encoderStatus"] = "fault";
+        doc["controlMode"] = "open-loop";
+    }
+
     doc["isMoving"] = motorController.isMoving();
     doc["emergencyStop"] = motorController.isEmergencyStopActive();
     doc["limitSwitches"]["min"] = minLimitSwitch.isTriggered();

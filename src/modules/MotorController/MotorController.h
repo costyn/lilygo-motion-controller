@@ -67,6 +67,7 @@ public:
     bool isStealthChopActive() const { return useStealthChop; }
     bool isMoving() const { return stepper->distanceToGo() != 0; }
     bool isEmergencyStopActive() const { return emergencyStopActive; }
+    bool isMotorEnabled() const;
 
     // Encoder operations
     int readEncoder();

@@ -161,6 +161,12 @@ long MotorController::getCurrentPosition() const
     return stepper->currentPosition();
 }
 
+bool MotorController::isMotorEnabled() const
+{
+    // Motor is enabled when EN_PIN is LOW
+    return digitalRead(EN_PIN) == LOW;
+}
+
 int MotorController::readEncoder()
 {
     uint16_t temp[2];

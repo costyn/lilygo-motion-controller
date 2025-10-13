@@ -7,6 +7,7 @@
 #include "modules/LimitSwitch/LimitSwitch.h"
 #include "modules/ButtonController/ButtonController.h"
 #include "modules/WebServer/WebServer.h"
+#include "modules/ClosedLoopController/ClosedLoopController.h"
 
 /*
  * LilyGo Motion Controller
@@ -16,6 +17,7 @@
  *
  * Features:
  * - WebSocket-based control interface
+ * - Closed-loop position control with encoder feedback
  * - Smart limit switch handling with position learning
  * - Automatic TMC2209 mode optimization (StealthChop/SpreadCycle)
  * - Configuration persistence via ESP32 Preferences
@@ -33,10 +35,12 @@
 // Task handles
 TaskHandle_t inputTaskHandle = NULL;
 TaskHandle_t webServerTaskHandle = NULL;
+TaskHandle_t closedLoopTaskHandle = NULL;
 
 // Task function declarations
 void InputTask(void *pvParameters);
 void WebServerTask(void *pvParameters);
+void ClosedLoopTask(void *pvParameters);
 
 void setup()
 {
@@ -81,7 +85,15 @@ void setup()
             delay(1000);
     }
 
-    // 5. Web server
+    // 5. Closed-loop controller (after motor controller)
+    if (!closedLoopController.begin())
+    {
+        LOG_ERROR("FATAL: Failed to initialize Closed-Loop Controller");
+        while (1)
+            delay(1000);
+    }
+
+    // 6. Web server
     if (!webServer.begin())
     {
         LOG_WARN("WARN: Failed to initialize Web Server. Only PCB buttons work!");
@@ -110,6 +122,16 @@ void setup()
         1,                    // Priority
         &webServerTaskHandle, // Task handle
         1                     // Core (1 for web server)
+    );
+
+    xTaskCreatePinnedToCore(
+        ClosedLoopTask,        // Task function
+        "ClosedLoop",          // Task name
+        4096,                  // Stack size
+        NULL,                  // Parameters
+        1,                     // Priority (same as WebServerTask)
+        &closedLoopTaskHandle, // Task handle
+        0                      // Core (0, same as InputTask)
     );
 
     LOG_INFO("FreeRTOS tasks created");
@@ -164,5 +186,24 @@ void WebServerTask(void *pvParameters)
 
         // 50ms update rate for web operations
         vTaskDelay(pdMS_TO_TICKS(50));
+    }
+}
+
+void ClosedLoopTask(void *pvParameters)
+{
+    LOG_INFO("Closed Loop Task started");
+
+    // Use vTaskDelayUntil for precise timing
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    const TickType_t xFrequency = pdMS_TO_TICKS(20); // 20ms = 50Hz
+
+    // Task main loop
+    while (1)
+    {
+        // Update closed-loop controller
+        closedLoopController.update();
+
+        // Precise 20ms timing for position control
+        vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }
 }
