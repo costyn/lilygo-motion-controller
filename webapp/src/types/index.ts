@@ -2,7 +2,12 @@
 
 export interface MotorStatus {
   type: 'status';
-  position: number;
+  position: number; // Encoder position (actual) or commanded position (fallback if encoder fault)
+  commandedPosition?: number; // AccelStepper commanded position (only present in closed-loop mode)
+  positionError?: number; // Difference between commanded and encoder (only in closed-loop)
+  encoderStatus?: 'ok' | 'fault'; // Encoder health status
+  controlMode?: 'closed-loop' | 'open-loop'; // Current control mode
+  rotationCount?: number; // Number of full rotations (multi-turn tracking)
   isMoving: boolean;
   emergencyStop: boolean;
   limitSwitches: {
