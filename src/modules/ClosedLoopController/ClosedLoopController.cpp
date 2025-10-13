@@ -270,7 +270,9 @@ void ClosedLoopController::update()
     bool motorEnabled = motorController.isMotorEnabled();
 
     // Detect motor becoming enabled (transition from freewheel to powered)
-    if (motorEnabled && !motorWasEnabled)
+    // BUT: Only sync if there's no active movement command (distanceToGo == 0)
+    // This prevents overwriting a freshly-set target position
+    if (motorEnabled && !motorWasEnabled && motorController.getDistanceToGo() == 0)
     {
         // Sync AccelStepper position to actual encoder position
         // This prevents unexpected "snap back" movements after freewheel
@@ -304,30 +306,20 @@ void ClosedLoopController::update()
         return;
     }
 
-    // Calculate position error
-    long commandedPosition = motorController.getCurrentPosition();
-    long errorSteps = commandedPosition - encoderPositionSteps;
-    float errorDegrees = stepsToDegrees(errorSteps);
-
-    // Apply correction only if error exceeds deadband threshold
-    long deadbandSteps = degreesToSteps(DEADBAND_THRESHOLD_DEGREES);
-
-    if (abs(errorSteps) > deadbandSteps)
-    {
-        // Calculate proportional correction (P-only: correction = Kp * error)
-        long correction = (long)(errorSteps * Kp);
-        long newTarget = commandedPosition + correction;
-
-        // Apply correction using existing moveTo method
-        // This adjusts the target position to compensate for missed steps
-        motorController.moveTo(newTarget, config.getMaxSpeed());
-
-        LOG_INFO("Position correction applied: error=%.1f° (%ld steps), correction=%ld steps, newTarget=%ld",
-                 errorDegrees, errorSteps, correction, newTarget);
-    }
-    else
-    {
-        // Within deadband - no correction needed
-        // LOG_DEBUG("Position within deadband: error=%.2f° (%ld steps)", errorDegrees, errorSteps);
-    }
+    // ============================================================================
+    // ACTIVE CORRECTION DISABLED
+    // ============================================================================
+    // The active correction loop has been temporarily disabled because:
+    // 1. It was using getCurrentPosition() instead of getTargetPosition()
+    // 2. This caused it to continuously chase the encoder with corrections
+    // 3. The motor would never reach its target, just continuously adjust
+    //
+    // TODO: Implement proper closed-loop control that:
+    // - Monitors encoder position vs commanded steps (not vs target)
+    // - Detects missed steps by comparing step count to encoder change
+    // - Adds corrective steps without changing the target position
+    // - Uses AccelStepper::setCurrentPosition() to adjust for errors
+    //
+    // For now, the motor runs in open-loop mode with sync-on-enable only.
+    // ============================================================================
 }
