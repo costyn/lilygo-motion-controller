@@ -43,6 +43,7 @@ private:
     unsigned long lastPositionBroadcast;
     unsigned long lastStatusBroadcast;
     bool wasMovingLastUpdate;
+    long lastBroadcastPosition;  // Track last position to avoid sending duplicates
 
     // WebSocket handlers
     void handleWebSocketMessage(void *arg, uint8_t *data, size_t len);
