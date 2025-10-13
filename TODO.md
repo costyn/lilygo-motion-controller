@@ -4,9 +4,10 @@
 
 ### Bugs & New Feature Wishes v1.5
 - [ ] Magnetic Encoder feedback
-- [ ] Optional SimpleFOC https://simplefoc.com/ integration
+- [🔴] ~Optional SimpleFOC https://simplefoc.com/ integration~ SimpleFOC does not work with the TMC2209
 - [ ] Failing to set up the web portal should not be a fatal error. Onboard buttons still work.
-- [ ] Autolearn limits, do a few bump stops 
+  - [ ] On wifi fail, do not wait for portal/put the wifi config portal on a separate thread
+- [ ] Calibration/auto-learn limits, do a few bump stops like 3D printers do
 
 [ 30377][E][WebServer.cpp:638] _handleRequest(): request handler not found
 [ 30442][E][WebServer.cpp:638] _handleRequest(): request handler not found

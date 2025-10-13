@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Activity, Wifi, WifiOff, Trash2, RotateCcw } from 'lucide-react';
 import './DebugConsole.css';
-import { CONTROLLER_HOSTNAME } from '../../lib/utils'
+import { getWebSocketUrl } from '../../lib/utils'
 
 const DebugConsole: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -20,10 +20,9 @@ const DebugConsole: React.FC = () => {
     setConnectionStatus('connecting');
     setMessages(prev => [...prev, '[Connecting to debug stream...]']);
 
+    const debugWsUrl = getWebSocketUrl('/debug')
 
-    const wsUrl = `ws://${CONTROLLER_HOSTNAME}/debug`;
-
-    const ws = new WebSocket(wsUrl);
+    const ws = new WebSocket(debugWsUrl);
 
     ws.onopen = () => {
       setConnectionStatus('connected');

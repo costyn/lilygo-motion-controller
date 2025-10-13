@@ -66,7 +66,7 @@ bool MotorController::begin()
 
     driver->toff(5);           // Enables driver in software
     driver->rms_current(2000); // Set motor RMS current
-    driver->microsteps(8);     // Set microsteps to 1/8th
+    driver->microsteps(16);    // Set microsteps to 1/8th
     driver->ihold(1);
 
     driver->en_spreadCycle(true); // Toggle spreadCycle on TMC2208/2209/2224

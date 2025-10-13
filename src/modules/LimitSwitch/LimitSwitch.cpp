@@ -8,7 +8,7 @@ LimitSwitch minLimitSwitch(21);
 LimitSwitch maxLimitSwitch(22);
 
 // Static member initialization
-LimitSwitch* LimitSwitch::instances[2] = {nullptr, nullptr};
+LimitSwitch *LimitSwitch::instances[2] = {nullptr, nullptr};
 uint8_t LimitSwitch::instanceCount = 0;
 
 LimitSwitch::LimitSwitch(uint8_t limitPin)
@@ -50,7 +50,7 @@ void LimitSwitch::update()
         triggered = true;
 
         // Stop motor immediately (safe in task context)
-        motorController.emergencyStop();
+        motorController.jogStop();
 
         // Get current position
         long currentPos = motorController.getCurrentPosition();
