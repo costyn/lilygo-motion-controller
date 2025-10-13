@@ -106,7 +106,12 @@ void MotorController::moveTo(long position, int speed)
         LOG_WARN("Cannot move - emergency stop active");
         return;
     }
-    digitalWrite(EN_PIN, LOW); // Enable motor
+
+    // Only enable motor if currently disabled (prevents false transition trigger)
+    if (!isMotorEnabled())
+    {
+        digitalWrite(EN_PIN, LOW); // Enable motor
+    }
 
     // Clamp speed to safe limits (already validated, but extra safety check)
     if (speed < MIN_SPEED)
@@ -184,9 +189,9 @@ int MotorController::readEncoder()
 
     int position = (int)(temp[0] << 6 | temp[1] >> 2);
 
-    // Debug: Log encoder raw bytes and calculated position
-    LOG_DEBUG("Encoder raw: high=0x%02X low=0x%02X -> position=%d (%.1f°)",
-              temp[0], temp[1], position, (position * 360.0) / 16384.0);
+    // // Debug: Log encoder raw bytes and calculated position
+    // LOG_DEBUG("Encoder raw: high=0x%02X low=0x%02X -> position=%d (%.1f°)",
+    //           temp[0], temp[1], position, (position * 360.0) / 16384.0);
 
     return position;
 }

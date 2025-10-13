@@ -60,6 +60,7 @@ public:
     // Position and status
     long getCurrentPosition() const;
     long getTargetPosition() const { return targetPosition; }
+    long getDistanceToGo() const { return stepper->distanceToGo(); }
     double getMonitorSpeed() const { return monitorSpeed; }
     float getMotorSpeed() const { return motorSpeed; }
     int8_t getDirection() const { return direction; }
