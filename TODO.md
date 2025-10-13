@@ -110,33 +110,11 @@
 - [ ] **ArtNet Support** - Control through ArtNet/DMX
 - [ ] **WLED Support** - Control from WLED through API calls
 
-
-## 📋 Implementation Notes
-
-### Immediate Next Steps (when hardware available)
-1. **mDNS Setup** - Easy local network access
-2. **Hardware Testing** - Verify all modules work correctly
-3. **Debug Serial Stream** - High priority for debugging without serial access
-4. **Physical Button Implementation** - Complete the button control logic
-
 ### Architecture Decisions Needed
 - **Movement Playlist Storage** - SPIFFS vs NVRAM vs external storage
 - **Real-time Requirements** - Current timing analysis and optimization
 
-## 🎯 Version Planning
-
-### v1.1 - Basic Completeness
-- Debug serial WebSocket stream
-- Complete button controls
-- mDNS support
-- Hardware testing validation
-
-### v1.2 - Enhanced Control
-- Movement playlists
-- Advanced TMC2209 optimization
-- Performance profiling and optimization
-
 ---
 
-**Last Updated**: October 8, 2025
+**Last Updated**: October 10, 2025
 **Status**: Core functionality complete with all major bugs fixed, extensions in planning

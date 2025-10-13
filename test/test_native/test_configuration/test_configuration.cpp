@@ -199,6 +199,10 @@ void test_saveConfiguration_persists_values(void) {
 }
 
 void test_loadConfiguration_restores_defaults(void) {
+    // Clear mock storage to simulate fresh NVRAM
+    globalLongValues.clear();
+    globalBoolValues.clear();
+
     Configuration freshConfig;
     freshConfig.begin();
 

@@ -8,13 +8,15 @@ import DebugConsole from './components/DebugConsole/DebugConsole'
 import { MotorConfigDialog } from './components/MotorConfig/MotorConfigDialog'
 import { useMotorController } from './hooks/useMotorController'
 import { Button } from './components/ui/button'
-import { ExternalLink, RefreshCw, Settings } from 'lucide-react'
+import { Alert, AlertTitle, AlertDescription } from './components/ui/alert'
+import { ExternalLink, RefreshCw, Settings, AlertTriangle } from 'lucide-react'
 
 // Build-time constants injected by Vite
 declare const __BUILD_TIME__: string
 
 function AppContent() {
   const [configDialogOpen, setConfigDialogOpen] = useState(false)
+  const [showLimitWarning, setShowLimitWarning] = useState(false)
 
   const {
     connectionState,
@@ -37,6 +39,15 @@ function AppContent() {
   React.useEffect(() => {
     setJogSpeed(Math.round(motorConfig.maxSpeed * 0.3))
   }, [motorConfig.maxSpeed])
+
+  // Check if limits are equal and show warning
+  React.useEffect(() => {
+    if (isConnected && motorConfig.minLimit === motorConfig.maxLimit) {
+      setShowLimitWarning(true)
+    } else {
+      setShowLimitWarning(false)
+    }
+  }, [isConnected, motorConfig.minLimit, motorConfig.maxLimit])
 
   const handleJogStart = (direction: 'forward' | 'backward', speed: number) => {
     jogStart(direction, speed)
@@ -104,6 +115,27 @@ function AppContent() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6">
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+          {/* Limit Warning */}
+          {showLimitWarning && (
+            <div className="lg:col-span-2">
+              <Alert variant="warning" onDismiss={() => setShowLimitWarning(false)}>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Motor Movement Disabled</AlertTitle>
+                <AlertDescription>
+                  The minimum and maximum positions are equal ({motorConfig.minLimit} steps).
+                  The motor cannot move until limits are configured. Please open{' '}
+                  <button
+                    onClick={() => setConfigDialogOpen(true)}
+                    className="underline font-medium hover:no-underline"
+                  >
+                    Settings
+                  </button>
+                  {' '}to set the limit positions.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
           {/* Motor Status */}
           <div className="lg:col-span-2">
             <MotorStatus
