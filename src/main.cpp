@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <string>
 
 // Import our modules
 #include "util.h"

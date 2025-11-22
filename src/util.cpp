@@ -1,5 +1,6 @@
 #include "util.h"
 #include <stdarg.h>
+#include <string>
 
 // Forward declaration for WebServer debug streaming
 // This will be linked when WebServer module is included
