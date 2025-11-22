@@ -1,5 +1,6 @@
 #include "MotorController.h"
 #include "../Configuration/Configuration.h"
+#include "../LimitSwitch/LimitSwitch.h"
 #include "util.h"
 #include <Arduino.h>
 #include <string>
@@ -29,6 +30,17 @@ int8_t MotorController::direction = 1;
 // Global instance
 MotorController motorController;
 
+// Static callback wrappers for limit switches
+static void onMinLimitCallback(long position)
+{
+    motorController.onMinLimitReached(position);
+}
+
+static void onMaxLimitCallback(long position)
+{
+    motorController.onMaxLimitReached(position);
+}
+
 MotorController::MotorController()
 {
     serialDriver = &Serial1;
@@ -39,6 +51,8 @@ MotorController::MotorController()
     targetPosition = 0;
     emergencyStopActive = false;
     useStealthChop = true;
+    calibrationState = CAL_IDLE;
+    calibrationSpeed = 0;
 }
 
 bool MotorController::begin()
@@ -82,6 +96,10 @@ bool MotorController::begin()
 
     digitalWrite(EN_PIN, HIGH); // Disable driver until movement
 
+    // Register calibration callbacks with limit switches
+    minLimitSwitch.setLimitCallback(onMinLimitCallback);
+    maxLimitSwitch.setLimitCallback(onMaxLimitCallback);
+
     LOG_INFO("Motor Controller initialized successfully");
     return true;
 }
@@ -107,6 +125,13 @@ void MotorController::moveTo(long position, int speed)
         LOG_WARN("Cannot move - emergency stop active");
         return;
     }
+
+    if (isCalibrating())
+    {
+        LOG_WARN("Cannot move - calibration in progress");
+        return;
+    }
+
     digitalWrite(EN_PIN, LOW); // Enable motor
 
     // Clamp speed to safe limits (already validated, but extra safety check)
@@ -148,6 +173,10 @@ void MotorController::emergencyStop()
     stepper->setSpeed(0);
     digitalWrite(EN_PIN, HIGH); // Disable motor => freewheel
     emergencyStopActive = true;
+
+    // Stop calibration if in progress
+    stopCalibration();
+
     LOG_WARN("EMERGENCY STOP ACTIVATED");
 }
 
@@ -250,10 +279,19 @@ void MotorController::update()
 {
     // Track movement state for completion detection
     static bool wasMoving = false;
-    bool isMoving = (stepper->distanceToGo() != 0);
+    bool isMoving = !emergencyStopActive && (stepper->distanceToGo() != 0);
 
     // Update TMC mode based on current commanded speed
     updateTMCMode();
+
+    // Handle calibration state machine
+    if (calibrationState == CAL_COMPLETE)
+    {
+        // Transition from CAL_COMPLETE back to CAL_IDLE
+        calibrationState = CAL_IDLE;
+        calibrationSpeed = 0;
+        LOG_INFO("Calibration sequence finished");
+    }
 
     // Handle movement
     if (emergencyStopActive)
@@ -324,4 +362,90 @@ void MotorController::setMaxSpeed(long speed)
 void MotorController::setCurrentPosition(long position)
 {
     stepper->setCurrentPosition(position);
+}
+
+void MotorController::startCalibration()
+{
+    if (emergencyStopActive)
+    {
+        LOG_WARN("Cannot start calibration - emergency stop active");
+        return;
+    }
+
+    if (isCalibrating())
+    {
+        LOG_WARN("Cannot start calibration - already calibrating");
+        return;
+    }
+
+    calibrationState = CAL_FINDING_MIN;
+    calibrationSpeed = config.getMaxSpeed() * 0.3; // 30% of max speed
+
+    // Move toward MIN limit (large negative position)
+    // Note: This bypasses the isCalibrating() check in moveTo() because we haven't set the state yet
+    // We need to manually enable motor and start movement
+    digitalWrite(EN_PIN, LOW); // Enable motor
+
+    // Clamp speed to safe limits
+    long speed = calibrationSpeed;
+    if (speed < MIN_SPEED)
+        speed = MIN_SPEED;
+    if (speed > MAX_SPEED)
+        speed = MAX_SPEED;
+
+    stepper->setMaxSpeed(speed);
+    stepper->moveTo(-999999); // Move toward MIN limit
+
+    LOG_INFO("Calibration started - finding MIN limit at speed %ld steps/sec (%.0f%% of max)",
+             speed, (speed * 100.0 / config.getMaxSpeed()));
+}
+
+void MotorController::stopCalibration()
+{
+    if (calibrationState != CAL_IDLE)
+    {
+        calibrationState = CAL_IDLE;
+        calibrationSpeed = 0;
+        LOG_INFO("Calibration stopped");
+    }
+}
+
+void MotorController::onMinLimitReached(long position)
+{
+    if (calibrationState == CAL_FINDING_MIN)
+    {
+        LOG_INFO("Calibration: MIN limit reached at position %ld", position);
+
+        // Transition to finding MAX limit
+        calibrationState = CAL_FINDING_MAX;
+
+        // Move toward MAX limit (large positive position)
+        digitalWrite(EN_PIN, LOW); // Enable motor
+
+        // Use same calibration speed
+        long speed = calibrationSpeed;
+        if (speed < MIN_SPEED)
+            speed = MIN_SPEED;
+        if (speed > MAX_SPEED)
+            speed = MAX_SPEED;
+
+        stepper->setMaxSpeed(speed);
+        stepper->moveTo(999999); // Move toward MAX limit
+
+        LOG_INFO("Calibration: now finding MAX limit at speed %ld steps/sec", speed);
+    }
+}
+
+void MotorController::onMaxLimitReached(long position)
+{
+    if (calibrationState == CAL_FINDING_MAX)
+    {
+        LOG_INFO("Calibration: MAX limit reached at position %ld", position);
+
+        // Calibration complete
+        calibrationState = CAL_COMPLETE;
+
+        LOG_INFO("Calibration complete - min: %ld, max: %ld",
+                 config.getLimitPos1(), config.getLimitPos2());
+    }
 }

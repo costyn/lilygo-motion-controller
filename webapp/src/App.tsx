@@ -29,6 +29,7 @@ function AppContent() {
     updateConfig,
     jogStart,
     jogStop,
+    startCalibration,
     manualReconnect
   } = useMotorController()
 
@@ -192,6 +193,8 @@ function AppContent() {
         currentConfig={motorConfig}
         onApply={updateConfig}
         isConnected={isConnected}
+        onCalibrate={startCalibration}
+        isCalibrating={motorStatus.isCalibrating || false}
       />
     </div>
   )

@@ -58,6 +58,7 @@ private:
     void handleStatusCommand(JsonDocument& doc);
     void handleGetConfigCommand(JsonDocument& doc);
     void handleSetConfigCommand(JsonDocument& doc);
+    void handleCalibrateCommand(JsonDocument& doc);
 
     // Debug WebSocket handlers
     void onDebugWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,

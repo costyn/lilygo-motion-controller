@@ -198,6 +198,10 @@ export function useMotorController() {
     return sendCommand({ command: 'jogStop' })
   }, [sendCommand])
 
+  const startCalibration = useCallback(() => {
+    return sendCommand({ command: 'calibrate' })
+  }, [sendCommand])
+
   const manualReconnect = useCallback(() => {
     cleanup()
     setConnectionState({
@@ -243,6 +247,7 @@ export function useMotorController() {
     refreshStatus,
     jogStart,
     jogStop,
+    startCalibration,
     manualReconnect,
 
     // Raw WebSocket access for advanced use

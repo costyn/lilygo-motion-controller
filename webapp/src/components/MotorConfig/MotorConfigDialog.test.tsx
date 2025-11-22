@@ -20,6 +20,8 @@ describe('MotorConfigDialog - Dialog Behavior', () => {
     currentConfig: defaultConfig,
     onApply: vi.fn(),
     isConnected: true,
+    onCalibrate: vi.fn(),
+    isCalibrating: false,
   }
 
   beforeEach(() => {
@@ -66,6 +68,8 @@ describe('MotorConfigDialog - Input Validation', () => {
     currentConfig: defaultConfig,
     onApply: vi.fn(),
     isConnected: true,
+    onCalibrate: vi.fn(),
+    isCalibrating: false,
   }
 
   beforeEach(() => {
@@ -144,6 +148,8 @@ describe('MotorConfigDialog - Apply Changes', () => {
     currentConfig: defaultConfig,
     onApply: vi.fn(),
     isConnected: true,
+    onCalibrate: vi.fn(),
+    isCalibrating: false,
   }
 
   beforeEach(() => {
@@ -225,6 +231,8 @@ describe('MotorConfigDialog - Revert Functionality', () => {
     currentConfig: defaultConfig,
     onApply: vi.fn(),
     isConnected: true,
+    onCalibrate: vi.fn(),
+    isCalibrating: false,
   }
 
   beforeEach(() => {

@@ -9,6 +9,8 @@ export interface MotorStatus {
     min: boolean;
     max: boolean;
   };
+  isCalibrating?: boolean;
+  calibrationState?: string;
 }
 
 export interface PositionUpdate {
@@ -85,6 +87,10 @@ export interface JogStopCommand {
   command: 'jogStop';
 }
 
+export interface CalibrateCommand {
+  command: 'calibrate';
+}
+
 export type ControlCommand =
   | MoveCommand
   | EmergencyStopCommand
@@ -93,7 +99,8 @@ export type ControlCommand =
   | GetConfigCommand
   | SetConfigCommand
   | JogStartCommand
-  | JogStopCommand;
+  | JogStopCommand
+  | CalibrateCommand;
 
 // Connection state
 export interface ConnectionState {

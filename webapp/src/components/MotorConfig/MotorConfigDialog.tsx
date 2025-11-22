@@ -12,6 +12,8 @@ interface MotorConfigDialogProps {
   currentConfig: MotorConfig
   onApply: (config: Partial<Omit<MotorConfig, 'type'>>) => void
   isConnected: boolean
+  onCalibrate: () => void
+  isCalibrating: boolean
 }
 
 export function MotorConfigDialog({
@@ -19,7 +21,9 @@ export function MotorConfigDialog({
   onOpenChange,
   currentConfig,
   onApply,
-  isConnected
+  isConnected,
+  onCalibrate,
+  isCalibrating
 }: MotorConfigDialogProps) {
   // Form state
   const [maxSpeed, setMaxSpeed] = useState(currentConfig.maxSpeed)
@@ -306,6 +310,22 @@ export function MotorConfigDialog({
             </div>
             <p className="text-xs text-muted-foreground">
               Set manually or via physical limit switches. Limit switches will override these values if triggered.
+            </p>
+          </div>
+
+          {/* Calibration Section */}
+          <div className="grid gap-2 pt-4 border-t">
+            <Label>Calibration</Label>
+            <Button
+              variant="outline"
+              onClick={onCalibrate}
+              disabled={!isConnected || isCalibrating}
+              className="w-full"
+            >
+              {isCalibrating ? 'Calibrating...' : 'Recalibrate'}
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Automatically move motor to both limits and update positions. Motor will move to minimum first, then maximum.
             </p>
           </div>
         </div>

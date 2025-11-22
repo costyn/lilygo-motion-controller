@@ -8,8 +8,16 @@ export function cn(...inputs: ClassValue[]) {
 // Utility functions for the motor controller app
 
 export function getWebSocketUrl(endpoint: string): string {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${protocol}//${window.location.host}${endpoint}`;
+  // When running locally (Vite dev server on localhost), use hardcoded controller address
+  // Otherwise, use dynamic address (when webapp is deployed to the controller itself)
+  const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+  if (isLocalDev) {
+    return `ws://lilygo-motioncontroller.local${endpoint}`;
+  } else {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${protocol}//${window.location.host}${endpoint}`;
+  }
 }
 
 export function formatPosition(position: number): string {

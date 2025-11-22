@@ -8,6 +8,18 @@
 // Global instance
 WebServerClass webServer;
 
+// Helper function to convert calibration state to string
+static const char* getCalibrationStateString(CalibrationState state)
+{
+    switch (state)
+    {
+        case CAL_FINDING_MIN: return "Calibrating: Finding lower limit";
+        case CAL_FINDING_MAX: return "Calibrating: Finding upper limit";
+        case CAL_COMPLETE: return "Calibration complete";
+        default: return "Idle";
+    }
+}
+
 // DebugBuffer implementation
 DebugBuffer::DebugBuffer() : head(0), tail(0), full(false) {}
 
@@ -376,6 +388,20 @@ void WebServerClass::handleSetConfigCommand(JsonDocument& doc)
     }
 }
 
+void WebServerClass::handleCalibrateCommand(JsonDocument& doc)
+{
+    if (!motorController.isEmergencyStopActive())
+    {
+        motorController.startCalibration();
+        LOG_INFO("Calibration initiated via WebSocket");
+        broadcastStatus();
+    }
+    else
+    {
+        ws.textAll("{\"type\":\"error\",\"message\":\"Cannot calibrate: emergency stop active\"}");
+    }
+}
+
 void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
 {
     AwsFrameInfo *info = (AwsFrameInfo *)arg;
@@ -446,6 +472,10 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
         {
             handleSetConfigCommand(doc);
         }
+        else if (command == "calibrate")
+        {
+            handleCalibrateCommand(doc);
+        }
         else
         {
             LOG_WARN("Unknown WebSocket command: %s", command.c_str());
@@ -484,6 +514,8 @@ void WebServerClass::broadcastStatus()
     doc["emergencyStop"] = motorController.isEmergencyStopActive();
     doc["limitSwitches"]["min"] = minLimitSwitch.isPressed();
     doc["limitSwitches"]["max"] = maxLimitSwitch.isPressed();
+    doc["isCalibrating"] = motorController.isCalibrating();
+    doc["calibrationState"] = getCalibrationStateString(motorController.getCalibrationState());
 
     String message;
     serializeJson(doc, message);

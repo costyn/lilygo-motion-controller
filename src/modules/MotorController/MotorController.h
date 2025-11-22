@@ -4,6 +4,14 @@
 #include <TMCStepper.h>
 #include <SPI.h>
 
+// Calibration state machine states
+enum CalibrationState {
+    CAL_IDLE,           // Not calibrating
+    CAL_FINDING_MIN,    // Moving toward MIN limit switch
+    CAL_FINDING_MAX,    // Moving toward MAX limit switch
+    CAL_COMPLETE        // Calibration finished (brief state before returning to IDLE)
+};
+
 class MotorController
 {
 private:
@@ -28,6 +36,10 @@ private:
     // Limit switch recovery
     volatile bool needsLimitRecovery;
     volatile long limitRecoveryPosition;
+
+    // Calibration state
+    CalibrationState calibrationState;
+    long calibrationSpeed;
 
     // Speed threshold for TMC mode switching (percentage)
     const float STEALTH_CHOP_THRESHOLD = 0.5;
@@ -57,6 +69,14 @@ public:
     void emergencyStopWithRecovery(long limitPosition); // Emergency stop with return to limit position
     void clearEmergencyStop();
 
+    // Calibration methods
+    void startCalibration();
+    void stopCalibration();
+    bool isCalibrating() const { return calibrationState != CAL_IDLE; }
+    CalibrationState getCalibrationState() const { return calibrationState; }
+    void onMinLimitReached(long position);
+    void onMaxLimitReached(long position);
+
     // Position and status
     long getCurrentPosition() const;
     long getTargetPosition() const { return targetPosition; }
@@ -65,7 +85,7 @@ public:
     int8_t getDirection() const { return direction; }
     bool isEmergencyStopped() const { return emergencyStopActive; }
     bool isStealthChopActive() const { return useStealthChop; }
-    bool isMoving() const { return stepper->distanceToGo() != 0; }
+    bool isMoving() const { return !emergencyStopActive && stepper->distanceToGo() != 0; }
     bool isEmergencyStopActive() const { return emergencyStopActive; }
 
     // Encoder operations
