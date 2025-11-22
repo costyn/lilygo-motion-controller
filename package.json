@@ -1,0 +1,22 @@
+{
+  "name": "lilygo-motion-controller",
+  "version": "1.0.0",
+  "description": "Modular wireless stepper motor controller for LilyGo T-Motor",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/costyn/lilygo-motion-controller.git"
+  },
+  "author": "Costyn van Dongen",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^11.1.0",
+    "@semantic-release/exec": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^9.2.6",
+    "@semantic-release/release-notes-generator": "^12.1.0",
+    "conventional-changelog-conventionalcommits": "^7.0.2",
+    "semantic-release": "^22.0.12"
+  }
+}

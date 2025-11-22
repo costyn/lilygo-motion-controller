@@ -93,7 +93,7 @@ bool MotorController::initEncoder()
     mt6816->begin(SPI_CLK, SPI_MISO, SPI_MOSI, SPI_MT_CS);
     pinMode(SPI_MT_CS, OUTPUT);
     mt6816->setClockDivider(SPI_CLOCK_DIV4);
-    lastLocation = (double)readEncoder();
+    // lastLocation = (double)readEncoder();
 
     LOG_INFO("MT6816 Encoder initialized successfully");
     return true;
@@ -161,6 +161,7 @@ long MotorController::getCurrentPosition() const
     return stepper->currentPosition();
 }
 
+// Unused for now, no closed loop feature yet:
 int MotorController::readEncoder()
 {
     uint16_t temp[2];
@@ -185,6 +186,7 @@ int MotorController::readEncoder()
     return position;
 }
 
+// Unused for now, no closed loop feature yet:
 double MotorController::calculateSpeed(float ms)
 {
     double speedT = 0;

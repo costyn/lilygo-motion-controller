@@ -95,7 +95,7 @@ export function MotorStatus({ motorStatus, connectionState }: MotorStatusProps) 
                 <span className={`text-xs ${
                   motorStatus.limitSwitches.min ? 'text-red-600' : 'text-gray-500'
                 }`}>
-                  {motorStatus.limitSwitches.min ? 'Triggered' : 'Open'}
+                  {motorStatus.limitSwitches.min ? 'Pressed' : 'Released'}
                 </span>
               </div>
             </div>
@@ -110,7 +110,7 @@ export function MotorStatus({ motorStatus, connectionState }: MotorStatusProps) 
                 <span className={`text-xs ${
                   motorStatus.limitSwitches.max ? 'text-red-600' : 'text-gray-500'
                 }`}>
-                  {motorStatus.limitSwitches.max ? 'Triggered' : 'Open'}
+                  {motorStatus.limitSwitches.max ? 'Pressed' : 'Released'}
                 </span>
               </div>
             </div>

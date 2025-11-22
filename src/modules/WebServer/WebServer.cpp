@@ -460,9 +460,8 @@ void WebServerClass::handleAPI(AsyncWebServerRequest *request)
     doc["position"] = motorController.getCurrentPosition();
     doc["isMoving"] = motorController.isMoving();
     doc["emergencyStop"] = motorController.isEmergencyStopActive();
-    doc["limitSwitches"]["min"] = minLimitSwitch.isTriggered();
-    doc["limitSwitches"]["max"] = maxLimitSwitch.isTriggered();
-    doc["limitSwitches"]["any"] = minLimitSwitch.isTriggered() || maxLimitSwitch.isTriggered();
+    doc["limitSwitches"]["min"] = minLimitSwitch.isPressed();
+    doc["limitSwitches"]["max"] = maxLimitSwitch.isPressed();
 
     String response;
     serializeJson(doc, response);
@@ -483,9 +482,8 @@ void WebServerClass::broadcastStatus()
     doc["position"] = motorController.getCurrentPosition();
     doc["isMoving"] = motorController.isMoving();
     doc["emergencyStop"] = motorController.isEmergencyStopActive();
-    doc["limitSwitches"]["min"] = minLimitSwitch.isTriggered();
-    doc["limitSwitches"]["max"] = maxLimitSwitch.isTriggered();
-    doc["limitSwitches"]["any"] = minLimitSwitch.isTriggered() || maxLimitSwitch.isTriggered();
+    doc["limitSwitches"]["min"] = minLimitSwitch.isPressed();
+    doc["limitSwitches"]["max"] = maxLimitSwitch.isPressed();
 
     String message;
     serializeJson(doc, message);

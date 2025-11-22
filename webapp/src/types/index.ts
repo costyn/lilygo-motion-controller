@@ -8,7 +8,6 @@ export interface MotorStatus {
   limitSwitches: {
     min: boolean;
     max: boolean;
-    any: boolean;
   };
 }
 

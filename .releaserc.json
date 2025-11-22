@@ -1,0 +1,90 @@
+{
+  "branches": ["main"],
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          { "type": "feat", "release": "minor" },
+          { "type": "fix", "release": "patch" },
+          { "type": "perf", "release": "patch" },
+          { "type": "revert", "release": "patch" },
+          { "type": "docs", "release": false },
+          { "type": "style", "release": false },
+          { "type": "refactor", "release": "patch" },
+          { "type": "test", "release": false },
+          { "type": "build", "release": false },
+          { "type": "ci", "release": false },
+          { "type": "chore", "release": false },
+          { "breaking": true, "release": "major" }
+        ]
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "conventionalcommits",
+        "presetConfig": {
+          "types": [
+            { "type": "feat", "section": "Features" },
+            { "type": "fix", "section": "Bug Fixes" },
+            { "type": "perf", "section": "Performance Improvements" },
+            { "type": "revert", "section": "Reverts" },
+            { "type": "refactor", "section": "Code Refactoring" }
+          ]
+        },
+        "writerOpts": {
+          "commitsSort": ["subject", "scope"],
+          "headerPartial": "Release ${nextRelease.version} for LilyGo Motion Controller",
+          "footerPartial": "## Installation\n\nFlash lilygo-motion-controller-${nextRelease.version}.bin and spiffs-${nextRelease.version}.bin using ElegantOTA at http://lilygo-motioncontroller.local/update"
+        }
+      }
+    ],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md"
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "echo ${nextRelease.version} > VERSION.txt && cd release-assets && sha256sum *.bin *.elf > checksums.txt"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          {
+            "path": "release-assets/firmware.bin",
+            "name": "lilygo-motion-controller-${nextRelease.gitTag}.bin"
+          },
+          {
+            "path": "release-assets/spiffs.bin",
+            "name": "spiffs-${nextRelease.gitTag}.bin"
+          },
+          {
+            "path": "release-assets/firmware.elf",
+            "name": "firmware-${nextRelease.gitTag}.elf"
+          },
+          {
+            "path": "release-assets/checksums.txt",
+            "label": "SHA256 checksums"
+          }
+        ],
+        "successCommentCondition": false,
+        "failCommentCondition": false,
+        "releasedLabels": false
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["CHANGELOG.md", "VERSION.txt"],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ]
+  ]
+}

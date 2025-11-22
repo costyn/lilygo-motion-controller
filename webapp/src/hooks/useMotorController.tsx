@@ -15,8 +15,7 @@ const DEFAULT_STATUS: MotorStatus = {
   emergencyStop: false,
   limitSwitches: {
     min: false,
-    max: false,
-    any: false
+    max: false
   }
 }
 
