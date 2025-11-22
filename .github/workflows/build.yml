@@ -21,8 +21,12 @@ jobs:
         path: |
           ~/.cache/pip
           ~/.platformio/.cache
-        key: ${{ runner.os }}-pio-${{ hashFiles('**/platformio.ini') }}
+          ~/.platformio/platforms
+          ~/.platformio/packages
+          ~/.platformio/penv
+        key: ${{ runner.os }}-pio-pioarduino-${{ hashFiles('**/platformio.ini') }}
         restore-keys: |
+          ${{ runner.os }}-pio-pioarduino-
           ${{ runner.os }}-pio-
 
     - name: Set up Python

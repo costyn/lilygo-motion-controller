@@ -1,6 +1,7 @@
 #ifndef UTIL_H
 #define UTIL_H
 #include <Arduino.h>
+#include <string>
 
 // Device naming configuration
 #define DEVICE_NAME "LilyGo-MotionController"

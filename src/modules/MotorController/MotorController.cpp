@@ -2,6 +2,7 @@
 #include "../Configuration/Configuration.h"
 #include "util.h"
 #include <Arduino.h>
+#include <string>
 
 // Pin definitions
 #define R_SENSE 0.11f

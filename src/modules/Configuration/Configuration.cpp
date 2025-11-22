@@ -1,6 +1,7 @@
 #include "Configuration.h"
 #include "util.h"
 #include <Arduino.h>
+#include <string>
 
 // Global instance
 Configuration config;

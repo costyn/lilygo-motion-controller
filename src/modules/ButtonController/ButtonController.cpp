@@ -3,6 +3,7 @@
 #include "../LimitSwitch/LimitSwitch.h"
 #include "../Configuration/Configuration.h"
 #include "util.h"
+#include <string>
 
 // Global instance
 ButtonController buttonController;
