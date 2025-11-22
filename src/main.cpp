@@ -145,7 +145,7 @@ void InputTask(void *pvParameters)
         maxLimitSwitch.update();
 
         // Calculate speed from encoder
-        motorController.calculateSpeed(100);
+        // motorController.calculateSpeed(100);
 
         // 100ms update rate for input monitoring
         vTaskDelay(pdMS_TO_TICKS(100));
