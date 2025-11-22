@@ -66,7 +66,7 @@ bool MotorController::begin()
 
     driver->toff(5);           // Enables driver in software
     driver->rms_current(2000); // Set motor RMS current
-    driver->microsteps(8);     // Set microsteps to 1/8th
+    driver->microsteps(16);    // Set microsteps to 1/8th
     driver->ihold(1);
 
     driver->en_spreadCycle(true); // Toggle spreadCycle on TMC2208/2209/2224
@@ -93,7 +93,7 @@ bool MotorController::initEncoder()
     mt6816->begin(SPI_CLK, SPI_MISO, SPI_MOSI, SPI_MT_CS);
     pinMode(SPI_MT_CS, OUTPUT);
     mt6816->setClockDivider(SPI_CLOCK_DIV4);
-    lastLocation = (double)readEncoder();
+    // lastLocation = (double)readEncoder();
 
     LOG_INFO("MT6816 Encoder initialized successfully");
     return true;
@@ -142,7 +142,7 @@ void MotorController::jogStop()
 void MotorController::emergencyStop()
 {
     // Stop motor immediately
-    stepper->stop(); // Clear AccelStepper's internal target state first
+    stepper->stop();                                         // Clear AccelStepper's internal target state first
     stepper->setCurrentPosition(stepper->currentPosition()); // Stop NOW (override deceleration)
     stepper->setSpeed(0);
     digitalWrite(EN_PIN, HIGH); // Disable motor => freewheel
@@ -161,6 +161,7 @@ long MotorController::getCurrentPosition() const
     return stepper->currentPosition();
 }
 
+// Unused for now, no closed loop feature yet:
 int MotorController::readEncoder()
 {
     uint16_t temp[2];
@@ -176,9 +177,16 @@ int MotorController::readEncoder()
     mt6816->endTransaction();
     digitalWrite(SPI_MT_CS, HIGH);
 
-    return (int)(temp[0] << 6 | temp[1] >> 2);
+    int position = (int)(temp[0] << 6 | temp[1] >> 2);
+
+    // Debug: Log encoder raw bytes and calculated position
+    LOG_DEBUG("Encoder raw: high=0x%02X low=0x%02X -> position=%d (%.1f°)",
+              temp[0], temp[1], position, (position * 360.0) / 16384.0);
+
+    return position;
 }
 
+// Unused for now, no closed loop feature yet:
 double MotorController::calculateSpeed(float ms)
 {
     double speedT = 0;

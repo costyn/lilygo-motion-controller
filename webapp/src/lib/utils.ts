@@ -7,22 +7,8 @@ export function cn(...inputs: ClassValue[]) {
 
 // Utility functions for the motor controller app
 
-export const CONTROLLER_HOSTNAME = 'lilygo-motioncontroller.local';
-
 export function getWebSocketUrl(endpoint: string): string {
-  // During development, use the dev server's proxy
-  // if (import.meta.env.DEV) {
-  //   return `ws://localhost:5173${endpoint}`;
-  // }
-
-  // In production, try .local hostname first, fallback to current host
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-
-  // Try to use .local hostname first
-  if (window.location.hostname !== CONTROLLER_HOSTNAME) {
-    return `${protocol}//${CONTROLLER_HOSTNAME}${endpoint}`;
-  }
-
   return `${protocol}//${window.location.host}${endpoint}`;
 }
 

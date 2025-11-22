@@ -2,6 +2,8 @@ name: PlatformIO CI
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
 
@@ -58,59 +60,40 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: write
+      issues: write
+      pull-requests: write
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        persist-credentials: false
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 'lts/*'
+
+    - name: Install dependencies
+      run: pnpm install
 
     - name: Download all firmware artifacts
       uses: actions/download-artifact@v4
       with:
         path: artifacts
 
-    - name: Prepare release files
+    - name: Prepare release assets
       run: |
-        VERSION=${GITHUB_REF#refs/tags/}
-        mkdir -p release
+        mkdir -p release-assets
+        cp artifacts/firmware-pico32/firmware.bin release-assets/
+        cp artifacts/firmware-pico32/firmware.elf release-assets/
+        cp artifacts/spiffs-pico32/spiffs.bin release-assets/
 
-        # Copy firmware and SPIFFS files
-        cp artifacts/firmware-pico32/firmware.bin release/lilygo-motion-controller-${VERSION}.bin
-        cp artifacts/spiffs-pico32/spiffs.bin release/spiffs-${VERSION}.bin
-
-        # Create checksums
-        cd release
-        sha256sum *.bin > checksums.txt
-
-    - name: Extract release notes
-      id: extract_notes
-      run: |
-        if [ -f CHANGELOG.md ]; then
-          # Extract version section from CHANGELOG if it exists
-          echo "Release ${{ github.ref_name }}" > release_notes.md
-        else
-          echo "Release ${{ github.ref_name }}" > release_notes.md
-          echo "" >> release_notes.md
-          echo "## Files" >> release_notes.md
-          echo "- \`lilygo-motion-controller-${{ github.ref_name }}.bin\` - Main firmware" >> release_notes.md
-          echo "- \`spiffs-${{ github.ref_name }}.bin\` - Web interface filesystem" >> release_notes.md
-          echo "- \`checksums.txt\` - SHA256 checksums" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "## Installation" >> release_notes.md
-          echo "Flash both files using esptool or ElegantOTA at http://lilygo-motioncontroller.local/update" >> release_notes.md
-        fi
-
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          release/*.bin
-          release/checksums.txt
-        body_path: release_notes.md
-        draft: false
-        prerelease: false
-        generate_release_notes: true
+    - name: Run semantic-release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: npx semantic-release

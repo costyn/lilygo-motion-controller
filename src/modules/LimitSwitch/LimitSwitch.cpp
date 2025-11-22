@@ -8,7 +8,7 @@ LimitSwitch minLimitSwitch(21);
 LimitSwitch maxLimitSwitch(22);
 
 // Static member initialization
-LimitSwitch* LimitSwitch::instances[2] = {nullptr, nullptr};
+LimitSwitch *LimitSwitch::instances[2] = {nullptr, nullptr};
 uint8_t LimitSwitch::instanceCount = 0;
 
 LimitSwitch::LimitSwitch(uint8_t limitPin)
@@ -27,8 +27,8 @@ bool LimitSwitch::begin()
     // Configure pin as INPUT_PULLUP (switch is active LOW)
     pinMode(pin, INPUT_PULLUP);
 
-    // Attach hardware interrupt on FALLING edge (switch closes to ground)
-    attachInterrupt(digitalPinToInterrupt(pin), onISR, FALLING);
+    // Attach hardware interrupt on CHANGE (both press and release)
+    attachInterrupt(digitalPinToInterrupt(pin), onISR, CHANGE);
 
     LOG_INFO("Limit switch initialized with interrupt on pin %d", pin);
     return true;
@@ -41,44 +41,64 @@ void LimitSwitch::setLimitCallback(LimitSwitchCallback callback)
 
 void LimitSwitch::update()
 {
-    // Process any pending limit switch trigger from ISR
+    // Process any pending limit switch event from ISR
     // This runs in InputTask and handles non-ISR-safe operations
 
     if (pending)
     {
         pending = false;
-        triggered = true;
 
-        // Stop motor immediately (safe in task context)
-        motorController.emergencyStop();
+        // Check if switch is currently pressed (LOW) or released (HIGH)
+        bool isCurrentlyPressed = isPressed();
 
-        // Get current position
-        long currentPos = motorController.getCurrentPosition();
-        storedPosition = currentPos;
-
-        // Determine which limit switch this is and save position
-        if (this == &minLimitSwitch)
+        if (isCurrentlyPressed)
         {
-            config.setLimitPos1(currentPos);
-            config.saveLimitPositions(currentPos, config.getLimitPos2());
-            LOG_WARN("MIN limit switch triggered at position: %ld", currentPos);
+            // PRESS event - save position and stop motor
+            triggered = true;
+
+            // Stop motor immediately (safe in task context)
+            motorController.jogStop();
+
+            // Get current position
+            long currentPos = motorController.getCurrentPosition();
+            storedPosition = currentPos;
+
+            // Determine which limit switch this is and save position
+            if (this == &minLimitSwitch)
+            {
+                config.setLimitPos1(currentPos);
+                config.saveLimitPositions(currentPos, config.getLimitPos2());
+                LOG_WARN("MIN limit switch PRESSED at position: %ld", currentPos);
+            }
+            else if (this == &maxLimitSwitch)
+            {
+                config.setLimitPos2(currentPos);
+                config.saveLimitPositions(config.getLimitPos1(), currentPos);
+                LOG_WARN("MAX limit switch PRESSED at position: %ld", currentPos);
+            }
+
+            // Call callback if set
+            if (onLimitTriggered)
+            {
+                onLimitTriggered(currentPos);
+            }
         }
-        else if (this == &maxLimitSwitch)
+        else
         {
-            config.setLimitPos2(currentPos);
-            config.saveLimitPositions(config.getLimitPos1(), currentPos);
-            LOG_WARN("MAX limit switch triggered at position: %ld", currentPos);
+            // RELEASE event - just log it
+            if (this == &minLimitSwitch)
+            {
+                LOG_INFO("MIN limit switch RELEASED");
+            }
+            else if (this == &maxLimitSwitch)
+            {
+                LOG_INFO("MAX limit switch RELEASED");
+            }
         }
 
-        // Broadcast status update to webapp (WebSocket - NOT ISR-safe)
+        // Broadcast status update to webapp on both press and release
         extern void broadcastStatusFromLimitSwitch();
         broadcastStatusFromLimitSwitch();
-
-        // Call callback if set
-        if (onLimitTriggered)
-        {
-            onLimitTriggered(currentPos);
-        }
     }
 }
 
@@ -89,13 +109,10 @@ void IRAM_ATTR LimitSwitch::onISR()
     // Check which instance triggered by reading pin states
     for (uint8_t i = 0; i < instanceCount; i++)
     {
-        if (instances[i] && digitalRead(instances[i]->pin) == LOW)
+        if (instances[i])
         {
-            // Only trigger once - ignore subsequent bounces until cleared
-            if (!instances[i]->pending)
-            {
-                instances[i]->pending = true;
-            }
+            // Set pending flag to process in update() (handles both press and release)
+            instances[i]->pending = true;
         }
     }
 }

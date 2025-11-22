@@ -84,9 +84,7 @@ void setup()
     // 5. Web server
     if (!webServer.begin())
     {
-        LOG_ERROR("FATAL: Failed to initialize Web Server");
-        while (1)
-            delay(1000);
+        LOG_WARN("WARN: Failed to initialize Web Server. Only PCB buttons work!");
     }
 
     LOG_INFO("All modules initialized successfully");
@@ -147,7 +145,7 @@ void InputTask(void *pvParameters)
         maxLimitSwitch.update();
 
         // Calculate speed from encoder
-        motorController.calculateSpeed(100);
+        // motorController.calculateSpeed(100);
 
         // 100ms update rate for input monitoring
         vTaskDelay(pdMS_TO_TICKS(100));

@@ -36,6 +36,7 @@ public:
 
     // Status getters
     bool isTriggered() const { return triggered; }
+    bool isPressed() const { return digitalRead(pin) == LOW; }  // Real-time physical state
     long getStoredPosition() const { return storedPosition; }
 
     // Manual reset (for clearing after safe movement)
