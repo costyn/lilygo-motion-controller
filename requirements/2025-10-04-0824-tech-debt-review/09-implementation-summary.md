@@ -657,8 +657,8 @@ jobs:
   webapp-tests:
     runs-on: ubuntu-latest
     steps:
-      - run: cd webapp && npm ci
-      - run: cd webapp && npm test
+      - run: cd webapp && pnpm install
+      - run: cd webapp && pnpm test
 ```
 
 ---

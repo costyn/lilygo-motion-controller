@@ -692,9 +692,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
-      - run: cd webapp && npm ci
-      - run: cd webapp && npm test
-      - run: cd webapp && npm run build
+      - run: cd webapp && pnpm install
+      - run: cd webapp && pnpm test
+      - run: cd webapp && pnpm run build
 ```
 
 ---
