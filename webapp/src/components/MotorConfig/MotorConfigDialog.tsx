@@ -32,12 +32,15 @@ export function MotorConfigDialog({
   const [freewheelAfterMove, setFreewheelAfterMove] = useState(currentConfig.freewheelAfterMove)
   const [minLimit, setMinLimit] = useState<number | string>(currentConfig.minLimit)
   const [maxLimit, setMaxLimit] = useState<number | string>(currentConfig.maxLimit)
+  const [calibrationSpeed, setCalibrationSpeed] = useState(currentConfig.calibrationSpeed)
+  const [calibrationDirectDrive, setCalibrationDirectDrive] = useState(currentConfig.calibrationDirectDrive)
 
   // Validation state
   const [maxSpeedError, setMaxSpeedError] = useState<string | null>(null)
   const [accelerationError, setAccelerationError] = useState<string | null>(null)
   const [minLimitError, setMinLimitError] = useState<string | null>(null)
   const [maxLimitError, setMaxLimitError] = useState<string | null>(null)
+  const [calibrationSpeedError, setCalibrationSpeedError] = useState<string | null>(null)
 
   // Reset form when dialog opens or config changes
   useEffect(() => {
@@ -48,10 +51,13 @@ export function MotorConfigDialog({
       setFreewheelAfterMove(currentConfig.freewheelAfterMove)
       setMinLimit(currentConfig.minLimit)
       setMaxLimit(currentConfig.maxLimit)
+      setCalibrationSpeed(currentConfig.calibrationSpeed)
+      setCalibrationDirectDrive(currentConfig.calibrationDirectDrive)
       setMaxSpeedError(null)
       setAccelerationError(null)
       setMinLimitError(null)
       setMaxLimitError(null)
+      setCalibrationSpeedError(null)
     }
   }, [open, currentConfig])
 
@@ -102,6 +108,18 @@ export function MotorConfigDialog({
     }
   }
 
+  const handleCalibrationSpeedChange = (value: string) => {
+    const numValue = parseInt(value)
+    if (value === '' || isNaN(numValue)) {
+      // Allow empty/invalid input during editing, but set error
+      setCalibrationSpeed(value === '' ? 0 : numValue)
+      setCalibrationSpeedError(value === '' ? 'Required' : 'Invalid number')
+    } else {
+      setCalibrationSpeed(numValue)
+      setCalibrationSpeedError(validateMaxSpeed(numValue))
+    }
+  }
+
   const handleMinLimitChange = (value: string) => {
     const numValue = parseInt(value)
     if (value === '' || isNaN(numValue)) {
@@ -141,13 +159,18 @@ export function MotorConfigDialog({
   }
 
   // Check if form is valid (must have values and pass validation)
-  const isFormValid = maxSpeed > 0 && acceleration > 0 && !maxSpeedError && !accelerationError && !minLimitError && !maxLimitError
+  const isFormValid = maxSpeed > 0 && acceleration > 0 && calibrationSpeed > 0 && !maxSpeedError && !accelerationError && !minLimitError && !maxLimitError && !calibrationSpeedError
 
   // Check if form has changes
   const minLimitNum = typeof minLimit === 'string' ? parseInt(minLimit) : minLimit
   const maxLimitNum = typeof maxLimit === 'string' ? parseInt(maxLimit) : maxLimit
-  const hasChanges =
+  // Calibration runs on the device with saved settings, so these must be applied first
+  const hasCalibrationChanges =
     maxSpeed !== currentConfig.maxSpeed ||
+    calibrationSpeed !== currentConfig.calibrationSpeed ||
+    calibrationDirectDrive !== currentConfig.calibrationDirectDrive
+  const hasChanges =
+    hasCalibrationChanges ||
     acceleration !== currentConfig.acceleration ||
     useStealthChop !== currentConfig.useStealthChop ||
     freewheelAfterMove !== currentConfig.freewheelAfterMove ||
@@ -162,10 +185,13 @@ export function MotorConfigDialog({
     setFreewheelAfterMove(currentConfig.freewheelAfterMove)
     setMinLimit(currentConfig.minLimit)
     setMaxLimit(currentConfig.maxLimit)
+    setCalibrationSpeed(currentConfig.calibrationSpeed)
+    setCalibrationDirectDrive(currentConfig.calibrationDirectDrive)
     setMaxSpeedError(null)
     setAccelerationError(null)
     setMinLimitError(null)
     setMaxLimitError(null)
+    setCalibrationSpeedError(null)
   }
 
   // Handle apply
@@ -179,6 +205,8 @@ export function MotorConfigDialog({
       if (freewheelAfterMove !== currentConfig.freewheelAfterMove) changes.freewheelAfterMove = freewheelAfterMove
       if (!isNaN(minLimitNum) && minLimitNum !== currentConfig.minLimit) changes.minLimit = minLimitNum
       if (!isNaN(maxLimitNum) && maxLimitNum !== currentConfig.maxLimit) changes.maxLimit = maxLimitNum
+      if (calibrationSpeed !== currentConfig.calibrationSpeed) changes.calibrationSpeed = calibrationSpeed
+      if (calibrationDirectDrive !== currentConfig.calibrationDirectDrive) changes.calibrationDirectDrive = calibrationDirectDrive
 
       onApply(changes)
     }
@@ -316,16 +344,49 @@ export function MotorConfigDialog({
           {/* Calibration Section */}
           <div className="grid gap-2 pt-4 border-t">
             <Label>Calibration</Label>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="calibrationDirectDrive"
+                aria-label="Direct Drive Calibration"
+                checked={calibrationDirectDrive}
+                onCheckedChange={setCalibrationDirectDrive}
+              />
+              <span className="text-sm">
+                {calibrationDirectDrive ? "Direct drive (Slow speed)" : "Normal (Max Speed)"}
+              </span>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="calibrationSpeed" className="text-sm">Slow Speed</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="calibrationSpeed"
+                  type="number"
+                  value={calibrationSpeed}
+                  onChange={(e) => handleCalibrationSpeedChange(e.target.value)}
+                  disabled={!calibrationDirectDrive}
+                  className={calibrationSpeedError ? "border-red-500" : ""}
+                />
+                <span className="text-sm text-muted-foreground">steps/sec</span>
+              </div>
+              {calibrationSpeedError && (
+                <p className="text-sm text-red-500">{calibrationSpeedError}</p>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Direct drive finds the limits at the slow speed above, so the load stops close to each switch. Normal uses full Max Speed.
+            </p>
             <Button
               variant="outline"
               onClick={onCalibrate}
-              disabled={!isConnected || isCalibrating}
+              disabled={!isConnected || isCalibrating || hasCalibrationChanges}
               className="w-full"
             >
               {isCalibrating ? 'Calibrating...' : 'Recalibrate'}
             </Button>
             <p className="text-xs text-muted-foreground">
-              Automatically move motor to both limits and update positions. Motor will move to minimum first, then maximum.
+              {hasCalibrationChanges
+                ? 'Apply your speed changes before recalibrating.'
+                : 'Automatically move motor to both limits and update positions. Motor will move to minimum first, then maximum.'}
             </p>
           </div>
         </div>

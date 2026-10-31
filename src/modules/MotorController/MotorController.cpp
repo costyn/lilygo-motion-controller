@@ -379,7 +379,8 @@ void MotorController::startCalibration()
     }
 
     calibrationState = CAL_FINDING_MIN;
-    calibrationSpeed = config.getMaxSpeed() * 0.3; // 30% of max speed
+    // Direct drive: slow configured speed, so the stop latency doesn't crash into the switches
+    calibrationSpeed = config.getCalibrationDirectDrive() ? config.getCalibrationSpeed() : config.getMaxSpeed();
 
     // Move toward MIN limit (large negative position)
     // Note: This bypasses the isCalibrating() check in moveTo() because we haven't set the state yet

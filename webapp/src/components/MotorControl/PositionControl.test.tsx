@@ -11,7 +11,9 @@ describe('PositionControl - Disabled States', () => {
     minLimit: -5000,
     maxLimit: 5000,
     useStealthChop: true,
-    freewheelAfterMove: false
+    freewheelAfterMove: false,
+    calibrationSpeed: 500,
+    calibrationDirectDrive: true
   }
 
   const defaultProps = {
@@ -70,7 +72,9 @@ describe('PositionControl - Position Display', () => {
     minLimit: 0,
     maxLimit: 10000,
     useStealthChop: true,
-    freewheelAfterMove: false
+    freewheelAfterMove: false,
+    calibrationSpeed: 500,
+    calibrationDirectDrive: true
   }
 
   const defaultProps = {
@@ -124,7 +128,9 @@ describe('PositionControl - Quick Position Buttons', () => {
     minLimit: 0,
     maxLimit: 10000,
     useStealthChop: true,
-    freewheelAfterMove: false
+    freewheelAfterMove: false,
+    calibrationSpeed: 500,
+    calibrationDirectDrive: true
   }
 
   const defaultProps = {
@@ -196,7 +202,9 @@ describe('PositionControl - Slider Configuration', () => {
     minLimit: -2000,
     maxLimit: 8000,
     useStealthChop: true,
-    freewheelAfterMove: false
+    freewheelAfterMove: false,
+    calibrationSpeed: 500,
+    calibrationDirectDrive: true
   }
 
   const defaultProps = {

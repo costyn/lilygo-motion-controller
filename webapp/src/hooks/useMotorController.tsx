@@ -26,7 +26,9 @@ const DEFAULT_CONFIG: MotorConfig = {
   minLimit: -5000,
   maxLimit: 5000,
   useStealthChop: true,
-  freewheelAfterMove: false
+  freewheelAfterMove: false,
+  calibrationSpeed: 500,
+  calibrationDirectDrive: true
 }
 
 export function useMotorController() {

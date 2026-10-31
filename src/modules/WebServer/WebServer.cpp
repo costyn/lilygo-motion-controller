@@ -155,6 +155,8 @@ void WebServerClass::setupRoutes()
         doc["maxLimit"] = config.getMaxLimit();
         doc["useStealthChop"] = config.getUseStealthChop();
         doc["freewheelAfterMove"] = config.getFreewheelAfterMove();
+        doc["calibrationSpeed"] = config.getCalibrationSpeed();
+        doc["calibrationDirectDrive"] = config.getCalibrationDirectDrive();
 
         String response;
         serializeJson(doc, response);
@@ -376,6 +378,18 @@ void WebServerClass::handleSetConfigCommand(JsonDocument& doc)
         updated = true;
     }
 
+    if (doc["calibrationSpeed"].is<long>())
+    {
+        config.setCalibrationSpeed(doc["calibrationSpeed"]);
+        updated = true;
+    }
+
+    if (doc["calibrationDirectDrive"].is<bool>())
+    {
+        config.setCalibrationDirectDrive(doc["calibrationDirectDrive"]);
+        updated = true;
+    }
+
     if (updated)
     {
         config.saveConfiguration();
@@ -539,6 +553,8 @@ void WebServerClass::broadcastConfig()
     doc["maxLimit"] = config.getMaxLimit();
     doc["useStealthChop"] = config.getUseStealthChop();
     doc["freewheelAfterMove"] = config.getFreewheelAfterMove();
+    doc["calibrationSpeed"] = config.getCalibrationSpeed();
+    doc["calibrationDirectDrive"] = config.getCalibrationDirectDrive();
 
     String message;
     serializeJson(doc, message);

@@ -11,7 +11,9 @@ describe('MotorConfigDialog - Dialog Behavior', () => {
     minLimit: -5000,
     maxLimit: 5000,
     useStealthChop: true,
-    freewheelAfterMove: false
+    freewheelAfterMove: false,
+    calibrationSpeed: 500,
+    calibrationDirectDrive: true
   }
 
   const defaultProps = {
@@ -59,7 +61,9 @@ describe('MotorConfigDialog - Input Validation', () => {
     minLimit: -5000,
     maxLimit: 5000,
     useStealthChop: true,
-    freewheelAfterMove: false
+    freewheelAfterMove: false,
+    calibrationSpeed: 500,
+    calibrationDirectDrive: true
   }
 
   const defaultProps = {
@@ -139,7 +143,9 @@ describe('MotorConfigDialog - Apply Changes', () => {
     minLimit: -5000,
     maxLimit: 5000,
     useStealthChop: true,
-    freewheelAfterMove: false
+    freewheelAfterMove: false,
+    calibrationSpeed: 500,
+    calibrationDirectDrive: true
   }
 
   const defaultProps = {
@@ -222,7 +228,9 @@ describe('MotorConfigDialog - Revert Functionality', () => {
     minLimit: -5000,
     maxLimit: 5000,
     useStealthChop: true,
-    freewheelAfterMove: false
+    freewheelAfterMove: false,
+    calibrationSpeed: 500,
+    calibrationDirectDrive: true
   }
 
   const defaultProps = {
@@ -268,5 +276,68 @@ describe('MotorConfigDialog - Revert Functionality', () => {
 
     const revertButton = screen.getByText('Revert')
     expect(revertButton).not.toBeDisabled()
+  })
+})
+
+describe('MotorConfigDialog - Calibration Settings', () => {
+  const defaultConfig: MotorConfig = {
+    type: 'config',
+    maxSpeed: 10000,
+    acceleration: 20000,
+    minLimit: -5000,
+    maxLimit: 5000,
+    useStealthChop: true,
+    freewheelAfterMove: false,
+    calibrationSpeed: 500,
+    calibrationDirectDrive: true
+  }
+
+  const defaultProps = {
+    open: true,
+    onOpenChange: vi.fn(),
+    currentConfig: defaultConfig,
+    onApply: vi.fn(),
+    isConnected: true,
+    onCalibrate: vi.fn(),
+    isCalibrating: false,
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should show error when slow speed is out of range', () => {
+    render(<MotorConfigDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Slow Speed'), { target: { value: '50' } })
+
+    expect(screen.getByText(/Speed must be between 100 and 100,000/)).toBeInTheDocument()
+  })
+
+  it('should apply only the changed calibration settings', () => {
+    render(<MotorConfigDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Slow Speed'), { target: { value: '800' } })
+    fireEvent.click(screen.getByText('Apply'))
+
+    expect(defaultProps.onApply).toHaveBeenCalledWith({ calibrationSpeed: 800 })
+  })
+
+  it('should apply normal mode and disable the slow speed input', () => {
+    render(<MotorConfigDialog {...defaultProps} />)
+
+    fireEvent.click(screen.getByLabelText('Direct Drive Calibration'))
+
+    expect(screen.getByLabelText('Slow Speed')).toBeDisabled()
+    fireEvent.click(screen.getByText('Apply'))
+    expect(defaultProps.onApply).toHaveBeenCalledWith({ calibrationDirectDrive: false })
+  })
+
+  it('should disable Recalibrate until calibration changes are applied', () => {
+    render(<MotorConfigDialog {...defaultProps} />)
+
+    expect(screen.getByText('Recalibrate')).not.toBeDisabled()
+    fireEvent.change(screen.getByLabelText('Slow Speed'), { target: { value: '800' } })
+    expect(screen.getByText('Recalibrate')).toBeDisabled()
   })
 })
