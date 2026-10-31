@@ -3,7 +3,7 @@
 ## Completed Sessions
 
 ### 2025-11-22-1450-auto-calibration ✅ IMPLEMENTED
-- **Status**: Complete - Tested on a rack rig with limit switches
+- **Status**: Complete
 - **Focus**: One-button calibration of both limit switches from the Settings dialog
 - **Result**: Recalibrate button, plus Direct drive (Slow Speed, default 500 steps/sec) and Normal (Max Speed) calibration modes
 
