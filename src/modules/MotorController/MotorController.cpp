@@ -53,6 +53,15 @@ MotorController::MotorController()
     useStealthChop = true;
     calibrationState = CAL_IDLE;
     calibrationSpeed = 0;
+    lastUpdateMicros = 0;
+    resetTimingStats();
+}
+
+void MotorController::resetTimingStats()
+{
+    maxStepGapUs = 0;
+    tmcSwitchCount = 0;
+    maxTmcSwitchUs = 0;
 }
 
 bool MotorController::begin()
@@ -132,11 +141,7 @@ void MotorController::moveTo(long position, int speed)
         return;
     }
 
-    // Only enable motor if currently disabled (prevents false transition trigger)
-    if (!isMotorEnabled())
-    {
-        digitalWrite(EN_PIN, LOW); // Enable motor
-    }
+    digitalWrite(EN_PIN, LOW); // Enable motor
 
     // Clamp speed to safe limits (already validated, but extra safety check)
     if (speed < MIN_SPEED)
@@ -195,13 +200,8 @@ long MotorController::getCurrentPosition() const
     return stepper->currentPosition();
 }
 
-bool MotorController::isMotorEnabled() const
-{
-    // Motor is enabled when EN_PIN is LOW
-    return digitalRead(EN_PIN) == LOW;
-}
-
-int MotorController::readEncoder()
+// Raw 16-bit MT6816 frame: angle, no-magnet warning and parity bits
+uint16_t MotorController::readEncoderFrame()
 {
     uint16_t temp[2];
     digitalWrite(SPI_MT_CS, LOW);
@@ -216,13 +216,13 @@ int MotorController::readEncoder()
     mt6816->endTransaction();
     digitalWrite(SPI_MT_CS, HIGH);
 
-    int position = (int)(temp[0] << 6 | temp[1] >> 2);
+    return temp[0] << 8 | temp[1];
+}
 
-    // // Debug: Log encoder raw bytes and calculated position
-    // LOG_DEBUG("Encoder raw: high=0x%02X low=0x%02X -> position=%d (%.1f°)",
-    //           temp[0], temp[1], position, (position * 360.0) / 16384.0);
-
-    return position;
+// Unused for now, no closed loop feature yet:
+int MotorController::readEncoder()
+{
+    return readEncoderFrame() >> 2;
 }
 
 // Unused for now, no closed loop feature yet:
@@ -263,12 +263,18 @@ void MotorController::updateTMCMode()
 
     if (shouldUseStealthChop != useStealthChop)
     {
+        unsigned long switchStart = micros();
         useStealthChop = shouldUseStealthChop;
         driver->en_spreadCycle(!useStealthChop);
         LOG_DEBUG("TMC mode switched to %s (speed: %.0f steps/sec, %.0f%% of max)",
                   useStealthChop ? "StealthChop" : "SpreadCycle",
                   abs(stepper->speed()),
                   currentSpeedPercent * 100);
+
+        uint32_t switchTime = micros() - switchStart;
+        tmcSwitchCount = tmcSwitchCount + 1;
+        if (switchTime > maxTmcSwitchUs)
+            maxTmcSwitchUs = switchTime;
     }
 }
 
@@ -289,6 +295,14 @@ void MotorController::update()
     // Track movement state for completion detection
     static bool wasMoving = false;
     bool isMoving = !emergencyStopActive && (stepper->distanceToGo() != 0);
+
+    // Time between update() calls while moving: no steps can be sent during a gap
+    unsigned long now = micros();
+    if (wasMoving && isMoving && now - lastUpdateMicros > maxStepGapUs)
+    {
+        maxStepGapUs = now - lastUpdateMicros;
+    }
+    lastUpdateMicros = now;
 
     // Update TMC mode based on current commanded speed
     updateTMCMode();

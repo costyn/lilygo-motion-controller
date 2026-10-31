@@ -72,7 +72,6 @@ WebServerClass::WebServerClass() : server(80), ws("/ws"), debugWs("/debug"), ini
     lastPositionBroadcast = 0;
     lastStatusBroadcast = 0;
     wasMovingLastUpdate = false;
-    lastBroadcastPosition = LONG_MAX;  // Initialize to invalid value to force first broadcast
 }
 
 bool WebServerClass::begin()
@@ -525,33 +524,15 @@ void WebServerClass::broadcastStatus()
 
     JsonDocument doc;
     doc["type"] = "status";
-
-    // Closed-loop position reporting
-    if (closedLoopController.isEncoderHealthy())
-    {
-        // Encoder healthy: report actual encoder position as primary position
-        // Negate encoder position to fix direction (forward = positive)
-        doc["position"] = -closedLoopController.getEncoderPositionSteps();
-        doc["commandedPosition"] = -motorController.getCurrentPosition();
-        doc["positionError"] = (long)closedLoopController.getPositionErrorSteps();
-        doc["encoderStatus"] = "ok";
-        doc["controlMode"] = "closed-loop";
-        doc["rotationCount"] = -closedLoopController.getRotationCount();
-    }
-    else
-    {
-        // Encoder fault: fall back to open-loop reporting
-        doc["position"] = -motorController.getCurrentPosition();
-        doc["encoderStatus"] = "fault";
-        doc["controlMode"] = "open-loop";
-    }
-
+    doc["position"] = motorController.getCurrentPosition();
     doc["isMoving"] = motorController.isMoving();
     doc["emergencyStop"] = motorController.isEmergencyStopActive();
     doc["limitSwitches"]["min"] = minLimitSwitch.isPressed();
     doc["limitSwitches"]["max"] = maxLimitSwitch.isPressed();
     doc["isCalibrating"] = motorController.isCalibrating();
     doc["calibrationState"] = getCalibrationStateString(motorController.getCalibrationState());
+    doc["encoderPosition"] = closedLoopController.getEncoderPositionSteps();
+    doc["encoderMagnetDetected"] = closedLoopController.isMagnetDetected();
 
     String message;
     serializeJson(doc, message);
@@ -662,13 +643,8 @@ void WebServerClass::update()
         // Send position updates every 100ms during movement
         if (currentMillis - lastPositionBroadcast >= POSITION_BROADCAST_INTERVAL_MS)
         {
-            long currentPosition = -closedLoopController.getEncoderPositionSteps();  // Negate to fix direction
-            if (currentPosition != lastBroadcastPosition)
-            {
-                LOG_DEBUG("Broadcasting position update: %ld", currentPosition);
-                broadcastPosition(currentPosition);
-                lastBroadcastPosition = currentPosition;
-            }
+            LOG_DEBUG("Broadcasting position update: %ld", motorController.getCurrentPosition());
+            broadcastPosition(motorController.getCurrentPosition());
             lastPositionBroadcast = currentMillis;
         }
 
@@ -689,21 +665,6 @@ void WebServerClass::update()
         LOG_INFO("Movement completed - sending final status");
         broadcastStatus();
         wasMovingLastUpdate = false;
-    }
-    else
-    {
-        // Motor idle - send position updates at slower rate to show manual shaft rotation
-        // Send position updates every 500ms when idle (same as status interval)
-        if (currentMillis - lastPositionBroadcast >= STATUS_BROADCAST_INTERVAL_MS)
-        {
-            long currentPosition = -closedLoopController.getEncoderPositionSteps();  // Negate to fix direction
-            if (currentPosition != lastBroadcastPosition)
-            {
-                broadcastPosition(currentPosition);
-                lastBroadcastPosition = currentPosition;
-            }
-            lastPositionBroadcast = currentMillis;
-        }
     }
 }
 

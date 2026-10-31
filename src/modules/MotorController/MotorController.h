@@ -33,6 +33,12 @@ private:
     volatile bool emergencyStopActive;
     bool useStealthChop;
 
+    // Step timing diagnostics (written in loop(), read from ClosedLoopTask)
+    unsigned long lastUpdateMicros;
+    volatile uint32_t maxStepGapUs;
+    volatile uint32_t tmcSwitchCount;
+    volatile uint32_t maxTmcSwitchUs;
+
     // Limit switch recovery
     volatile bool needsLimitRecovery;
     volatile long limitRecoveryPosition;
@@ -80,7 +86,11 @@ public:
     // Position and status
     long getCurrentPosition() const;
     long getTargetPosition() const { return targetPosition; }
-    long getDistanceToGo() const { return stepper->distanceToGo(); }
+    float getCommandedSpeed() const { return stepper->speed(); }
+    uint32_t getMaxStepGapUs() const { return maxStepGapUs; }
+    uint32_t getTmcSwitchCount() const { return tmcSwitchCount; }
+    uint32_t getMaxTmcSwitchUs() const { return maxTmcSwitchUs; }
+    void resetTimingStats();
     double getMonitorSpeed() const { return monitorSpeed; }
     float getMotorSpeed() const { return motorSpeed; }
     int8_t getDirection() const { return direction; }
@@ -88,9 +98,9 @@ public:
     bool isStealthChopActive() const { return useStealthChop; }
     bool isMoving() const { return !emergencyStopActive && stepper->distanceToGo() != 0; }
     bool isEmergencyStopActive() const { return emergencyStopActive; }
-    bool isMotorEnabled() const;
 
     // Encoder operations
+    uint16_t readEncoderFrame();
     int readEncoder();
     double calculateSpeed(float ms);
 

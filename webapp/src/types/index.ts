@@ -2,12 +2,7 @@
 
 export interface MotorStatus {
   type: 'status';
-  position: number; // Encoder position (actual) or commanded position (fallback if encoder fault)
-  commandedPosition?: number; // AccelStepper commanded position (only present in closed-loop mode)
-  positionError?: number; // Difference between commanded and encoder (only in closed-loop)
-  encoderStatus?: 'ok' | 'fault'; // Encoder health status
-  controlMode?: 'closed-loop' | 'open-loop'; // Current control mode
-  rotationCount?: number; // Number of full rotations (multi-turn tracking)
+  position: number;
   isMoving: boolean;
   emergencyStop: boolean;
   limitSwitches: {
@@ -16,6 +11,8 @@ export interface MotorStatus {
   };
   isCalibrating?: boolean;
   calibrationState?: string;
+  encoderPosition?: number; // Steps travelled since boot, measured by the encoder
+  encoderMagnetDetected?: boolean;
 }
 
 export interface PositionUpdate {

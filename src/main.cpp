@@ -18,7 +18,7 @@
  *
  * Features:
  * - WebSocket-based control interface
- * - Closed-loop position control with encoder feedback
+ * - Encoder position tracking (measure-only, no closed-loop correction yet)
  * - Smart limit switch handling with position learning
  * - Automatic TMC2209 mode optimization (StealthChop/SpreadCycle)
  * - Configuration persistence via ESP32 Preferences
@@ -86,15 +86,7 @@ void setup()
             delay(1000);
     }
 
-    // 5. Closed-loop controller (after motor controller)
-    if (!closedLoopController.begin())
-    {
-        LOG_ERROR("FATAL: Failed to initialize Closed-Loop Controller");
-        while (1)
-            delay(1000);
-    }
-
-    // 6. Web server
+    // 5. Web server
     if (!webServer.begin())
     {
         LOG_WARN("WARN: Failed to initialize Web Server. Only PCB buttons work!");
@@ -128,7 +120,7 @@ void setup()
     xTaskCreatePinnedToCore(
         ClosedLoopTask,        // Task function
         "ClosedLoop",          // Task name
-        4096,                  // Stack size
+        8192,                  // Stack size (same as InputTask, logs from this task)
         NULL,                  // Parameters
         1,                     // Priority (same as WebServerTask)
         &closedLoopTaskHandle, // Task handle
@@ -153,9 +145,6 @@ void loop()
 void InputTask(void *pvParameters)
 {
     LOG_INFO("Input Task started");
-
-    // Initialize encoder
-    motorController.initEncoder();
 
     // Task main loop
     while (1)
@@ -193,6 +182,10 @@ void WebServerTask(void *pvParameters)
 void ClosedLoopTask(void *pvParameters)
 {
     LOG_INFO("Closed Loop Task started");
+
+    // This task owns the encoder, so SPI is ready before the first read
+    motorController.initEncoder();
+    closedLoopController.begin();
 
     // Use vTaskDelayUntil for precise timing
     TickType_t xLastWakeTime = xTaskGetTickCount();
