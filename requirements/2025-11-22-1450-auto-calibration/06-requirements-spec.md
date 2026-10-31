@@ -3,7 +3,7 @@
 **Project:** LilyGo Motion Controller
 **Feature:** Manual Auto-Calibration
 **Date:** 2025-11-22
-**Status:** Ready for Implementation
+**Status:** Implemented
 
 ---
 

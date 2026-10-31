@@ -2,6 +2,11 @@
 
 ## Completed Sessions
 
+### 2025-11-22-1450-auto-calibration ✅ IMPLEMENTED
+- **Status**: Complete - Tested on a rack rig with limit switches
+- **Focus**: One-button calibration of both limit switches from the Settings dialog
+- **Result**: Recalibrate button, plus Direct drive (Slow Speed, default 500 steps/sec) and Normal (Max Speed) calibration modes
+
 ### 2025-10-04-0824-tech-debt-review ✅ IMPLEMENTED
 - **Status**: Complete - All Tech Debt Addressed
 - **Duration**: ~3 hours (requirements + implementation + testing + planning)
@@ -88,8 +93,8 @@
 
 ## Session Statistics
 
-- **Total Sessions**: 6
-- **Completed**: 6
+- **Total Sessions**: 7
+- **Completed**: 7
 - **Implemented**: 4 (general-request, high-priority-features, protocol-sync-updates, tech-debt-review, jog-buttons-motor-config)
 - **Success Rate**: 100%
 
@@ -100,4 +105,4 @@
 - **Project Status**: Core features complete, tech debt resolved, testing roadmap established
 
 ---
-*Last Updated: 2025-10-04T11:30:00Z*
+*Last Updated: 2026-11-01T00:00:00Z*
