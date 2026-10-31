@@ -114,7 +114,7 @@ void setup()
         NULL,                 // Parameters
         1,                    // Priority
         &webServerTaskHandle, // Task handle
-        1                     // Core (1 for web server)
+        0                     // Core (0: loop() needs Core 1 to itself for step timing)
     );
 
     xTaskCreatePinnedToCore(
