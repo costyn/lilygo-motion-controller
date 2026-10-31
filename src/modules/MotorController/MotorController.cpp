@@ -54,6 +54,9 @@ MotorController::MotorController()
     calibrationState = CAL_IDLE;
     calibrationSpeed = 0;
     lastUpdateMicros = 0;
+    pendingPositionShift = 0;
+    tmcUartAddress = -1;
+    tmcVersion = 0;
     resetTimingStats();
 }
 
@@ -80,6 +83,7 @@ bool MotorController::begin()
 
     // Initialize TMC2209 exactly like factory code
     serialDriver->begin(115200, SERIAL_8N1, SW_RX, SW_TX);
+    probeTMCAddress();
     driver->begin(); //  SPI: Init CS pins and possible SW SPI pins
     // UART: Init SW UART (if selected) with default 115200 baudrate
     driver->push();
@@ -111,6 +115,27 @@ bool MotorController::begin()
 
     LOG_INFO("Motor Controller initialized successfully");
     return true;
+}
+
+// Read-only check of which UART address the TMC2209 answers on (set by MS1/MS2)
+void MotorController::probeTMCAddress()
+{
+    for (uint8_t address = 0; address < 4; address++)
+    {
+        TMC2209Stepper probe(serialDriver, R_SENSE, address);
+        uint8_t version = probe.version();
+        LOG_INFO("TMC2209 UART address 0b%d%d: version 0x%02X", address >> 1, address & 1, version);
+        if (version != 0 && version != 0xFF && tmcUartAddress < 0)
+        {
+            tmcUartAddress = address;
+            tmcVersion = version;
+        }
+    }
+}
+
+bool MotorController::isMotorEnabled() const
+{
+    return digitalRead(EN_PIN) == LOW;
 }
 
 // Separate encoder initialization (called from InputTask like factory code)
@@ -303,6 +328,14 @@ void MotorController::update()
         maxStepGapUs = now - lastUpdateMicros;
     }
     lastUpdateMicros = now;
+
+    // Apply step counter shifts only while idle, so they can't disturb a move
+    if (pendingPositionShift != 0 && !isMoving)
+    {
+        long shift = pendingPositionShift;
+        pendingPositionShift = 0;
+        stepper->setCurrentPosition(stepper->currentPosition() + shift);
+    }
 
     // Update TMC mode based on current commanded speed
     updateTMCMode();

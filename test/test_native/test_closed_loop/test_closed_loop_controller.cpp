@@ -149,6 +149,39 @@ void test_measurement_handles_no_step_travel(void) {
     TEST_ASSERT_EQUAL_FLOAT(0.0f, move.getScale());
 }
 
+// ============================================================================
+// Idle motion
+// ============================================================================
+
+void test_idle_motion_ignores_encoder_noise(void) {
+    IdleMotionTracker idle;
+    idle.reset(1000);
+
+    TEST_ASSERT_EQUAL_INT32(0, idle.takeTravel(1007));
+    TEST_ASSERT_EQUAL_INT32(0, idle.takeTravel(993));
+}
+
+void test_idle_motion_hands_over_real_travel_once(void) {
+    IdleMotionTracker idle;
+    idle.reset(1000);
+
+    TEST_ASSERT_EQUAL_INT32(50, idle.takeTravel(1050));
+    TEST_ASSERT_EQUAL_INT32(0, idle.takeTravel(1050));
+    TEST_ASSERT_EQUAL_INT32(-80, idle.takeTravel(970));
+}
+
+void test_idle_motion_accumulates_slow_turning_without_loss(void) {
+    IdleMotionTracker idle;
+    idle.reset(0);
+
+    long total = 0;
+    for (long encoder = 3; encoder <= 300; encoder += 3) {
+        total += idle.takeTravel(encoder);
+    }
+
+    TEST_ASSERT_EQUAL_INT32(297, total);
+}
+
 int main(int argc, char **argv) {
     UNITY_BEGIN();
 
@@ -171,6 +204,10 @@ int main(int argc, char **argv) {
     RUN_TEST(test_measurement_flags_rig_lost_step_move);
     RUN_TEST(test_measurement_allows_rig_settling_error);
     RUN_TEST(test_measurement_handles_no_step_travel);
+
+    RUN_TEST(test_idle_motion_ignores_encoder_noise);
+    RUN_TEST(test_idle_motion_hands_over_real_travel_once);
+    RUN_TEST(test_idle_motion_accumulates_slow_turning_without_loss);
 
     return UNITY_END();
 }

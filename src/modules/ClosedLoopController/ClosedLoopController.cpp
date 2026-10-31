@@ -13,8 +13,6 @@ ClosedLoopController::ClosedLoopController()
       peakSpeed(0),
       lastSteps(0),
       lastEncoderSteps(0),
-      idleReferenceSteps(0),
-      lastIdleReportTime(0),
       noMagnetFrames(0),
       parityErrorFrames(0),
       reportedBadFrames(0),
@@ -85,12 +83,12 @@ void ClosedLoopController::updateMeasurement(long steps)
         {
             reportMove();
             measuring = false;
-            idleReferenceSteps = encoderPositionSteps;
+            idleMotion.reset(encoderPositionSteps);
         }
     }
     else
     {
-        reportIdleMotion();
+        followShaftWhileFreewheeling();
     }
 }
 
@@ -109,16 +107,18 @@ void ClosedLoopController::reportMove()
              motorController.getMaxTmcSwitchUs());
 }
 
-// Shows the encoder following the shaft when it is turned by hand
-void ClosedLoopController::reportIdleMotion()
+void ClosedLoopController::followShaftWhileFreewheeling()
 {
-    long travel = encoderPositionSteps - idleReferenceSteps;
-    if (labs(travel) >= IDLE_REPORT_THRESHOLD_STEPS &&
-        millis() - lastIdleReportTime >= IDLE_REPORT_INTERVAL_MS)
+    if (motorController.isMotorEnabled())
     {
-        LOG_INFO("Encoder moved while motor idle: travel=%ld position=%ld", travel, (long)encoderPositionSteps);
-        idleReferenceSteps = encoderPositionSteps;
-        lastIdleReportTime = millis();
+        idleMotion.reset(encoderPositionSteps);
+        return;
+    }
+
+    long travel = idleMotion.takeTravel(encoderPositionSteps);
+    if (travel != 0)
+    {
+        motorController.requestPositionShift(travel);
     }
 }
 

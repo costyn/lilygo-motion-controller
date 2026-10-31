@@ -39,6 +39,13 @@ private:
     volatile uint32_t tmcSwitchCount;
     volatile uint32_t maxTmcSwitchUs;
 
+    // Step counter shift requested from ClosedLoopTask, applied in update()
+    volatile long pendingPositionShift;
+
+    // TMC2209 UART address that answered at startup, -1 if none
+    int8_t tmcUartAddress;
+    uint8_t tmcVersion;
+
     // Limit switch recovery
     volatile bool needsLimitRecovery;
     volatile long limitRecoveryPosition;
@@ -87,6 +94,10 @@ public:
     long getCurrentPosition() const;
     long getTargetPosition() const { return targetPosition; }
     float getCommandedSpeed() const { return stepper->speed(); }
+    bool isMotorEnabled() const;
+    void requestPositionShift(long steps) { pendingPositionShift += steps; }
+    int8_t getTmcUartAddress() const { return tmcUartAddress; }
+    uint8_t getTmcVersion() const { return tmcVersion; }
     uint32_t getMaxStepGapUs() const { return maxStepGapUs; }
     uint32_t getTmcSwitchCount() const { return tmcSwitchCount; }
     uint32_t getMaxTmcSwitchUs() const { return maxTmcSwitchUs; }
@@ -105,6 +116,7 @@ public:
     double calculateSpeed(float ms);
 
     // TMC2209 operations
+    void probeTMCAddress();
     void updateTMCMode();
     void setTMCMode(bool stealthChop);
     uint32_t getTMCStatus();

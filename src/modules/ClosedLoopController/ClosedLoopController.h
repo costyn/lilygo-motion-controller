@@ -8,6 +8,7 @@
  *
  * This module never moves the motor. It reads the encoder at 50Hz and logs how encoder
  * travel compares with the step counter for each move, and warns about lost steps.
+ * While the motor is freewheeling, the step counter follows the shaft.
  *
  * Encoder positions are relative to boot: the first reading is zero.
  */
@@ -16,6 +17,7 @@ class ClosedLoopController
 private:
     MultiTurnTracker tracker;
     MoveMeasurement measurement;
+    IdleMotionTracker idleMotion;
 
     volatile long encoderPositionSteps;
     volatile bool magnetDetected;
@@ -26,8 +28,6 @@ private:
     float peakSpeed;
     long lastSteps;
     long lastEncoderSteps;
-    long idleReferenceSteps;
-    unsigned long lastIdleReportTime;
 
     // Encoder frame quality
     uint32_t noMagnetFrames;
@@ -36,13 +36,11 @@ private:
     unsigned long lastFrameReportTime;
 
     static constexpr uint8_t SETTLE_CYCLES = 10;                  // 200ms after the step counter stops
-    static constexpr long IDLE_REPORT_THRESHOLD_STEPS = 16;       // One full step
-    static constexpr unsigned long IDLE_REPORT_INTERVAL_MS = 1000;
     static constexpr unsigned long FRAME_REPORT_INTERVAL_MS = 10000;
 
     void updateMeasurement(long steps);
     void reportMove();
-    void reportIdleMotion();
+    void followShaftWhileFreewheeling();
     void reportFrameQuality();
 
 public:

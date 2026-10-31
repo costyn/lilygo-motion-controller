@@ -72,6 +72,29 @@ public:
     }
 };
 
+// Encoder travel to hand on to the step counter while the motor is idle. Small
+// movements are held back so encoder noise doesn't jitter the reported position.
+class IdleMotionTracker
+{
+private:
+    long reference = 0;
+
+public:
+    static constexpr long MIN_TRAVEL_STEPS = 8;
+
+    void reset(long encoderSteps) { reference = encoderSteps; }
+
+    long takeTravel(long encoderSteps)
+    {
+        long travel = encoderSteps - reference;
+        if (travel > -MIN_TRAVEL_STEPS && travel < MIN_TRAVEL_STEPS)
+            return 0;
+
+        reference = encoderSteps;
+        return travel;
+    }
+};
+
 // Compares step counter travel with encoder travel over one move
 class MoveMeasurement
 {

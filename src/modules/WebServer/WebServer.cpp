@@ -72,6 +72,7 @@ WebServerClass::WebServerClass() : server(80), ws("/ws"), debugWs("/debug"), ini
     lastPositionBroadcast = 0;
     lastStatusBroadcast = 0;
     wasMovingLastUpdate = false;
+    lastIdlePosition = 0;
 }
 
 bool WebServerClass::begin()
@@ -507,6 +508,8 @@ void WebServerClass::handleAPI(AsyncWebServerRequest *request)
     doc["emergencyStop"] = motorController.isEmergencyStopActive();
     doc["limitSwitches"]["min"] = minLimitSwitch.isPressed();
     doc["limitSwitches"]["max"] = maxLimitSwitch.isPressed();
+    doc["tmcUartAddress"] = motorController.getTmcUartAddress();
+    doc["tmcVersion"] = motorController.getTmcVersion();
 
     String response;
     serializeJson(doc, response);
@@ -665,6 +668,17 @@ void WebServerClass::update()
         LOG_INFO("Movement completed - sending final status");
         broadcastStatus();
         wasMovingLastUpdate = false;
+    }
+    else if (currentMillis - lastPositionBroadcast >= POSITION_BROADCAST_INTERVAL_MS)
+    {
+        // Motor idle - position still changes when the shaft is turned by hand
+        long position = motorController.getCurrentPosition();
+        if (position != lastIdlePosition)
+        {
+            broadcastPosition(position);
+            lastIdlePosition = position;
+        }
+        lastPositionBroadcast = currentMillis;
     }
 }
 

@@ -26,6 +26,9 @@ usually mean the motor ran out of torque, which a 50Hz correction can't recover.
 - Peak error on clean moves reached 383, while stalls reached 3,500 or more, so in-move stall detection needs a threshold around 500 steps. End-of-move detection stays at 48.
 - Limit switches save the step counter as the limit, so a slip corrupts the saved limit. The counter also restarts at 0 on boot, so saved limits are stale after any reboot.
 
+- TMC2209 answers on UART address 0b00 (version 0x21) with both MS1/MS2 switches up, so firmware register settings reach the driver. Microsteps come from firmware, and moving a switch would change the UART address.
+- Step 5 is partly done: the step counter follows the shaft while freewheeling. Limits are still stale after a reboot or slip.
+
 ## Step 1 measurements to collect
 
 Keep "Freewheel After Movement" off so the rotor is held while the final reading settles.
