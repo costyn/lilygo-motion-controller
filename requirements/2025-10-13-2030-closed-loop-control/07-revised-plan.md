@@ -21,6 +21,10 @@ usually mean the motor ran out of torque, which a 50Hz correction can't recover.
 - Tracking is tight on a clean move: `peakError=24` at 7294 steps/sec.
 - A hand-held stall gave `finalError=110`, so the warning threshold is 48 steps.
 - Step timing diagnostics were added to investigate grinding at speed: `maxStepGapUs`, `tmcSwitches`, `maxTmcSwitchUs`.
+- Sharing Core 1 with the web tasks paused stepping for about 2ms, limiting clean speed to about 12,200 steps/sec. With Core 1 to itself, pauses are 28us and final error is about 1 step.
+- 16,000 steps/sec is clean. 18,000 and above stalls at 60,000 steps/sec^2, losing about 4,000 steps per move. Acceleration up to 120,000 did not cause slips at 10,000 steps/sec.
+- Peak error on clean moves reached 383, while stalls reached 3,500 or more, so in-move stall detection needs a threshold around 500 steps. End-of-move detection stays at 48.
+- Limit switches save the step counter as the limit, so a slip corrupts the saved limit. The counter also restarts at 0 on boot, so saved limits are stale after any reboot.
 
 ## Step 1 measurements to collect
 
