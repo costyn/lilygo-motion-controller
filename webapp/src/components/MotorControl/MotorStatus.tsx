@@ -56,14 +56,29 @@ export function MotorStatus({ motorStatus, connectionState }: MotorStatusProps) 
         <div className="flex justify-between items-center">
           <span className="text-sm font-medium">State:</span>
           <div className="flex items-center gap-2">
-            {motorStatus.isMoving ? (
-              <Activity className="h-4 w-4 text-blue-500 animate-pulse" />
+            {motorStatus.calibrationState && motorStatus.calibrationState !== 'Idle' ? (
+              <>
+                <Activity className="h-4 w-4 text-purple-500 animate-pulse" />
+                <span className="text-purple-600">
+                  {motorStatus.calibrationState}
+                </span>
+              </>
+            ) : motorStatus.emergencyStop ? (
+              <>
+                <CircleAlert className="h-4 w-4 text-red-500" />
+                <span className="text-red-600">Emergency Stop</span>
+              </>
+            ) : motorStatus.isMoving ? (
+              <>
+                <Activity className="h-4 w-4 text-blue-500 animate-pulse" />
+                <span className="text-blue-600">Moving</span>
+              </>
             ) : (
-              <Square className="h-4 w-4 text-gray-500" />
+              <>
+                <Square className="h-4 w-4 text-gray-500" />
+                <span className="text-gray-600">Idle</span>
+              </>
             )}
-            <span className={motorStatus.isMoving ? 'text-blue-600' : 'text-gray-600'}>
-              {motorStatus.isMoving ? 'Moving' : 'Stopped'}
-            </span>
           </div>
         </div>
 

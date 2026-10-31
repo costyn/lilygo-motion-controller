@@ -66,6 +66,7 @@ Adjust motor parameters:
 - **Acceleration**: 100-500,000 steps/sec²
 - **StealthChop Mode**: Enable for quiet operation, disable for more torque
 - **Freewheel After Movement**: Enable to let motor spin freely after movement completes, disable to hold position (uses power)
+- **Calibration Mode**: Direct drive finds the limit switches at the Slow Speed (default 500 steps/sec, range 100-100,000); Normal uses full Max Speed
 
 ### Debug Console
 ![Debug Console](docs/images/Debug%20Console.png)
@@ -176,7 +177,9 @@ src/
   "command": "setConfig",
   "maxSpeed": 14400,
   "acceleration": 80000,
-  "useStealthChop": true
+  "useStealthChop": true,
+  "calibrationSpeed": 500,
+  "calibrationDirectDrive": true
 }
 ```
 

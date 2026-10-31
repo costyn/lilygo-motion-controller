@@ -51,6 +51,14 @@ void LimitSwitch::update()
         // Check if switch is currently pressed (LOW) or released (HIGH)
         bool isCurrentlyPressed = isPressed();
 
+        // Switch bounce while calibration backs off MIN: at slow speed the switch stays
+        // pressed for a while, and stopping the motor here would hang calibration
+        if (isCurrentlyPressed && this == &minLimitSwitch &&
+            motorController.getCalibrationState() == CAL_FINDING_MAX)
+        {
+            return;
+        }
+
         if (isCurrentlyPressed)
         {
             // PRESS event - save position and stop motor

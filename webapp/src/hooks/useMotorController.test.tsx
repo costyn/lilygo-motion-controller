@@ -243,7 +243,9 @@ describe('useMotorController - Command Sending', () => {
       maxSpeed: 12000,
       acceleration: 25000,
       useStealthChop: true,
-    freewheelAfterMove: false
+    freewheelAfterMove: false,
+    calibrationSpeed: 500,
+    calibrationDirectDrive: true
     })
 
     const ws = MockWebSocket.getLastInstance()!
@@ -258,7 +260,9 @@ describe('useMotorController - Command Sending', () => {
       maxSpeed: 12000,
       acceleration: 25000,
       useStealthChop: true,
-    freewheelAfterMove: false
+    freewheelAfterMove: false,
+    calibrationSpeed: 500,
+    calibrationDirectDrive: true
     })
   })
 

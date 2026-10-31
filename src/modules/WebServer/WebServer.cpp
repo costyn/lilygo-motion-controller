@@ -8,6 +8,18 @@
 // Global instance
 WebServerClass webServer;
 
+// Helper function to convert calibration state to string
+static const char* getCalibrationStateString(CalibrationState state)
+{
+    switch (state)
+    {
+        case CAL_FINDING_MIN: return "Calibrating: Finding lower limit";
+        case CAL_FINDING_MAX: return "Calibrating: Finding upper limit";
+        case CAL_COMPLETE: return "Calibration complete";
+        default: return "Idle";
+    }
+}
+
 // DebugBuffer implementation
 DebugBuffer::DebugBuffer() : head(0), tail(0), full(false) {}
 
@@ -143,6 +155,8 @@ void WebServerClass::setupRoutes()
         doc["maxLimit"] = config.getMaxLimit();
         doc["useStealthChop"] = config.getUseStealthChop();
         doc["freewheelAfterMove"] = config.getFreewheelAfterMove();
+        doc["calibrationSpeed"] = config.getCalibrationSpeed();
+        doc["calibrationDirectDrive"] = config.getCalibrationDirectDrive();
 
         String response;
         serializeJson(doc, response);
@@ -364,6 +378,18 @@ void WebServerClass::handleSetConfigCommand(JsonDocument& doc)
         updated = true;
     }
 
+    if (doc["calibrationSpeed"].is<long>())
+    {
+        config.setCalibrationSpeed(doc["calibrationSpeed"]);
+        updated = true;
+    }
+
+    if (doc["calibrationDirectDrive"].is<bool>())
+    {
+        config.setCalibrationDirectDrive(doc["calibrationDirectDrive"]);
+        updated = true;
+    }
+
     if (updated)
     {
         config.saveConfiguration();
@@ -373,6 +399,20 @@ void WebServerClass::handleSetConfigCommand(JsonDocument& doc)
     else
     {
         ws.textAll("{\"type\":\"error\",\"message\":\"Invalid configuration parameters\"}");
+    }
+}
+
+void WebServerClass::handleCalibrateCommand(JsonDocument& doc)
+{
+    if (!motorController.isEmergencyStopActive())
+    {
+        motorController.startCalibration();
+        LOG_INFO("Calibration initiated via WebSocket");
+        broadcastStatus();
+    }
+    else
+    {
+        ws.textAll("{\"type\":\"error\",\"message\":\"Cannot calibrate: emergency stop active\"}");
     }
 }
 
@@ -446,6 +486,10 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
         {
             handleSetConfigCommand(doc);
         }
+        else if (command == "calibrate")
+        {
+            handleCalibrateCommand(doc);
+        }
         else
         {
             LOG_WARN("Unknown WebSocket command: %s", command.c_str());
@@ -484,6 +528,8 @@ void WebServerClass::broadcastStatus()
     doc["emergencyStop"] = motorController.isEmergencyStopActive();
     doc["limitSwitches"]["min"] = minLimitSwitch.isPressed();
     doc["limitSwitches"]["max"] = maxLimitSwitch.isPressed();
+    doc["isCalibrating"] = motorController.isCalibrating();
+    doc["calibrationState"] = getCalibrationStateString(motorController.getCalibrationState());
 
     String message;
     serializeJson(doc, message);
@@ -507,6 +553,8 @@ void WebServerClass::broadcastConfig()
     doc["maxLimit"] = config.getMaxLimit();
     doc["useStealthChop"] = config.getUseStealthChop();
     doc["freewheelAfterMove"] = config.getFreewheelAfterMove();
+    doc["calibrationSpeed"] = config.getCalibrationSpeed();
+    doc["calibrationDirectDrive"] = config.getCalibrationDirectDrive();
 
     String message;
     serializeJson(doc, message);
