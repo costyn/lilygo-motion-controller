@@ -228,6 +228,12 @@ void WebServerClass::onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClie
 // Command handler implementations
 void WebServerClass::handleMoveCommand(JsonDocument& doc)
 {
+    if (!motorController.isCalibrated())
+    {
+        ws.textAll("{\"type\":\"error\",\"message\":\"Cannot move: calibration required\"}");
+        return;
+    }
+
     // Support both int and float for speed (JavaScript sends numbers as float)
     bool hasPosition = doc["position"].is<long>();
     bool hasSpeed = doc["speed"].is<int>() || doc["speed"].is<float>() || doc["speed"].is<double>();
@@ -263,6 +269,12 @@ void WebServerClass::handleMoveCommand(JsonDocument& doc)
 
 void WebServerClass::handleJogStartCommand(JsonDocument& doc)
 {
+    if (!motorController.isCalibrated())
+    {
+        ws.textAll("{\"type\":\"error\",\"message\":\"Cannot jog: calibration required\"}");
+        return;
+    }
+
     bool hasDirection = doc["direction"].is<const char *>() || doc["direction"].is<String>();
     bool hasSpeed = doc["speed"].is<int>() || doc["speed"].is<float>() || doc["speed"].is<double>();
 
@@ -533,6 +545,7 @@ void WebServerClass::broadcastStatus()
     doc["limitSwitches"]["min"] = minLimitSwitch.isPressed();
     doc["limitSwitches"]["max"] = maxLimitSwitch.isPressed();
     doc["isCalibrating"] = motorController.isCalibrating();
+    doc["isCalibrated"] = motorController.isCalibrated();
     doc["calibrationState"] = getCalibrationStateString(motorController.getCalibrationState());
     doc["encoderPosition"] = closedLoopController.getEncoderPositionSteps();
     doc["encoderMagnetDetected"] = closedLoopController.isMagnetDetected();

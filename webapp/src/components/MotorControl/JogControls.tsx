@@ -7,6 +7,7 @@ interface JogControlsProps {
   isConnected: boolean
   isMoving: boolean
   emergencyStop: boolean
+  needsCalibration?: boolean
   jogSpeed: number
   onJogStart: (direction: 'forward' | 'backward', speed: number) => void
   onJogStop: () => void
@@ -19,6 +20,7 @@ export function JogControls({
   isConnected,
   isMoving,
   emergencyStop,
+  needsCalibration = false,
   jogSpeed,
   onJogStart,
   onJogStop,
@@ -34,7 +36,7 @@ export function JogControls({
   const handleMouseDown = (e: React.MouseEvent, direction: 'forward' | 'backward') => {
     // Ignore mouse events if touch events were just used
     if (eventSourceRef.current === 'touch') return
-    if (!isConnected || emergencyStop) return
+    if (!isConnected || emergencyStop || needsCalibration) return
 
     eventSourceRef.current = 'mouse'
     isJoggingRef.current = true
@@ -63,7 +65,7 @@ export function JogControls({
   }
 
   const handleTouchStart = (e: React.TouchEvent, direction: 'forward' | 'backward') => {
-    if (!isConnected || emergencyStop) return
+    if (!isConnected || emergencyStop || needsCalibration) return
 
     // Store the first touch identifier
     if (e.touches.length > 0) {
@@ -112,7 +114,7 @@ export function JogControls({
     eventSourceRef.current = null
   }
 
-  const controlsDisabled = !isConnected || emergencyStop
+  const controlsDisabled = !isConnected || emergencyStop || needsCalibration
 
   return (
     <Card>

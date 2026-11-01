@@ -57,6 +57,14 @@ void ClosedLoopController::update()
 
 void ClosedLoopController::updateMeasurement(long steps)
 {
+    // Calibration resets the step counter at the MIN switch, so it isn't one comparable move
+    if (motorController.isCalibrating())
+    {
+        measuring = false;
+        idleMotion.reset(encoderPositionSteps);
+        return;
+    }
+
     if (motorController.isMoving())
     {
         if (!measuring)

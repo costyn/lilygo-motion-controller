@@ -53,9 +53,13 @@ private:
     // Calibration state
     CalibrationState calibrationState;
     long calibrationSpeed;
+    bool calibrated;        // Position is referenced to the switches. Never true after boot.
+    long maxSwitchPosition; // Position of the MAX switch, with the MIN switch at 0
 
     // Speed threshold for TMC mode switching (percentage)
     const float STEALTH_CHOP_THRESHOLD = 0.5;
+
+    void referencePosition(long measuredPosition, long actualPosition);
 
     // Safety limits for motor configuration (based on TMC2209 capabilities)
     static constexpr long MIN_SPEED = 100;           // steps/sec
@@ -64,6 +68,9 @@ private:
     static constexpr long MAX_ACCELERATION = 500000; // steps/sec² (TMC2209 practical limit)
 
 public:
+    // Step position mirrored from update(), for limit switch ISRs to capture
+    static volatile long livePosition;
+
     // Constructor
     MotorController();
 
@@ -86,6 +93,7 @@ public:
     void startCalibration();
     void stopCalibration();
     bool isCalibrating() const { return calibrationState != CAL_IDLE; }
+    bool isCalibrated() const { return calibrated; }
     CalibrationState getCalibrationState() const { return calibrationState; }
     void onMinLimitReached(long position);
     void onMaxLimitReached(long position);

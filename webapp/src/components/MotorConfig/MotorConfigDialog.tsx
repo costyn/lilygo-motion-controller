@@ -337,7 +337,7 @@ export function MotorConfigDialog({
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Set manually or via physical limit switches. Limit switches will override these values if triggered.
+              Calibration sets these, with the minimum switch at 0. You can narrow them manually until the next calibration.
             </p>
           </div>
 

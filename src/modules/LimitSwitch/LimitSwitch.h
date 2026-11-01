@@ -9,6 +9,12 @@ private:
     volatile bool triggered;
     volatile bool pending;
 
+    // Position at the first press edge, captured in the ISR. update() runs up to 100ms
+    // later, when the motor may have travelled well past the switch.
+    volatile long pressPosition;
+    volatile bool pressCaptured;
+    bool pressHandled;
+
     // Callback function type for limit switch events
     typedef void (*LimitSwitchCallback)(long position);
     LimitSwitchCallback onLimitTriggered;

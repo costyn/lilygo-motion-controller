@@ -47,9 +47,12 @@ Connect motor phases to screw terminals:
 
 ### 4. Initial Calibration
 
-1. **Test Movement** - Use web interface jog buttons to verify motor direction
-2. **Set Limits** - Move motor to both extreme positions to trigger limit switches
-3. **Configure Settings** - Adjust max speed and acceleration via Settings dialog if needed
+Movement is disabled after every power-up, because the motor may have been moved while it was off.
+
+1. **Calibrate** - Click "Calibrate now" in the web interface. The motor finds the MIN switch (position 0), then the MAX switch
+2. **Configure Settings** - Adjust max speed and acceleration via Settings dialog if needed
+
+Hitting a limit switch later corrects the position, which also repairs it after lost steps.
 
 ## Web Interface
 

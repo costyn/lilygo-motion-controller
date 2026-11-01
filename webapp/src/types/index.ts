@@ -10,6 +10,7 @@ export interface MotorStatus {
     max: boolean;
   };
   isCalibrating?: boolean;
+  isCalibrated?: boolean;
   calibrationState?: string;
   encoderPosition?: number; // Steps travelled since boot, measured by the encoder
   encoderMagnetDetected?: boolean;

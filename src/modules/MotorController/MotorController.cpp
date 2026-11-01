@@ -1,6 +1,7 @@
 #include "MotorController.h"
 #include "../Configuration/Configuration.h"
 #include "../LimitSwitch/LimitSwitch.h"
+#include "../ClosedLoopController/EncoderTracker.h"
 #include "util.h"
 #include <Arduino.h>
 #include <string>
@@ -26,6 +27,7 @@ double MotorController::currentLocation = 0;
 double MotorController::monitorSpeed = 0;
 float MotorController::motorSpeed = 0;
 int8_t MotorController::direction = 1;
+volatile long MotorController::livePosition = 0;
 
 // Global instance
 MotorController motorController;
@@ -53,6 +55,8 @@ MotorController::MotorController()
     useStealthChop = true;
     calibrationState = CAL_IDLE;
     calibrationSpeed = 0;
+    calibrated = false;
+    maxSwitchPosition = 0;
     lastUpdateMicros = 0;
     pendingPositionShift = 0;
     tmcUartAddress = -1;
@@ -163,6 +167,12 @@ void MotorController::moveTo(long position, int speed)
     if (isCalibrating())
     {
         LOG_WARN("Cannot move - calibration in progress");
+        return;
+    }
+
+    if (!calibrated)
+    {
+        LOG_WARN("Cannot move - calibration required");
         return;
     }
 
@@ -337,6 +347,8 @@ void MotorController::update()
         stepper->setCurrentPosition(stepper->currentPosition() + shift);
     }
 
+    livePosition = stepper->currentPosition();
+
     // Update TMC mode based on current commanded speed
     updateTMCMode();
 
@@ -434,9 +446,17 @@ void MotorController::startCalibration()
         return;
     }
 
+    calibrated = false;
     calibrationState = CAL_FINDING_MIN;
     // Direct drive: slow configured speed, so the stop latency doesn't crash into the switches
     calibrationSpeed = config.getCalibrationDirectDrive() ? config.getCalibrationSpeed() : config.getMaxSpeed();
+
+    // Already on the MIN switch: driving further would only push against the end stop
+    if (minLimitSwitch.isPressed())
+    {
+        onMinLimitReached(getCurrentPosition());
+        return;
+    }
 
     // Move toward MIN limit (large negative position)
     // Note: This bypasses the isCalibrating() check in moveTo() because we haven't set the state yet
@@ -472,6 +492,7 @@ void MotorController::onMinLimitReached(long position)
     if (calibrationState == CAL_FINDING_MIN)
     {
         LOG_INFO("Calibration: MIN limit reached at position %ld", position);
+        referencePosition(position, 0);
 
         // Transition to finding MAX limit
         calibrationState = CAL_FINDING_MAX;
@@ -491,6 +512,10 @@ void MotorController::onMinLimitReached(long position)
 
         LOG_INFO("Calibration: now finding MAX limit at speed %ld steps/sec", speed);
     }
+    else if (calibrated)
+    {
+        referencePosition(position, 0);
+    }
 }
 
 void MotorController::onMaxLimitReached(long position)
@@ -500,9 +525,33 @@ void MotorController::onMaxLimitReached(long position)
         LOG_INFO("Calibration: MAX limit reached at position %ld", position);
 
         // Calibration complete
+        maxSwitchPosition = position;
+        config.saveLimitPositions(0, position);
+        calibrated = true;
         calibrationState = CAL_COMPLETE;
 
         LOG_INFO("Calibration complete - min: %ld, max: %ld",
                  config.getLimitPos1(), config.getLimitPos2());
+    }
+    else if (calibrationState == CAL_FINDING_MIN)
+    {
+        LOG_ERROR("Calibration aborted: MAX switch hit while finding MIN. Check motor direction and switch wiring");
+        stopCalibration();
+    }
+    else if (calibrated)
+    {
+        referencePosition(position, maxSwitchPosition);
+    }
+}
+
+// A switch gives the true position, which also repairs the step counter after a slip
+void MotorController::referencePosition(long measuredPosition, long actualPosition)
+{
+    long shift = actualPosition - measuredPosition;
+    stepper->setCurrentPosition(stepper->currentPosition() + shift);
+
+    if (calibrated && labs(shift) >= LOST_STEP_THRESHOLD)
+    {
+        LOG_WARN("Limit switch corrected position by %ld steps", shift);
     }
 }
