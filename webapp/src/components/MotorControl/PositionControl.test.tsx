@@ -12,7 +12,9 @@ describe('PositionControl - Disabled States', () => {
     maxLimit: 5000,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
-    calibrationDirectDrive: true
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
   }
 
   const defaultProps = {
@@ -50,6 +52,13 @@ describe('PositionControl - Disabled States', () => {
 
     rerender(<PositionControl {...defaultProps} jogSpeed={10100} />)
     expect(screen.getByText('Louder operation, for high speed')).toBeInTheDocument()
+  })
+
+  it('should follow a target set from another browser', () => {
+    const { rerender } = render(<PositionControl {...defaultProps} />)
+    rerender(<PositionControl {...defaultProps} sharedTarget={1234} />)
+
+    expect(screen.getByText('1,234')).toBeInTheDocument()
   })
 
   it('should disable controls until calibrated', () => {
@@ -91,7 +100,9 @@ describe('PositionControl - Position Display', () => {
     maxLimit: 10000,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
-    calibrationDirectDrive: true
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
   }
 
   const defaultProps = {
@@ -146,7 +157,9 @@ describe('PositionControl - Quick Position Buttons', () => {
     maxLimit: 10000,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
-    calibrationDirectDrive: true
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
   }
 
   const defaultProps = {
@@ -219,7 +232,9 @@ describe('PositionControl - Slider Configuration', () => {
     maxLimit: 8000,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
-    calibrationDirectDrive: true
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
   }
 
   const defaultProps = {

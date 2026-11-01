@@ -43,6 +43,8 @@ export function MotorConfigDialog({
   const [maxLimit, setMaxLimit] = useState<number | string>(currentConfig.maxLimit)
   const [calibrationSpeed, setCalibrationSpeed] = useState(currentConfig.calibrationSpeed)
   const [calibrationDirectDrive, setCalibrationDirectDrive] = useState(currentConfig.calibrationDirectDrive)
+  const [motorCurrent, setMotorCurrent] = useState(currentConfig.motorCurrent)
+  const [encoderFitted, setEncoderFitted] = useState(currentConfig.encoderFitted)
 
   // Validation state
   const [maxSpeedError, setMaxSpeedError] = useState<string | null>(null)
@@ -50,6 +52,7 @@ export function MotorConfigDialog({
   const [minLimitError, setMinLimitError] = useState<string | null>(null)
   const [maxLimitError, setMaxLimitError] = useState<string | null>(null)
   const [calibrationSpeedError, setCalibrationSpeedError] = useState<string | null>(null)
+  const [motorCurrentError, setMotorCurrentError] = useState<string | null>(null)
 
   // Reset form when dialog opens or config changes
   useEffect(() => {
@@ -61,11 +64,14 @@ export function MotorConfigDialog({
       setMaxLimit(currentConfig.maxLimit)
       setCalibrationSpeed(currentConfig.calibrationSpeed)
       setCalibrationDirectDrive(currentConfig.calibrationDirectDrive)
+      setMotorCurrent(currentConfig.motorCurrent)
+      setEncoderFitted(currentConfig.encoderFitted)
       setMaxSpeedError(null)
       setAccelerationError(null)
       setMinLimitError(null)
       setMaxLimitError(null)
       setCalibrationSpeedError(null)
+      setMotorCurrentError(null)
     }
   }, [open, currentConfig])
 
@@ -113,6 +119,17 @@ export function MotorConfigDialog({
     } else {
       setAcceleration(numValue)
       setAccelerationError(validateAcceleration(numValue))
+    }
+  }
+
+  const handleMotorCurrentChange = (value: string) => {
+    const numValue = parseInt(value)
+    if (value === '' || isNaN(numValue)) {
+      setMotorCurrent(value === '' ? 0 : numValue)
+      setMotorCurrentError(value === '' ? 'Required' : 'Invalid number')
+    } else {
+      setMotorCurrent(numValue)
+      setMotorCurrentError(numValue < 100 || numValue > 1800 ? 'Current must be between 100 and 1,800 mA' : null)
     }
   }
 
@@ -167,7 +184,7 @@ export function MotorConfigDialog({
   }
 
   // Check if form is valid (must have values and pass validation)
-  const isFormValid = maxSpeed > 0 && acceleration > 0 && calibrationSpeed > 0 && !maxSpeedError && !accelerationError && !minLimitError && !maxLimitError && !calibrationSpeedError
+  const isFormValid = maxSpeed > 0 && acceleration > 0 && calibrationSpeed > 0 && motorCurrent > 0 && !motorCurrentError && !maxSpeedError && !accelerationError && !minLimitError && !maxLimitError && !calibrationSpeedError
 
   // Check if form has changes
   const minLimitNum = typeof minLimit === 'string' ? parseInt(minLimit) : minLimit
@@ -180,6 +197,8 @@ export function MotorConfigDialog({
   const hasChanges =
     hasCalibrationChanges ||
     acceleration !== currentConfig.acceleration ||
+    motorCurrent !== currentConfig.motorCurrent ||
+    encoderFitted !== currentConfig.encoderFitted ||
     freewheelAfterMove !== currentConfig.freewheelAfterMove ||
     (!isNaN(minLimitNum) && minLimitNum !== currentConfig.minLimit) ||
     (!isNaN(maxLimitNum) && maxLimitNum !== currentConfig.maxLimit)
@@ -193,11 +212,14 @@ export function MotorConfigDialog({
     setMaxLimit(currentConfig.maxLimit)
     setCalibrationSpeed(currentConfig.calibrationSpeed)
     setCalibrationDirectDrive(currentConfig.calibrationDirectDrive)
+    setMotorCurrent(currentConfig.motorCurrent)
+    setEncoderFitted(currentConfig.encoderFitted)
     setMaxSpeedError(null)
     setAccelerationError(null)
     setMinLimitError(null)
     setMaxLimitError(null)
     setCalibrationSpeedError(null)
+    setMotorCurrentError(null)
   }
 
   // Handle apply
@@ -212,6 +234,8 @@ export function MotorConfigDialog({
       if (!isNaN(maxLimitNum) && maxLimitNum !== currentConfig.maxLimit) changes.maxLimit = maxLimitNum
       if (calibrationSpeed !== currentConfig.calibrationSpeed) changes.calibrationSpeed = calibrationSpeed
       if (calibrationDirectDrive !== currentConfig.calibrationDirectDrive) changes.calibrationDirectDrive = calibrationDirectDrive
+      if (motorCurrent !== currentConfig.motorCurrent) changes.motorCurrent = motorCurrent
+      if (encoderFitted !== currentConfig.encoderFitted) changes.encoderFitted = encoderFitted
 
       onApply(changes)
     }
@@ -267,6 +291,45 @@ export function MotorConfigDialog({
             )}
             <p className="text-xs text-muted-foreground">
               How quickly motor reaches target speed. Exceeding limits may cause skipped steps during acceleration.
+            </p>
+          </div>
+
+          {/* Motor Current */}
+          <div className="grid gap-2">
+            <Label htmlFor="motorCurrent">Motor Current</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="motorCurrent"
+                type="number"
+                value={motorCurrent}
+                onChange={(e) => handleMotorCurrentChange(e.target.value)}
+                className={motorCurrentError ? "border-red-500" : ""}
+              />
+              <span className="text-sm text-muted-foreground">mA</span>
+            </div>
+            {motorCurrentError && (
+              <p className="text-sm text-red-500">{motorCurrentError}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Set this to your motor's rated current or lower. Too much current can overheat and damage the motor.
+            </p>
+          </div>
+
+          {/* Encoder Fitted */}
+          <div className="grid gap-2">
+            <Label htmlFor="encoderFitted">Encoder Fitted</Label>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="encoderFitted"
+                checked={encoderFitted}
+                onCheckedChange={setEncoderFitted}
+              />
+              <span className="text-sm">
+                {encoderFitted ? "Yes (Stalls are detected)" : "No (Open loop)"}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Turn off if the motor has no magnet on its rear shaft. Stalls and manual movement then go unnoticed.
             </p>
           </div>
 
@@ -347,7 +410,7 @@ export function MotorConfigDialog({
             <p className="text-xs text-muted-foreground">
               {isCalibrated
                 ? 'Calibration sets these, with the minimum switch at 0. You can narrow them until the next calibration.'
-                : 'No limit switches? Move the load by hand to one end and click Set Min Here, then to the other end and click Set Max Here. Needed after every power-up.'}
+                : 'No limit switches? Jog slowly, or move the load by hand with an encoder fitted, to one end and click Set Min Here, then to the other end and click Set Max Here. Needed after every power-up.'}
             </p>
           </div>
 

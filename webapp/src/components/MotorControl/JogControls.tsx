@@ -36,7 +36,7 @@ export function JogControls({
   const handleMouseDown = (e: React.MouseEvent, direction: 'forward' | 'backward') => {
     // Ignore mouse events if touch events were just used
     if (eventSourceRef.current === 'touch') return
-    if (!isConnected || emergencyStop || needsCalibration) return
+    if (!isConnected || emergencyStop) return
 
     eventSourceRef.current = 'mouse'
     isJoggingRef.current = true
@@ -65,7 +65,7 @@ export function JogControls({
   }
 
   const handleTouchStart = (e: React.TouchEvent, direction: 'forward' | 'backward') => {
-    if (!isConnected || emergencyStop || needsCalibration) return
+    if (!isConnected || emergencyStop) return
 
     // Store the first touch identifier
     if (e.touches.length > 0) {
@@ -114,7 +114,7 @@ export function JogControls({
     eventSourceRef.current = null
   }
 
-  const controlsDisabled = !isConnected || emergencyStop || needsCalibration
+  const controlsDisabled = !isConnected || emergencyStop
 
   return (
     <Card>
@@ -186,14 +186,14 @@ export function JogControls({
           <div className="grid grid-cols-2 gap-2">
             <Button
               variant="secondary"
-              disabled={controlsDisabled || isMoving}
+              disabled={controlsDisabled || isMoving || needsCalibration}
               onClick={() => onMoveToLimit('min')}
             >
               Min Limit
             </Button>
             <Button
               variant="secondary"
-              disabled={controlsDisabled || isMoving}
+              disabled={controlsDisabled || isMoving || needsCalibration}
               onClick={() => onMoveToLimit('max')}
             >
               Max Limit

@@ -41,6 +41,12 @@ private:
 
     // Broadcast timing state
     unsigned long lastPositionBroadcast;
+
+    // Control values shared between browsers, until the next boot
+    long sharedSpeed;  // 0 until a browser has set one
+    long sharedTarget;
+    bool hasSharedTarget;
+
     unsigned long lastStatusBroadcast;
     bool wasMovingLastUpdate;
     long lastIdlePosition;
@@ -53,6 +59,7 @@ private:
     // Command handlers (dispatch table pattern)
     void handleMoveCommand(JsonDocument& doc);
     void handleJogStartCommand(JsonDocument& doc);
+    void handleSetSpeedCommand(JsonDocument& doc);
     void handleJogStopCommand(JsonDocument& doc);
     void handleEmergencyStopCommand(JsonDocument& doc);
     void handleResetCommand(JsonDocument& doc);
@@ -60,7 +67,7 @@ private:
     void handleGetConfigCommand(JsonDocument& doc);
     void handleSetConfigCommand(JsonDocument& doc);
     void handleCalibrateCommand(JsonDocument& doc);
-    void handleSetLimitResult(const char *error);
+    void reportCommandResult(const char *error);
 
     // Debug WebSocket handlers
     void onDebugWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,

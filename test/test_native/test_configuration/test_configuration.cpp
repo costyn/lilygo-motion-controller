@@ -174,6 +174,8 @@ void test_loadConfiguration_restores_defaults(void) {
 
     // Should have default values
     TEST_ASSERT_EQUAL_INT32(15000, freshConfig.getAcceleration());
+    TEST_ASSERT_EQUAL_INT32(400, freshConfig.getMotorCurrent());
+    TEST_ASSERT_TRUE(freshConfig.getEncoderFitted());
     TEST_ASSERT_EQUAL_INT32(180 * 80, freshConfig.getMaxSpeed());      // 14400
     TEST_ASSERT_EQUAL_INT32(0, freshConfig.getLimitPos1());
     TEST_ASSERT_EQUAL_INT32(2000, freshConfig.getLimitPos2());
@@ -182,6 +184,21 @@ void test_loadConfiguration_restores_defaults(void) {
 // ============================================================================
 // Test Runner
 // ============================================================================
+void test_motorCurrent_and_encoderFitted_persist(void) {
+    globalLongValues.clear();
+    globalBoolValues.clear();
+
+    Configuration savedConfig;
+    savedConfig.begin();
+    savedConfig.setMotorCurrent(300);
+    savedConfig.setEncoderFitted(false);
+
+    Configuration newConfig;
+    newConfig.begin();
+    TEST_ASSERT_EQUAL_INT32(300, newConfig.getMotorCurrent());
+    TEST_ASSERT_FALSE(newConfig.getEncoderFitted());
+}
+
 
 void setup() {
     UNITY_BEGIN();
@@ -203,6 +220,8 @@ void setup() {
     // Persistence Logic (2 tests)
     RUN_TEST(test_saveConfiguration_persists_values);
     RUN_TEST(test_loadConfiguration_restores_defaults);
+
+    RUN_TEST(test_motorCurrent_and_encoderFitted_persist);
 
     UNITY_END();
 }

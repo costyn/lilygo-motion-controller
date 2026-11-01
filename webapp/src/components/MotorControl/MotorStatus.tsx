@@ -95,6 +95,14 @@ export function MotorStatus({ motorStatus, connectionState }: MotorStatusProps) 
           </div>
         )}
 
+        {/* Encoder */}
+        {motorStatus.encoderFitted === false && (
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium">Encoder:</span>
+            <span className="text-sm text-muted-foreground">Off, stalls can't be detected</span>
+          </div>
+        )}
+
         {/* Limit Switches */}
         <div className="border-t pt-4">
           <div className="text-sm font-medium mb-2">Limit Switches:</div>

@@ -27,7 +27,9 @@ const DEFAULT_CONFIG: MotorConfig = {
   maxLimit: 5000,
   freewheelAfterMove: false,
   calibrationSpeed: 500,
-  calibrationDirectDrive: true
+  calibrationDirectDrive: true,
+  motorCurrent: 400,
+  encoderFitted: true
 }
 
 export function useMotorController() {
@@ -174,6 +176,10 @@ export function useMotorController() {
     return sendCommand({ command: 'move', position, speed })
   }, [sendCommand])
 
+  const setSpeed = useCallback((speed: number) => {
+    return sendCommand({ command: 'setSpeed', speed })
+  }, [sendCommand])
+
   const emergencyStop = useCallback(() => {
     return sendCommand({ command: 'emergencyStop' })
   }, [sendCommand])
@@ -259,6 +265,7 @@ export function useMotorController() {
     startCalibration,
     setMinHere,
     setMaxHere,
+    setSpeed,
     manualReconnect,
 
     // Raw WebSocket access for advanced use

@@ -66,6 +66,7 @@ private:
     bool manualMinSet;       // Min set by hand since boot, waiting for Max
 
     void referencePosition(long measuredPosition, long actualPosition);
+    void startMove(long position, int speed);
 
     // The chopper mode is chosen per move, never during one: handing over mid-move bumps
     // audibly, and speeds near a handover grind. Applied from ClosedLoopTask, the only
@@ -74,16 +75,25 @@ private:
     volatile bool wantSpreadCycle;
     bool spreadCycleActive;
 
-    // Share of 31 kept while holding position. Factory value 1 barely resisted a hand.
-    static constexpr uint8_t HOLD_CURRENT = 10;
+    // Share of run current kept while holding position
+    static constexpr float HOLD_CURRENT_SHARE = 0.33f;
+    volatile long wantMotorCurrent;
+    long activeMotorCurrent;
+
+    static constexpr long MIN_MOTOR_CURRENT = 100;  // mA RMS
+    static constexpr long MAX_MOTOR_CURRENT = 1800; // mA RMS, the most the driver gives with this sense resistor
+
+    // Enough for several turns, while keeping a jog bounded if its stop command is lost
+    static constexpr long UNCALIBRATED_JOG_STEPS = 32000;
 
     // Safety limits for motor configuration (based on TMC2209 capabilities)
-    static constexpr long MIN_SPEED = 100;           // steps/sec
-    static constexpr long MAX_SPEED = 50000;         // steps/sec (48,000 ran clean on the rig, 64,000 stalled)
     static constexpr long MIN_ACCELERATION = 100;    // steps/sec²
     static constexpr long MAX_ACCELERATION = 200000; // steps/sec² (240,000 ran clean on the unloaded rig)
 
 public:
+    static constexpr long MIN_SPEED = 100;           // steps/sec
+    static constexpr long MAX_SPEED = 50000;         // steps/sec (48,000 ran clean on the rig, 64,000 stalled)
+
     // Step position mirrored from update(), for limit switch ISRs to capture
     static volatile long livePosition;
 
@@ -102,6 +112,10 @@ public:
 
     // Motor control methods
     void moveTo(long position, int speed);
+
+    // Hold-to-move jog at calibration speed, so limits can be set with no position known.
+    // Returns an error message, or nullptr.
+    const char *jogUncalibrated(bool forward, int speed);
 
     // Stop methods: We have TWO distinct stop variants (no generic "stop" to avoid confusion)
     void jogStop(); // Gentle stop without emergency flag (for ending jog operations)
@@ -135,7 +149,8 @@ public:
     uint8_t getTmcVersion() const { return tmcVersion; }
     uint32_t getMaxStepGapUs() const { return maxStepGapUs; }
     void resetTimingStats();
-    void updateChopperMode();
+    void updateDriverSettings();
+    void setMotorCurrent(long current);
     void applyFreewheelSetting();
     uint32_t readDriverStatus() { return driver->DRV_STATUS(); }
     double getMonitorSpeed() const { return monitorSpeed; }

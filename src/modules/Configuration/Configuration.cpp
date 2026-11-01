@@ -15,6 +15,8 @@ Configuration::Configuration() {
     motorConfig.freewheelAfterMove = false; // Disabled by default - motor holds position
     motorConfig.calibrationSpeed = 500; // steps/sec, used when calibrationDirectDrive is enabled
     motorConfig.calibrationDirectDrive = true; // Enabled by default - safest for rigs without gearing
+    motorConfig.motorCurrent = 400; // Low on purpose: too much current can burn out a small motor
+    motorConfig.encoderFitted = true;
 }
 
 bool Configuration::begin() {
@@ -36,6 +38,8 @@ void Configuration::loadConfiguration() {
     motorConfig.freewheelAfterMove = preferences.getBool("freewheel", motorConfig.freewheelAfterMove);
     motorConfig.calibrationSpeed = preferences.getLong("calSpeed", motorConfig.calibrationSpeed);
     motorConfig.calibrationDirectDrive = preferences.getBool("calDirectDrive", motorConfig.calibrationDirectDrive);
+    motorConfig.motorCurrent = preferences.getLong("motorCurrent", motorConfig.motorCurrent);
+    motorConfig.encoderFitted = preferences.getBool("encFitted", motorConfig.encoderFitted);
 
     LOG_INFO("Configuration loaded - Accel: %ld, MaxSpeed: %ld, Limit1: %ld, Limit2: %ld, Freewheel: %d, CalSpeed: %ld, CalDirectDrive: %d",
              motorConfig.acceleration, motorConfig.maxSpeed, motorConfig.limitPos1, motorConfig.limitPos2,
@@ -50,6 +54,8 @@ void Configuration::saveConfiguration() {
     preferences.putBool("freewheel", motorConfig.freewheelAfterMove);
     preferences.putLong("calSpeed", motorConfig.calibrationSpeed);
     preferences.putBool("calDirectDrive", motorConfig.calibrationDirectDrive);
+    preferences.putLong("motorCurrent", motorConfig.motorCurrent);
+    preferences.putBool("encFitted", motorConfig.encoderFitted);
     LOG_INFO("Configuration saved");
 }
 
@@ -79,6 +85,16 @@ void Configuration::setFreewheelAfterMove(bool value) {
 void Configuration::setCalibrationSpeed(long speed) {
     motorConfig.calibrationSpeed = speed;
     preferences.putLong("calSpeed", speed);
+}
+
+void Configuration::setMotorCurrent(long current) {
+    motorConfig.motorCurrent = current;
+    preferences.putLong("motorCurrent", current);
+}
+
+void Configuration::setEncoderFitted(bool value) {
+    motorConfig.encoderFitted = value;
+    preferences.putBool("encFitted", value);
 }
 
 void Configuration::setCalibrationDirectDrive(bool value) {
