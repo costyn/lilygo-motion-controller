@@ -197,6 +197,9 @@ void ClosedLoopTask(void *pvParameters)
         // Update closed-loop controller
         closedLoopController.update();
 
+        // Update TMC mode based on current commanded speed
+        motorController.updateTMCMode();
+
         // Precise 20ms timing for position control
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }

@@ -290,6 +290,7 @@ double MotorController::calculateSpeed(float ms)
     return speedT;
 }
 
+// The UART write blocks for over 2ms, so call this from a Core 0 task, never from update()
 void MotorController::updateTMCMode()
 {
     // Use commanded speed from AccelStepper (not encoder)
@@ -301,10 +302,6 @@ void MotorController::updateTMCMode()
         unsigned long switchStart = micros();
         useStealthChop = shouldUseStealthChop;
         driver->en_spreadCycle(!useStealthChop);
-        LOG_DEBUG("TMC mode switched to %s (speed: %.0f steps/sec, %.0f%% of max)",
-                  useStealthChop ? "StealthChop" : "SpreadCycle",
-                  abs(stepper->speed()),
-                  currentSpeedPercent * 100);
 
         uint32_t switchTime = micros() - switchStart;
         tmcSwitchCount = tmcSwitchCount + 1;
@@ -348,9 +345,6 @@ void MotorController::update()
     }
 
     livePosition = stepper->currentPosition();
-
-    // Update TMC mode based on current commanded speed
-    updateTMCMode();
 
     // Handle calibration state machine
     if (calibrationState == CAL_COMPLETE)
