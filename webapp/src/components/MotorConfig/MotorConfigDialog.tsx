@@ -220,12 +220,14 @@ export function MotorConfigDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent className="flex flex-col overflow-hidden sm:max-w-3xl" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Motor Configuration</DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
+        {/* Only this area scrolls, so the footer buttons stay visible */}
+        <div className="grid min-h-0 flex-1 gap-6 overflow-y-auto py-2 pr-2 md:grid-cols-2">
+          <div className="grid content-start gap-4">
           {/* Max Speed */}
           <div className="grid gap-2">
             <Label htmlFor="maxSpeed">Max Speed</Label>
@@ -286,8 +288,11 @@ export function MotorConfigDialog({
             </p>
           </div>
 
+          </div>
+
+          <div className="grid content-start gap-4">
           {/* Limit Positions */}
-          <div className="grid gap-2 pt-4 border-t">
+          <div className="grid gap-2 pt-4 border-t md:pt-0 md:border-t-0">
             <Label>Limit Positions</Label>
             <div className="grid grid-cols-2 gap-2">
               <div className="grid gap-2">
@@ -393,6 +398,7 @@ export function MotorConfigDialog({
                 ? 'Apply your speed changes before recalibrating.'
                 : 'Automatically move motor to both limits and update positions. Motor will move to minimum first, then maximum.'}
             </p>
+          </div>
           </div>
         </div>
 

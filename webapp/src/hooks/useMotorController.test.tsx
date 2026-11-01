@@ -279,8 +279,8 @@ describe('useMotorController - State Defaults', () => {
   it('should use default motorConfig until received from server', () => {
     const { result } = renderHook(() => useMotorController())
 
-    expect(result.current.motorConfig.maxSpeed).toBe(8000)
-    expect(result.current.motorConfig.acceleration).toBe(16000)
+    expect(result.current.motorConfig.maxSpeed).toBe(14400)
+    expect(result.current.motorConfig.acceleration).toBe(15000)
     expect(result.current.motorConfig.freewheelAfterMove).toBe(false)
   })
 

@@ -21,8 +21,8 @@ const DEFAULT_STATUS: MotorStatus = {
 
 const DEFAULT_CONFIG: MotorConfig = {
   type: 'config',
-  maxSpeed: 8000,
-  acceleration: 16000,
+  maxSpeed: 14400,
+  acceleration: 15000,
   minLimit: -5000,
   maxLimit: 5000,
   freewheelAfterMove: false,

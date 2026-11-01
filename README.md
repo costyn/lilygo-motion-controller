@@ -292,7 +292,7 @@ pio test -e native
 Default settings can be modified via WebSocket or web interface Settings dialog:
 
 - **Max Speed**: 14,400 steps/second (default) - Range: 100-50,000 steps/sec
-- **Acceleration**: 80,000 steps/second² (default) - Range: 100-200,000 steps/sec²
+- **Acceleration**: 15,000 steps/second² (default) - Range: 100-200,000 steps/sec²
 - **Microsteps**: 16 (1/16th stepping)
 - **RMS Current**: 2000mA
 - **Chopper Mode**: The driver uses StealthChop up to 10,000 steps/sec and SpreadCycle above it

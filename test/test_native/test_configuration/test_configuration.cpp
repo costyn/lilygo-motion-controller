@@ -173,7 +173,7 @@ void test_loadConfiguration_restores_defaults(void) {
     freshConfig.begin();
 
     // Should have default values
-    TEST_ASSERT_EQUAL_INT32(1000 * 80, freshConfig.getAcceleration()); // 80000
+    TEST_ASSERT_EQUAL_INT32(15000, freshConfig.getAcceleration());
     TEST_ASSERT_EQUAL_INT32(180 * 80, freshConfig.getMaxSpeed());      // 14400
     TEST_ASSERT_EQUAL_INT32(0, freshConfig.getLimitPos1());
     TEST_ASSERT_EQUAL_INT32(2000, freshConfig.getLimitPos2());

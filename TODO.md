@@ -3,11 +3,12 @@
 ## 🔴 Missing Features (from original requirements, and those added afterwards)
 
 ### Bugs & New Feature Wishes v1.5
-- [ ] Magnetic Encoder feedback
+- [✅] Magnetic Encoder feedback ✅ **COMPLETED** - Stall stop, end-of-move correction, hand tracking
 - [🔴] ~Optional SimpleFOC https://simplefoc.com/ integration~ SimpleFOC does not work with the TMC2209
 - [ ] Failing to set up the web portal should not be a fatal error. Onboard buttons still work.
   - [ ] On wifi fail, do not wait for portal/put the wifi config portal on a separate thread
-- [ ] Calibration/auto-learn limits, do a few bump stops like 3D printers do
+- [✅] Calibration/auto-learn limits ✅ **COMPLETED** - Limit switch calibration, or Set Min/Max by hand
+- [ ] Encoder homing for rigs with hard stops: creep until the encoder stops following
 
 [ 30377][E][WebServer.cpp:638] _handleRequest(): request handler not found
 [ 30442][E][WebServer.cpp:638] _handleRequest(): request handler not found
@@ -35,6 +36,33 @@
 - [✅] **Unit Tests** - Test modules: priority is MotorController calculation functions like calculateSpeed() and updateTMCMode() ✅ **COMPLETED**
 
 ### Tech Debt
+
+Open items, most important first. Add new debt here as it appears.
+
+**Reliability**
+- [ ] Stepper access crosses cores without locking. `jogStop()`, `moveTo()`, `referencePosition()` and `emergencyStop()` run on Core 0 while `loop()` uses AccelStepper on Core 1. This already caused one motor-disabled race. Route every stepper change through requests handled in `update()`, as stall stops and corrections do.
+- [ ] Calibration on a rig that can't reach a switch runs until `moveTo(±999999)` ends, about 11 minutes at 1,500 steps/sec, because the encoder follows normally. Add a travel limit or timeout.
+- [ ] The calibration abort has never fired on the rig (motor too strong to hold). Test it by unplugging the MIN switch.
+- [ ] One WebSocket client was dropped during fast moves and not investigated. It was seen before the web tasks moved to Core 0.
+- [ ] Encoder parity is assumed to be even and only counted. Confirm it against the datasheet, then skip bad frames.
+
+**Maintainability**
+- [ ] Microsteps (16) are hardcoded in `begin()`, the TPWMTHRS calculation and `STEPS_PER_REV`. Use one constant.
+- [ ] Speed and acceleration limits are duplicated in firmware and webapp. Send them with the config.
+- [ ] Stall (500), lost-step (48) and StealthChop handover (10,000) values are tuned on the unloaded rig and hardcoded. Check them under load, and consider settings.
+- [ ] Dead code: `calculateSpeed()`, `readEncoder()`, `monitorSpeed`, `motorSpeed`, `direction`, `needsLimitRecovery`, `limitRecoveryPosition`, `getTMCStatus()`, and `emergencyStopWithRecovery()`, which is declared but never defined.
+- [ ] Clamp calibration speed once. It is repeated in `startCalibration()` and `onMinLimitReached()`.
+- [ ] Wrong comments in `MotorController::begin()`: "1/8th" microsteps, "100mm/s" and "2000mm/s^2".
+- [ ] `setConfig` stores speed, acceleration and limits unclamped, and typed limits can sit outside the switches. Clamping only happens when they are used.
+- [ ] Leftover NVS key `stealthChop` on existing devices. Harmless.
+
+**Testing and tooling**
+- [ ] Native tests can't compile `MotorController` or `LimitSwitch`, so the calibration flow and ISR logic have no unit tests. `test_motor_calculations` tests a copy of the logic. Move more of it into pure classes like `EncoderTracker.h`.
+- [ ] `platform = espressif32` is unpinned, so a platform update can break builds. Pin it, e.g. `espressif32@6.9.0`.
+- [ ] CI cache keys still say `pioarduino`.
+- [ ] `LOG_LEVEL` is DEBUG in all builds, so every WebSocket message is logged.
+
+**Decided**
 - 🔴 Abstraction layer: datamodel between webcontoller and motorcontroller. Web controller is doing too much calculations and knows too much about motorcontroller [not doing because not needed]
 - ✅ Too much hardware button logic in main.ccp. Needs to be moved to a separate component.
 - ✅ Check for duplicate or very similar code. Keep it DRY! :)
@@ -116,5 +144,5 @@
 
 ---
 
-**Last Updated**: October 10, 2025
+**Last Updated**: November 1, 2026
 **Status**: Core functionality complete with all major bugs fixed, extensions in planning
