@@ -112,16 +112,16 @@ describe('MotorConfigDialog - Input Validation', () => {
     const accelerationInput = screen.getByLabelText('Acceleration')
     fireEvent.change(accelerationInput, { target: { value: '50' } })
 
-    expect(screen.getByText(/Acceleration must be between 100 and 500,000/)).toBeInTheDocument()
+    expect(screen.getByText(/Acceleration must be between 100 and 200,000/)).toBeInTheDocument()
   })
 
-  it('should show error when acceleration is above 500000', () => {
+  it('should show error when acceleration is above 200000', () => {
     render(<MotorConfigDialog {...defaultProps} />)
 
     const accelerationInput = screen.getByLabelText('Acceleration')
     fireEvent.change(accelerationInput, { target: { value: '600000' } })
 
-    expect(screen.getByText(/Acceleration must be between 100 and 500,000/)).toBeInTheDocument()
+    expect(screen.getByText(/Acceleration must be between 100 and 200,000/)).toBeInTheDocument()
   })
 
   it('should show error when min limit is greater than or equal to max limit', () => {

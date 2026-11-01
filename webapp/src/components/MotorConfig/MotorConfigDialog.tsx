@@ -78,8 +78,8 @@ export function MotorConfigDialog({
   }
 
   const validateAcceleration = (value: number) => {
-    if (value < 100 || value > 500000) {
-      return "Acceleration must be between 100 and 500,000 steps/sec²"
+    if (value < 100 || value > 200000) {
+      return "Acceleration must be between 100 and 200,000 steps/sec²"
     }
     return null
   }

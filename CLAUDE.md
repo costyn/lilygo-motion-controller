@@ -40,8 +40,8 @@ LilyGo Motion Controller - Modular wireless stepper motor controller for LilyGo 
    - Mouse and touch event support with leave detection
    - `stopGently()` method that doesn't trigger emergency flag
 14. **Motor Configuration UI** - Settings dialog for motor parameters
-   - Max Speed: 100-100,000 steps/sec with real-time validation
-   - Acceleration: 100-500,000 steps/sec² with real-time validation
+   - Max Speed: 100-50,000 steps/sec with real-time validation
+   - Acceleration: 100-200,000 steps/sec² with real-time validation
    - StealthChop mode toggle (Quiet vs Powerful)
    - Freewheel After Movement toggle (Hold position vs spin freely)
    - Read-only limit position display
@@ -52,7 +52,7 @@ LilyGo Motion Controller - Modular wireless stepper motor controller for LilyGo 
    - Dynamic range based on current configuration
    - Touch-friendly slider interface
 16. **Backend Validation System** - Safety limits enforced on all inputs
-   - Constants: MIN/MAX_SPEED (100-100,000), MIN/MAX_ACCELERATION (100-500,000)
+   - Constants: MIN/MAX_SPEED (100-50,000), MIN/MAX_ACCELERATION (100-200,000)
    - Clamping behavior (not rejection) for better UX
    - Warning logs when values are adjusted
    - Protects against WebSocket, REST API, and internal calls

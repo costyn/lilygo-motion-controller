@@ -71,7 +71,7 @@ private:
     static constexpr long MIN_SPEED = 100;           // steps/sec
     static constexpr long MAX_SPEED = 50000;         // steps/sec (48,000 ran clean on the rig, 64,000 stalled)
     static constexpr long MIN_ACCELERATION = 100;    // steps/sec²
-    static constexpr long MAX_ACCELERATION = 500000; // steps/sec² (TMC2209 practical limit)
+    static constexpr long MAX_ACCELERATION = 200000; // steps/sec² (240,000 ran clean on the unloaded rig)
 
 public:
     // Step position mirrored from update(), for limit switch ISRs to capture
