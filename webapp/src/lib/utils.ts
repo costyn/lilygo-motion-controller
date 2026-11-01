@@ -7,6 +7,22 @@ export function cn(...inputs: ClassValue[]) {
 
 // Utility functions for the motor controller app
 
+// Moves at or below this speed use the driver's quiet mode. Matches QUIET_MAX_SPEED in firmware.
+export const QUIET_MAX_SPEED = 10000
+
+const DRIVER_FAULTS = [
+  'driver running hot',
+  'driver overheated and shut down',
+  'short to ground on coil A',
+  'short to ground on coil B',
+  'low-side short on coil A',
+  'low-side short on coil B',
+]
+
+export function describeDriverFaults(faults: number): string[] {
+  return DRIVER_FAULTS.filter((_, bit) => faults & (1 << bit))
+}
+
 export function getWebSocketUrl(endpoint: string): string {
   // When running locally (Vite dev server on localhost), use hardcoded controller address
   // Otherwise, use dynamic address (when webapp is deployed to the controller itself)

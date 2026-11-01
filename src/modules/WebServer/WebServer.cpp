@@ -381,6 +381,7 @@ void WebServerClass::handleSetConfigCommand(JsonDocument& doc)
     if (doc["freewheelAfterMove"].is<bool>())
     {
         config.setFreewheelAfterMove(doc["freewheelAfterMove"]);
+        motorController.applyFreewheelSetting();
         updated = true;
     }
 
@@ -571,6 +572,7 @@ void WebServerClass::broadcastStatus()
     doc["positionError"] = closedLoopController.getPositionError();
     doc["stallCount"] = closedLoopController.getStallCount();
     doc["lastStallSpeed"] = closedLoopController.getLastStallSpeed();
+    doc["driverFaults"] = closedLoopController.getDriverFaults();
 
     String message;
     serializeJson(doc, message);

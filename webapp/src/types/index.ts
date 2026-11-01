@@ -18,6 +18,7 @@ export interface MotorStatus {
   positionError?: number; // Step counter minus encoder, in steps
   stallCount?: number; // Stalls since boot
   lastStallSpeed?: number; // Peak speed of the last stall, in steps/sec
+  driverFaults?: number; // TMC2209 overtemperature and short flags since boot
 }
 
 export interface PositionUpdate {

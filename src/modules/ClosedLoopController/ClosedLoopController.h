@@ -9,7 +9,8 @@
  * Reads the encoder at 200Hz and compares it with the step counter. It stops the motor
  * on a stall, and after a move that lost steps it corrects the step counter and finishes
  * the move at a safer speed. It never steers a running move, because lost steps mean the
- * motor ran out of torque. While the motor is freewheeling, the step counter follows the shaft.
+ * motor ran out of torque. While the motor is idle, the step counter follows the shaft,
+ * because a hand can overpower the holding current as well as turn a freewheeling motor.
  *
  * All motor changes are requests applied in loop(). Without calibration, or without a
  * magnet, it only tracks position and the motor runs open loop.
@@ -53,6 +54,8 @@ private:
     uint32_t driverStatusAtPeak;
     uint32_t driverFaultBits;
     uint8_t driverSampleCycles;
+    uint8_t idleDriverCycles;
+    volatile uint8_t driverFaults; // Overtemperature and short flags since boot
 
     // Encoder frame quality
     uint32_t noMagnetFrames;
@@ -61,17 +64,19 @@ private:
     unsigned long lastFrameReportTime;
 
     static constexpr uint8_t SETTLE_CYCLES = 40;                  // 200ms after the step counter stops
+    static constexpr uint8_t IDLE_DRIVER_CYCLES = 200;            // Check the driver every second
     static constexpr uint8_t MAX_CORRECTION_ATTEMPTS = 3;
     static constexpr unsigned long FRAME_REPORT_INTERVAL_MS = 10000;
 
     void updateAlignment(long steps);
     void updateMeasurement(long steps);
     void sampleDriver();
+    void recordDriverFaults(uint32_t status);
     void checkForStall(long steps);
     void checkCalibrationTracking(long steps);
     void finishMove(long steps);
     void reportMove();
-    void followShaftWhileFreewheeling();
+    void followShaftWhileIdle();
     void reportFrameQuality();
 
 public:
@@ -90,6 +95,7 @@ public:
     long getPositionError() const { return positionError; }
     uint32_t getStallCount() const { return stallCount; }
     long getLastStallSpeed() const { return lastStallSpeed; }
+    uint8_t getDriverFaults() const { return driverFaults; }
 };
 
 extern ClosedLoopController closedLoopController;

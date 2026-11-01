@@ -20,7 +20,7 @@
  * - WebSocket-based control interface
  * - Encoder position tracking (measure-only, no closed-loop correction yet)
  * - Smart limit switch handling with position learning
- * - TMC2209 StealthChop at low speed, SpreadCycle at high speed
+ * - TMC2209 in SpreadCycle at all speeds
  * - Configuration persistence via ESP32 Preferences
  * - Over-the-air firmware updates
  * - Real-time position feedback via encoder

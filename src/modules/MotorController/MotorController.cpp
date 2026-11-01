@@ -60,7 +60,10 @@ MotorController::MotorController()
     switchesReferenced = false;
     manualMinSet = false;
     lastUpdateMicros = 0;
+    wantSpreadCycle = false;
+    spreadCycleActive = false;
     pendingPositionShift = 0;
+    moving = false;
     correctionRequested = false;
     correctionShift = 0;
     correctionTarget = 0;
@@ -104,13 +107,10 @@ bool MotorController::begin()
     driver->toff(5);           // Enables driver in software
     driver->rms_current(2000); // Set motor RMS current
     driver->microsteps(16);    // Set microsteps to 1/8th
-    driver->ihold(1);
+    driver->ihold(HOLD_CURRENT);
 
-    driver->en_spreadCycle(false); // StealthChop at low speed, the driver switches at TPWMTHRS
-
-    // TSTEP is the 12MHz clock cycles per 1/256 step, so this depends on microsteps
-    driver->TPWMTHRS(12000000 / (STEALTH_CHOP_MAX_SPEED * (256 / 16)));
-    driver->pwm_autoscale(true);  // Needed for stealthChop
+    driver->en_spreadCycle(false); // StealthChop until a fast move asks for SpreadCycle
+    driver->pwm_autoscale(true);   // Needed for stealthChop
 
     // Initialize AccelStepper exactly like factory code
     stepper->setMaxSpeed(config.getMaxSpeed());         // 100mm/s @ 80 steps/mm
@@ -143,11 +143,6 @@ void MotorController::probeTMCAddress()
             tmcVersion = version;
         }
     }
-}
-
-bool MotorController::isMotorEnabled() const
-{
-    return digitalRead(EN_PIN) == LOW;
 }
 
 // Separate encoder initialization (called from InputTask like factory code)
@@ -192,9 +187,11 @@ void MotorController::moveTo(long position, int speed)
     if (speed > MAX_SPEED)
         speed = MAX_SPEED;
 
+    wantSpreadCycle = speed > QUIET_MAX_SPEED;
     targetPosition = position;
     stepper->setMaxSpeed(speed);
     stepper->moveTo(position);
+    moving = stepper->distanceToGo() != 0;
 
     LOG_INFO("Moving to position: %ld at speed: %d steps/sec", position, speed);
 }
@@ -394,6 +391,8 @@ void MotorController::update()
         wasMoving = false;
     }
     // else: motor is stopped and we've already logged it
+
+    moving = !emergencyStopActive && stepper->distanceToGo() != 0;
 }
 
 void MotorController::setAcceleration(long accel)
@@ -457,6 +456,8 @@ void MotorController::startCalibration()
     calibrationState = CAL_FINDING_MIN;
     // Direct drive: slow configured speed, so the stop latency doesn't crash into the switches
     calibrationSpeed = config.getCalibrationDirectDrive() ? config.getCalibrationSpeed() : config.getMaxSpeed();
+
+    wantSpreadCycle = calibrationSpeed > QUIET_MAX_SPEED;
 
     // Already on the MIN switch: driving further would only push against the end stop
     if (minLimitSwitch.isPressed())
@@ -599,6 +600,24 @@ const char *MotorController::setMaxHere()
     config.saveLimitPositions(config.getLimitPos1(), position);
     calibrated = true;
     return nullptr;
+}
+
+// Applies a changed setting straight away, otherwise it would wait for the next move to end
+void MotorController::applyFreewheelSetting()
+{
+    if (!isMoving() && !isCalibrating() && !emergencyStopActive)
+    {
+        digitalWrite(EN_PIN, config.getFreewheelAfterMove() ? HIGH : LOW);
+    }
+}
+
+void MotorController::updateChopperMode()
+{
+    if (wantSpreadCycle != spreadCycleActive)
+    {
+        spreadCycleActive = wantSpreadCycle;
+        driver->en_spreadCycle(spreadCycleActive);
+    }
 }
 
 void MotorController::requestCorrection(long shift, long target, int speed)

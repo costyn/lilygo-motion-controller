@@ -38,6 +38,10 @@ private:
 
     // Requests from other tasks, applied in update()
     volatile long pendingPositionShift;
+
+    // Mirrored in update(): reading distanceToGo() from Core 0 can catch setCurrentPosition()
+    // half done, which looks like a move starting
+    volatile bool moving;
     volatile bool correctionRequested;
     volatile long correctionShift;
     volatile long correctionTarget;
@@ -61,11 +65,17 @@ private:
     bool switchesReferenced; // Calibrated from the switches, so a press gives the true position
     bool manualMinSet;       // Min set by hand since boot, waiting for Max
 
-    // StealthChop runs out of torque at speed, so the driver hands over to SpreadCycle here.
-    // Fixed, not a share of Max Speed: on the rig StealthChop stalled from about 18,000.
-    static constexpr long STEALTH_CHOP_MAX_SPEED = 10000; // steps/sec
-
     void referencePosition(long measuredPosition, long actualPosition);
+
+    // The chopper mode is chosen per move, never during one: handing over mid-move bumps
+    // audibly, and speeds near a handover grind. Applied from ClosedLoopTask, the only
+    // task using the UART after startup.
+    static constexpr long QUIET_MAX_SPEED = 10000; // steps/sec, StealthChop stalled from 18,000
+    volatile bool wantSpreadCycle;
+    bool spreadCycleActive;
+
+    // Share of 31 kept while holding position. Factory value 1 barely resisted a hand.
+    static constexpr uint8_t HOLD_CURRENT = 10;
 
     // Safety limits for motor configuration (based on TMC2209 capabilities)
     static constexpr long MIN_SPEED = 100;           // steps/sec
@@ -117,7 +127,6 @@ public:
     long getCurrentPosition() const;
     long getTargetPosition() const { return targetPosition; }
     float getCommandedSpeed() const { return stepper->speed(); }
-    bool isMotorEnabled() const;
     void requestPositionShift(long steps) { pendingPositionShift += steps; }
     void requestStop() { stopRequest = STOP_STALL; }
     void requestCorrection(long shift, long target, int speed);
@@ -126,12 +135,14 @@ public:
     uint8_t getTmcVersion() const { return tmcVersion; }
     uint32_t getMaxStepGapUs() const { return maxStepGapUs; }
     void resetTimingStats();
+    void updateChopperMode();
+    void applyFreewheelSetting();
     uint32_t readDriverStatus() { return driver->DRV_STATUS(); }
     double getMonitorSpeed() const { return monitorSpeed; }
     float getMotorSpeed() const { return motorSpeed; }
     int8_t getDirection() const { return direction; }
     bool isEmergencyStopped() const { return emergencyStopActive; }
-    bool isMoving() const { return !emergencyStopActive && stepper->distanceToGo() != 0; }
+    bool isMoving() const { return moving; }
     bool isEmergencyStopActive() const { return emergencyStopActive; }
 
     // Encoder operations
