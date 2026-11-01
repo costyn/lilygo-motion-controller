@@ -155,7 +155,6 @@ void WebServerClass::setupRoutes()
         doc["acceleration"] = config.getAcceleration();
         doc["minLimit"] = config.getMinLimit();
         doc["maxLimit"] = config.getMaxLimit();
-        doc["useStealthChop"] = config.getUseStealthChop();
         doc["freewheelAfterMove"] = config.getFreewheelAfterMove();
         doc["calibrationSpeed"] = config.getCalibrationSpeed();
         doc["calibrationDirectDrive"] = config.getCalibrationDirectDrive();
@@ -379,13 +378,6 @@ void WebServerClass::handleSetConfigCommand(JsonDocument& doc)
         updated = true;
     }
 
-    if (doc["useStealthChop"].is<bool>())
-    {
-        config.setUseStealthChop(doc["useStealthChop"]);
-        motorController.setTMCMode(doc["useStealthChop"]);
-        updated = true;
-    }
-
     if (doc["freewheelAfterMove"].is<bool>())
     {
         config.setFreewheelAfterMove(doc["freewheelAfterMove"]);
@@ -600,7 +592,6 @@ void WebServerClass::broadcastConfig()
     doc["acceleration"] = config.getAcceleration();
     doc["minLimit"] = config.getMinLimit();
     doc["maxLimit"] = config.getMaxLimit();
-    doc["useStealthChop"] = config.getUseStealthChop();
     doc["freewheelAfterMove"] = config.getFreewheelAfterMove();
     doc["calibrationSpeed"] = config.getCalibrationSpeed();
     doc["calibrationDirectDrive"] = config.getCalibrationDirectDrive();

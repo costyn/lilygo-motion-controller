@@ -16,7 +16,6 @@ public:
         long maxSpeed;
         long limitPos1;
         long limitPos2;
-        bool useStealthChop;
         bool freewheelAfterMove;
         long calibrationSpeed;
         bool calibrationDirectDrive;
@@ -44,7 +43,6 @@ public:
     long getLimitPos2() const { return motorConfig.limitPos2; }
     long getMinLimit() const { return min(motorConfig.limitPos1, motorConfig.limitPos2); }
     long getMaxLimit() const { return max(motorConfig.limitPos1, motorConfig.limitPos2); }
-    bool getUseStealthChop() const { return motorConfig.useStealthChop; }
     bool getFreewheelAfterMove() const { return motorConfig.freewheelAfterMove; }
     long getCalibrationSpeed() const { return motorConfig.calibrationSpeed; }
     bool getCalibrationDirectDrive() const { return motorConfig.calibrationDirectDrive; }
@@ -54,7 +52,6 @@ public:
     void setMaxSpeed(long speed);
     void setLimitPos1(long pos) { motorConfig.limitPos1 = pos; }
     void setLimitPos2(long pos) { motorConfig.limitPos2 = pos; }
-    void setUseStealthChop(bool use) { motorConfig.useStealthChop = use; }
     void setFreewheelAfterMove(bool value);
     void setCalibrationSpeed(long speed);
     void setCalibrationDirectDrive(bool value);

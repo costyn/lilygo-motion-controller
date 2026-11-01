@@ -53,7 +53,6 @@ MotorController::MotorController()
 
     targetPosition = 0;
     emergencyStopActive = false;
-    useStealthChop = true;
     calibrationState = CAL_IDLE;
     calibrationSpeed = 0;
     calibrated = false;
@@ -75,8 +74,6 @@ MotorController::MotorController()
 void MotorController::resetTimingStats()
 {
     maxStepGapUs = 0;
-    tmcSwitchCount = 0;
-    maxTmcSwitchUs = 0;
 }
 
 bool MotorController::begin()
@@ -109,7 +106,10 @@ bool MotorController::begin()
     driver->microsteps(16);    // Set microsteps to 1/8th
     driver->ihold(1);
 
-    driver->en_spreadCycle(false); // StealthChop at low speed, matches useStealthChop
+    driver->en_spreadCycle(false); // StealthChop at low speed, the driver switches at TPWMTHRS
+
+    // TSTEP is the 12MHz clock cycles per 1/256 step, so this depends on microsteps
+    driver->TPWMTHRS(12000000 / (STEALTH_CHOP_MAX_SPEED * (256 / 16)));
     driver->pwm_autoscale(true);  // Needed for stealthChop
 
     // Initialize AccelStepper exactly like factory code
@@ -296,33 +296,6 @@ double MotorController::calculateSpeed(float ms)
     speedT = direction * (speedT * ms / 1000);
     lastLocation = currentLocation;
     return speedT;
-}
-
-// The UART write blocks for over 2ms, so call this from a Core 0 task, never from update()
-void MotorController::updateTMCMode()
-{
-    // Use commanded speed from AccelStepper (not encoder)
-    float currentSpeedPercent = abs(stepper->speed()) / (float)config.getMaxSpeed();
-    bool shouldUseStealthChop = currentSpeedPercent < STEALTH_CHOP_THRESHOLD;
-
-    if (shouldUseStealthChop != useStealthChop)
-    {
-        unsigned long switchStart = micros();
-        useStealthChop = shouldUseStealthChop;
-        driver->en_spreadCycle(!useStealthChop);
-
-        uint32_t switchTime = micros() - switchStart;
-        tmcSwitchCount = tmcSwitchCount + 1;
-        if (switchTime > maxTmcSwitchUs)
-            maxTmcSwitchUs = switchTime;
-    }
-}
-
-void MotorController::setTMCMode(bool stealthChop)
-{
-    useStealthChop = stealthChop;
-    driver->en_spreadCycle(!stealthChop);
-    LOG_INFO("TMC mode manually set to %s", stealthChop ? "StealthChop" : "SpreadCycle");
 }
 
 uint32_t MotorController::getTMCStatus()

@@ -33,7 +33,6 @@ describe('App - Limit Warning', () => {
       acceleration: 16000,
       minLimit: 1000,
       maxLimit: 1000,
-      useStealthChop: true
     })
 
     // Warning should appear
@@ -59,7 +58,6 @@ describe('App - Limit Warning', () => {
       acceleration: 16000,
       minLimit: 0,
       maxLimit: 2000,
-      useStealthChop: true
     })
 
     // Warning should not appear
@@ -83,7 +81,6 @@ describe('App - Limit Warning', () => {
       acceleration: 16000,
       minLimit: 500,
       maxLimit: 500,
-      useStealthChop: true
     })
 
     // Warning should appear
@@ -116,7 +113,6 @@ describe('App - Limit Warning', () => {
       acceleration: 16000,
       minLimit: 0,
       maxLimit: 0,
-      useStealthChop: true
     })
 
     // Warning should appear
@@ -150,7 +146,6 @@ describe('App - Limit Warning', () => {
       acceleration: 16000,
       minLimit: 100,
       maxLimit: 100,
-      useStealthChop: true
     })
 
     // Warning should appear
@@ -165,7 +160,6 @@ describe('App - Limit Warning', () => {
       acceleration: 16000,
       minLimit: 0,
       maxLimit: 2000,
-      useStealthChop: true
     })
 
     // Warning should disappear

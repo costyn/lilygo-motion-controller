@@ -38,7 +38,6 @@ export function MotorConfigDialog({
   // Form state
   const [maxSpeed, setMaxSpeed] = useState(currentConfig.maxSpeed)
   const [acceleration, setAcceleration] = useState(currentConfig.acceleration)
-  const [useStealthChop, setUseStealthChop] = useState(currentConfig.useStealthChop)
   const [freewheelAfterMove, setFreewheelAfterMove] = useState(currentConfig.freewheelAfterMove)
   const [minLimit, setMinLimit] = useState<number | string>(currentConfig.minLimit)
   const [maxLimit, setMaxLimit] = useState<number | string>(currentConfig.maxLimit)
@@ -57,7 +56,6 @@ export function MotorConfigDialog({
     if (open) {
       setMaxSpeed(currentConfig.maxSpeed)
       setAcceleration(currentConfig.acceleration)
-      setUseStealthChop(currentConfig.useStealthChop)
       setFreewheelAfterMove(currentConfig.freewheelAfterMove)
       setMinLimit(currentConfig.minLimit)
       setMaxLimit(currentConfig.maxLimit)
@@ -73,8 +71,8 @@ export function MotorConfigDialog({
 
   // Validation functions
   const validateMaxSpeed = (value: number) => {
-    if (value < 100 || value > 100000) {
-      return "Speed must be between 100 and 100,000 steps/sec"
+    if (value < 100 || value > 50000) {
+      return "Speed must be between 100 and 50,000 steps/sec"
     }
     return null
   }
@@ -182,7 +180,6 @@ export function MotorConfigDialog({
   const hasChanges =
     hasCalibrationChanges ||
     acceleration !== currentConfig.acceleration ||
-    useStealthChop !== currentConfig.useStealthChop ||
     freewheelAfterMove !== currentConfig.freewheelAfterMove ||
     (!isNaN(minLimitNum) && minLimitNum !== currentConfig.minLimit) ||
     (!isNaN(maxLimitNum) && maxLimitNum !== currentConfig.maxLimit)
@@ -191,7 +188,6 @@ export function MotorConfigDialog({
   const handleRevert = () => {
     setMaxSpeed(currentConfig.maxSpeed)
     setAcceleration(currentConfig.acceleration)
-    setUseStealthChop(currentConfig.useStealthChop)
     setFreewheelAfterMove(currentConfig.freewheelAfterMove)
     setMinLimit(currentConfig.minLimit)
     setMaxLimit(currentConfig.maxLimit)
@@ -211,7 +207,6 @@ export function MotorConfigDialog({
       const changes: Partial<Omit<MotorConfig, 'type'>> = {}
       if (maxSpeed !== currentConfig.maxSpeed) changes.maxSpeed = maxSpeed
       if (acceleration !== currentConfig.acceleration) changes.acceleration = acceleration
-      if (useStealthChop !== currentConfig.useStealthChop) changes.useStealthChop = useStealthChop
       if (freewheelAfterMove !== currentConfig.freewheelAfterMove) changes.freewheelAfterMove = freewheelAfterMove
       if (!isNaN(minLimitNum) && minLimitNum !== currentConfig.minLimit) changes.minLimit = minLimitNum
       if (!isNaN(maxLimitNum) && maxLimitNum !== currentConfig.maxLimit) changes.maxLimit = maxLimitNum
@@ -270,24 +265,6 @@ export function MotorConfigDialog({
             )}
             <p className="text-xs text-muted-foreground">
               How quickly motor reaches target speed. Exceeding limits may cause skipped steps during acceleration.
-            </p>
-          </div>
-
-          {/* StealthChop Mode */}
-          <div className="grid gap-2">
-            <Label htmlFor="stealthchop">StealthChop Mode</Label>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="stealthchop"
-                checked={useStealthChop}
-                onCheckedChange={setUseStealthChop}
-              />
-              <span className="text-sm">
-                {useStealthChop ? "Enabled (Quiet)" : "Disabled (Powerful)"}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Enable for quieter operation, disable for more torque
             </p>
           </div>
 

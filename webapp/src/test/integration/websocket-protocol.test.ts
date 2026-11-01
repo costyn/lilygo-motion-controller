@@ -123,7 +123,6 @@ describe('WebSocket Protocol Compliance', () => {
       result.current.updateConfig({
         maxSpeed: 12000,
         acceleration: 25000,
-        useStealthChop: true,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
     calibrationDirectDrive: true
@@ -141,7 +140,6 @@ describe('WebSocket Protocol Compliance', () => {
         command: 'setConfig',
         maxSpeed: 12000,
         acceleration: 25000,
-        useStealthChop: true,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
     calibrationDirectDrive: true
@@ -160,7 +158,7 @@ describe('WebSocket Protocol Compliance', () => {
       const testMessages = [
         { type: 'status', position: 100, isMoving: false, emergencyStop: false, limitSwitches: { min: false, max: false, any: false } },
         { type: 'position', position: 200 },
-        { type: 'config', maxSpeed: 8000, acceleration: 16000, minLimit: -1000, maxLimit: 1000, useStealthChop: true },
+        { type: 'config', maxSpeed: 8000, acceleration: 16000, minLimit: -1000, maxLimit: 1000 },
         { type: 'error', message: 'Test error' },
         { type: 'configUpdated', status: 'success' }
       ]
@@ -224,7 +222,7 @@ describe('WebSocket Protocol Compliance', () => {
         acceleration: 30000,
         minLimit: -2000,
         maxLimit: 2000,
-        useStealthChop: false
+        freewheelAfterMove: true
       }
 
       act(() => {
@@ -238,7 +236,7 @@ describe('WebSocket Protocol Compliance', () => {
           acceleration: 30000,
           minLimit: -2000,
           maxLimit: 2000,
-          useStealthChop: false
+          freewheelAfterMove: true
         })
       })
     })
@@ -346,7 +344,6 @@ describe('WebSocket Protocol Compliance', () => {
         acceleration: 16000,
         minLimit: -1000,
         maxLimit: 1000,
-        useStealthChop: true,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
     calibrationDirectDrive: true
@@ -362,7 +359,7 @@ describe('WebSocket Protocol Compliance', () => {
       const updatedConfig = {
         ...initialConfig,
         maxSpeed: 12000,
-        useStealthChop: false
+        freewheelAfterMove: true
       }
 
       act(() => {
@@ -371,7 +368,7 @@ describe('WebSocket Protocol Compliance', () => {
 
       await waitFor(() => {
         expect(result.current.motorConfig.maxSpeed).toBe(12000)
-        expect(result.current.motorConfig.useStealthChop).toBe(false)
+        expect(result.current.motorConfig.freewheelAfterMove).toBe(true)
       })
     })
   })

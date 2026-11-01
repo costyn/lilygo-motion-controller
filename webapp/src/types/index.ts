@@ -31,7 +31,6 @@ export interface MotorConfig {
   acceleration: number;
   minLimit: number;
   maxLimit: number;
-  useStealthChop: boolean;
   freewheelAfterMove: boolean;
   calibrationSpeed: number;
   calibrationDirectDrive: boolean;
@@ -82,7 +81,6 @@ export interface SetConfigCommand {
   command: 'setConfig';
   maxSpeed?: number;
   acceleration?: number;
-  useStealthChop?: boolean;
   freewheelAfterMove?: boolean;
   calibrationSpeed?: number;
   calibrationDirectDrive?: boolean;

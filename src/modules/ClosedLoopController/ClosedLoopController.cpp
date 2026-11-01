@@ -247,11 +247,10 @@ void ClosedLoopController::finishMove(long steps)
 void ClosedLoopController::reportMove()
 {
     LOG_INFO("Encoder move: steps=%ld encoder=%ld scale=%.3f peakError=%ld finalError=%ld peakSpeed=%.0f "
-             "maxStepGapUs=%lu tmcSwitches=%lu maxTmcSwitchUs=%lu maxCycleUs=%lu",
+             "maxStepGapUs=%lu maxCycleUs=%lu",
              measurement.getStepTravel(), measurement.getEncoderTravel(), measurement.getScale(),
              measurement.getPeakError(), measurement.getFinalError(), peakSpeed,
-             motorController.getMaxStepGapUs(), motorController.getTmcSwitchCount(),
-             motorController.getMaxTmcSwitchUs(), maxCycleUs);
+             motorController.getMaxStepGapUs(), maxCycleUs);
     LOG_INFO("Driver at %.0f steps/sec: stealthChop=%d current=%d/31 faultBits=0x%02X",
              driverSampleSpeed, (driverStatusAtPeak >> 30) & 1, (driverStatusAtPeak >> 16) & 0x1F, driverFaultBits);
 }

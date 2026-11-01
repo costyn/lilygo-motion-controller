@@ -12,7 +12,6 @@ Configuration::Configuration() {
     motorConfig.maxSpeed = 180 * 80; // 180 * steps_per_mm
     motorConfig.limitPos1 = 0;
     motorConfig.limitPos2 = 2000; // Sane default to allow motor movement even without calibration
-    motorConfig.useStealthChop = true;
     motorConfig.freewheelAfterMove = false; // Disabled by default - motor holds position
     motorConfig.calibrationSpeed = 500; // steps/sec, used when calibrationDirectDrive is enabled
     motorConfig.calibrationDirectDrive = true; // Enabled by default - safest for rigs without gearing
@@ -34,7 +33,6 @@ void Configuration::loadConfiguration() {
     motorConfig.maxSpeed = preferences.getLong("maxSpeed", motorConfig.maxSpeed);
     motorConfig.limitPos1 = preferences.getLong("limitPos1", motorConfig.limitPos1);
     motorConfig.limitPos2 = preferences.getLong("limitPos2", motorConfig.limitPos2);
-    motorConfig.useStealthChop = preferences.getBool("stealthChop", motorConfig.useStealthChop);
     motorConfig.freewheelAfterMove = preferences.getBool("freewheel", motorConfig.freewheelAfterMove);
     motorConfig.calibrationSpeed = preferences.getLong("calSpeed", motorConfig.calibrationSpeed);
     motorConfig.calibrationDirectDrive = preferences.getBool("calDirectDrive", motorConfig.calibrationDirectDrive);
@@ -49,7 +47,6 @@ void Configuration::saveConfiguration() {
     preferences.putLong("maxSpeed", motorConfig.maxSpeed);
     preferences.putLong("limitPos1", motorConfig.limitPos1);
     preferences.putLong("limitPos2", motorConfig.limitPos2);
-    preferences.putBool("stealthChop", motorConfig.useStealthChop);
     preferences.putBool("freewheel", motorConfig.freewheelAfterMove);
     preferences.putLong("calSpeed", motorConfig.calibrationSpeed);
     preferences.putBool("calDirectDrive", motorConfig.calibrationDirectDrive);

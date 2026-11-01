@@ -10,7 +10,6 @@ describe('PositionControl - Disabled States', () => {
     acceleration: 20000,
     minLimit: -5000,
     maxLimit: 5000,
-    useStealthChop: true,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
     calibrationDirectDrive: true
@@ -82,7 +81,6 @@ describe('PositionControl - Position Display', () => {
     acceleration: 20000,
     minLimit: 0,
     maxLimit: 10000,
-    useStealthChop: true,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
     calibrationDirectDrive: true
@@ -138,7 +136,6 @@ describe('PositionControl - Quick Position Buttons', () => {
     acceleration: 20000,
     minLimit: 0,
     maxLimit: 10000,
-    useStealthChop: true,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
     calibrationDirectDrive: true
@@ -212,7 +209,6 @@ describe('PositionControl - Slider Configuration', () => {
     acceleration: 20000,
     minLimit: -2000,
     maxLimit: 8000,
-    useStealthChop: true,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
     calibrationDirectDrive: true

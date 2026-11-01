@@ -25,7 +25,6 @@ const DEFAULT_CONFIG: MotorConfig = {
   acceleration: 16000,
   minLimit: -5000,
   maxLimit: 5000,
-  useStealthChop: true,
   freewheelAfterMove: false,
   calibrationSpeed: 500,
   calibrationDirectDrive: true

@@ -31,13 +31,10 @@ private:
     // State management
     volatile long targetPosition;
     volatile bool emergencyStopActive;
-    bool useStealthChop;
 
     // Step timing diagnostics (written in loop(), read from ClosedLoopTask)
     unsigned long lastUpdateMicros;
     volatile uint32_t maxStepGapUs;
-    volatile uint32_t tmcSwitchCount;
-    volatile uint32_t maxTmcSwitchUs;
 
     // Requests from other tasks, applied in update()
     volatile long pendingPositionShift;
@@ -64,14 +61,15 @@ private:
     bool switchesReferenced; // Calibrated from the switches, so a press gives the true position
     bool manualMinSet;       // Min set by hand since boot, waiting for Max
 
-    // Speed threshold for TMC mode switching (percentage)
-    const float STEALTH_CHOP_THRESHOLD = 0.5;
+    // StealthChop runs out of torque at speed, so the driver hands over to SpreadCycle here.
+    // Fixed, not a share of Max Speed: on the rig StealthChop stalled from about 18,000.
+    static constexpr long STEALTH_CHOP_MAX_SPEED = 10000; // steps/sec
 
     void referencePosition(long measuredPosition, long actualPosition);
 
     // Safety limits for motor configuration (based on TMC2209 capabilities)
     static constexpr long MIN_SPEED = 100;           // steps/sec
-    static constexpr long MAX_SPEED = 100000;        // steps/sec (TMC2209 practical limit)
+    static constexpr long MAX_SPEED = 50000;         // steps/sec (48,000 ran clean on the rig, 64,000 stalled)
     static constexpr long MIN_ACCELERATION = 100;    // steps/sec²
     static constexpr long MAX_ACCELERATION = 500000; // steps/sec² (TMC2209 practical limit)
 
@@ -127,15 +125,12 @@ public:
     int8_t getTmcUartAddress() const { return tmcUartAddress; }
     uint8_t getTmcVersion() const { return tmcVersion; }
     uint32_t getMaxStepGapUs() const { return maxStepGapUs; }
-    uint32_t getTmcSwitchCount() const { return tmcSwitchCount; }
-    uint32_t getMaxTmcSwitchUs() const { return maxTmcSwitchUs; }
     void resetTimingStats();
     uint32_t readDriverStatus() { return driver->DRV_STATUS(); }
     double getMonitorSpeed() const { return monitorSpeed; }
     float getMotorSpeed() const { return motorSpeed; }
     int8_t getDirection() const { return direction; }
     bool isEmergencyStopped() const { return emergencyStopActive; }
-    bool isStealthChopActive() const { return useStealthChop; }
     bool isMoving() const { return !emergencyStopActive && stepper->distanceToGo() != 0; }
     bool isEmergencyStopActive() const { return emergencyStopActive; }
 
@@ -146,8 +141,6 @@ public:
 
     // TMC2209 operations
     void probeTMCAddress();
-    void updateTMCMode();
-    void setTMCMode(bool stealthChop);
     uint32_t getTMCStatus();
 
     // Main update function (call from main loop)

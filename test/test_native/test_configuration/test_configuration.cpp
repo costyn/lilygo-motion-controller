@@ -139,38 +139,6 @@ void test_saveLimitPositions_persists_both(void) {
 }
 
 // ============================================================================
-// StealthChop Mode Tests (3 tests)
-// ============================================================================
-
-void test_setUseStealthChop_true(void) {
-    testConfig.begin();
-
-    testConfig.setUseStealthChop(true);
-    TEST_ASSERT_TRUE(testConfig.getUseStealthChop());
-}
-
-void test_setUseStealthChop_false(void) {
-    testConfig.begin();
-
-    testConfig.setUseStealthChop(false);
-    TEST_ASSERT_FALSE(testConfig.getUseStealthChop());
-}
-
-void test_getUseStealthChop_returns_current_state(void) {
-    testConfig.begin();
-
-    // Test initial state (should be true by default)
-    TEST_ASSERT_TRUE(testConfig.getUseStealthChop());
-
-    // Toggle and verify
-    testConfig.setUseStealthChop(false);
-    TEST_ASSERT_FALSE(testConfig.getUseStealthChop());
-
-    testConfig.setUseStealthChop(true);
-    TEST_ASSERT_TRUE(testConfig.getUseStealthChop());
-}
-
-// ============================================================================
 // Persistence Logic Tests (2 tests)
 // ============================================================================
 
@@ -182,7 +150,6 @@ void test_saveConfiguration_persists_values(void) {
     testConfig.setAcceleration(50000);
     testConfig.setLimitPos1(300);
     testConfig.setLimitPos2(900);
-    testConfig.setUseStealthChop(false);
 
     // Save explicitly
     testConfig.saveConfiguration();
@@ -195,7 +162,6 @@ void test_saveConfiguration_persists_values(void) {
     TEST_ASSERT_EQUAL_INT32(50000, newConfig.getAcceleration());
     TEST_ASSERT_EQUAL_INT32(300, newConfig.getLimitPos1());
     TEST_ASSERT_EQUAL_INT32(900, newConfig.getLimitPos2());
-    TEST_ASSERT_FALSE(newConfig.getUseStealthChop());
 }
 
 void test_loadConfiguration_restores_defaults(void) {
@@ -210,8 +176,7 @@ void test_loadConfiguration_restores_defaults(void) {
     TEST_ASSERT_EQUAL_INT32(1000 * 80, freshConfig.getAcceleration()); // 80000
     TEST_ASSERT_EQUAL_INT32(180 * 80, freshConfig.getMaxSpeed());      // 14400
     TEST_ASSERT_EQUAL_INT32(0, freshConfig.getLimitPos1());
-    TEST_ASSERT_EQUAL_INT32(2500, freshConfig.getLimitPos2());
-    TEST_ASSERT_TRUE(freshConfig.getUseStealthChop());
+    TEST_ASSERT_EQUAL_INT32(2000, freshConfig.getLimitPos2());
 }
 
 // ============================================================================
@@ -234,11 +199,6 @@ void setup() {
     RUN_TEST(test_getMinLimit_returns_correct_value);
     RUN_TEST(test_getMaxLimit_returns_correct_value);
     RUN_TEST(test_saveLimitPositions_persists_both);
-
-    // StealthChop Mode (3 tests)
-    RUN_TEST(test_setUseStealthChop_true);
-    RUN_TEST(test_setUseStealthChop_false);
-    RUN_TEST(test_getUseStealthChop_returns_current_state);
 
     // Persistence Logic (2 tests)
     RUN_TEST(test_saveConfiguration_persists_values);

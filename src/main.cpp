@@ -20,7 +20,7 @@
  * - WebSocket-based control interface
  * - Encoder position tracking (measure-only, no closed-loop correction yet)
  * - Smart limit switch handling with position learning
- * - Automatic TMC2209 mode optimization (StealthChop/SpreadCycle)
+ * - TMC2209 StealthChop at low speed, SpreadCycle at high speed
  * - Configuration persistence via ESP32 Preferences
  * - Over-the-air firmware updates
  * - Real-time position feedback via encoder
@@ -196,9 +196,6 @@ void ClosedLoopTask(void *pvParameters)
     {
         // Update closed-loop controller
         closedLoopController.update();
-
-        // Update TMC mode based on current commanded speed
-        motorController.updateTMCMode();
 
         // Precise 5ms timing for position control
         vTaskDelayUntil(&xLastWakeTime, xFrequency);

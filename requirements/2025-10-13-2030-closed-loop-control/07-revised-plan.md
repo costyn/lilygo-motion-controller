@@ -36,7 +36,8 @@ usually mean the motor ran out of torque, which a 50Hz correction can't recover.
 - The encoder task must not pause: at 7 rev/s, a 70ms pause lost a whole turn and looked like a 3,226-step stall. It now runs at 200Hz at priority 12, and its longest cycle in forced stall runs was 19ms.
 - Limit switches stop the motor from `loop()` within microseconds of the press, instead of up to 100ms later.
 
-- High-speed stalls were swapped chopper modes: SPREAD held HIGH inverts en_spreadCycle, so high speed ran in StealthChop. With SPREAD LOW, commanded speeds to 48,000 steps/sec ran clean, where 18,000 stalled before. Actual speed may top out near 35,000, because loop() takes up to about 28us per pass.
+- High-speed stalls were swapped chopper modes: SPREAD held HIGH inverts en_spreadCycle, so high speed ran in StealthChop. With SPREAD LOW, speeds to 48,000 steps/sec ran clean, where 18,000 stalled before. 64,000 stalled once, so the validated range stops at 50,000. Timed moves confirm the commanded speeds are reached.
+- The driver now hands over to SpreadCycle by itself via TPWMTHRS, set for 10,000 steps/sec. On the rig the change happens between 10,500 and 12,000. The StealthChop setting was removed.
 - Set Min Here and Set Max Here cover rigs without switches. Calibration aborts if the encoder stops following.
 
 ## Step 1 measurements to collect
