@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Progress } from '@/components/ui/progress'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatPosition } from '@/lib/utils'
+import { formatPosition, QUIET_MAX_SPEED } from '@/lib/utils'
 import type { MotorConfig } from '@/types'
 
 interface PositionControlProps {
@@ -144,6 +144,9 @@ export function PositionControl({
             <span>100</span>
             <span>{motorConfig.maxSpeed.toLocaleString()}</span>
           </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {jogSpeed <= QUIET_MAX_SPEED ? 'Quiet operation' : 'Louder operation, for high speed'}
+          </p>
         </div>
 
 

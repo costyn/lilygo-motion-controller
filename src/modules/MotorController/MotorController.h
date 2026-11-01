@@ -63,6 +63,16 @@ private:
 
     void referencePosition(long measuredPosition, long actualPosition);
 
+    // The chopper mode is chosen per move, never during one: handing over mid-move bumps
+    // audibly, and speeds near a handover grind. Applied from ClosedLoopTask, the only
+    // task using the UART after startup.
+    static constexpr long QUIET_MAX_SPEED = 10000; // steps/sec, StealthChop stalled from 18,000
+    volatile bool wantSpreadCycle;
+    bool spreadCycleActive;
+
+    // Share of 31 kept while holding position. Factory value 1 barely resisted a hand.
+    static constexpr uint8_t HOLD_CURRENT = 10;
+
     // Safety limits for motor configuration (based on TMC2209 capabilities)
     static constexpr long MIN_SPEED = 100;           // steps/sec
     static constexpr long MAX_SPEED = 50000;         // steps/sec (48,000 ran clean on the rig, 64,000 stalled)
@@ -113,7 +123,6 @@ public:
     long getCurrentPosition() const;
     long getTargetPosition() const { return targetPosition; }
     float getCommandedSpeed() const { return stepper->speed(); }
-    bool isMotorEnabled() const;
     void requestPositionShift(long steps) { pendingPositionShift += steps; }
     void requestStop() { stopRequest = STOP_STALL; }
     void requestCorrection(long shift, long target, int speed);
@@ -122,6 +131,7 @@ public:
     uint8_t getTmcVersion() const { return tmcVersion; }
     uint32_t getMaxStepGapUs() const { return maxStepGapUs; }
     void resetTimingStats();
+    void updateChopperMode();
     uint32_t readDriverStatus() { return driver->DRV_STATUS(); }
     double getMonitorSpeed() const { return monitorSpeed; }
     float getMotorSpeed() const { return motorSpeed; }

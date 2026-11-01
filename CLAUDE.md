@@ -98,7 +98,7 @@ LilyGo Motion Controller - Modular wireless stepper motor controller for LilyGo 
 24. **Encoder supervision** - `ClosedLoopController` reads the MT6816 at 200Hz on Core 0, stops on a stall (500 steps of error) and corrects lost steps at the end of a move (48 or more), with an emergency stop after 3 failed attempts. It never steers a running move
 25. **Calibration required after boot** - MIN is position 0, limits survive only as travel, and movement is refused until calibrated. Switch presses correct the position instead of rewriting limits. Rigs without switches use Set Min Here and Set Max Here
 26. **Core 1 is reserved for `loop()`** - Web tasks and AsyncTCP run on Core 0, because any pause in `loop()` stops step pulses. Don't log or use UART there during a move
-27. **Chopper mode** - SpreadCycle only. SPREAD pin is LOW, unlike the factory example, because HIGH inverts `en_spreadCycle`. StealthChop was removed: handing over mid-move bumped audibly, and speeds near the handover ground as the driver flipped between modes
+27. **Chopper mode** - Chosen per move from the requested speed: StealthChop up to 10,000 steps/sec, SpreadCycle above it. Never change it during a move: that bumped audibly, and speeds near a handover ground. SPREAD pin is LOW, unlike the factory example, because HIGH inverts `en_spreadCycle`. Only ClosedLoopTask uses the UART after startup
 28. **Limits** - Speed 100-50,000, acceleration 100-200,000 steps/sec². Open tech debt is tracked in TODO.md
 
 ## Key Technical Details

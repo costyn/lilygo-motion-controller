@@ -571,6 +571,7 @@ void WebServerClass::broadcastStatus()
     doc["positionError"] = closedLoopController.getPositionError();
     doc["stallCount"] = closedLoopController.getStallCount();
     doc["lastStallSpeed"] = closedLoopController.getLastStallSpeed();
+    doc["driverFaults"] = closedLoopController.getDriverFaults();
 
     String message;
     serializeJson(doc, message);

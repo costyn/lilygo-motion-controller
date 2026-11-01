@@ -60,6 +60,8 @@ MotorController::MotorController()
     switchesReferenced = false;
     manualMinSet = false;
     lastUpdateMicros = 0;
+    wantSpreadCycle = false;
+    spreadCycleActive = false;
     pendingPositionShift = 0;
     correctionRequested = false;
     correctionShift = 0;
@@ -104,11 +106,10 @@ bool MotorController::begin()
     driver->toff(5);           // Enables driver in software
     driver->rms_current(2000); // Set motor RMS current
     driver->microsteps(16);    // Set microsteps to 1/8th
-    driver->ihold(1);
+    driver->ihold(HOLD_CURRENT);
 
-    // SpreadCycle only. Switching from StealthChop mid-move bumped audibly, and ground
-    // when the speed sat at the handover, and StealthChop stalled from about 18,000.
-    driver->en_spreadCycle(true);
+    driver->en_spreadCycle(false); // StealthChop until a fast move asks for SpreadCycle
+    driver->pwm_autoscale(true);   // Needed for stealthChop
 
     // Initialize AccelStepper exactly like factory code
     stepper->setMaxSpeed(config.getMaxSpeed());         // 100mm/s @ 80 steps/mm
@@ -141,11 +142,6 @@ void MotorController::probeTMCAddress()
             tmcVersion = version;
         }
     }
-}
-
-bool MotorController::isMotorEnabled() const
-{
-    return digitalRead(EN_PIN) == LOW;
 }
 
 // Separate encoder initialization (called from InputTask like factory code)
@@ -190,6 +186,7 @@ void MotorController::moveTo(long position, int speed)
     if (speed > MAX_SPEED)
         speed = MAX_SPEED;
 
+    wantSpreadCycle = speed > QUIET_MAX_SPEED;
     targetPosition = position;
     stepper->setMaxSpeed(speed);
     stepper->moveTo(position);
@@ -456,6 +453,8 @@ void MotorController::startCalibration()
     // Direct drive: slow configured speed, so the stop latency doesn't crash into the switches
     calibrationSpeed = config.getCalibrationDirectDrive() ? config.getCalibrationSpeed() : config.getMaxSpeed();
 
+    wantSpreadCycle = calibrationSpeed > QUIET_MAX_SPEED;
+
     // Already on the MIN switch: driving further would only push against the end stop
     if (minLimitSwitch.isPressed())
     {
@@ -597,6 +596,15 @@ const char *MotorController::setMaxHere()
     config.saveLimitPositions(config.getLimitPos1(), position);
     calibrated = true;
     return nullptr;
+}
+
+void MotorController::updateChopperMode()
+{
+    if (wantSpreadCycle != spreadCycleActive)
+    {
+        spreadCycleActive = wantSpreadCycle;
+        driver->en_spreadCycle(spreadCycleActive);
+    }
 }
 
 void MotorController::requestCorrection(long shift, long target, int speed)

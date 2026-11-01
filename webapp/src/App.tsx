@@ -9,6 +9,7 @@ import { MotorConfigDialog } from './components/MotorConfig/MotorConfigDialog'
 import { useMotorController } from './hooks/useMotorController'
 import { Button } from './components/ui/button'
 import { Alert, AlertTitle, AlertDescription } from './components/ui/alert'
+import { describeDriverFaults } from './lib/utils'
 import { ExternalLink, RefreshCw, Settings, AlertTriangle } from 'lucide-react'
 
 // Build-time constants injected by Vite
@@ -18,6 +19,7 @@ function AppContent() {
   const [configDialogOpen, setConfigDialogOpen] = useState(false)
   const [showLimitWarning, setShowLimitWarning] = useState(false)
   const [dismissedStalls, setDismissedStalls] = useState(0)
+  const [dismissedFaults, setDismissedFaults] = useState(0)
 
   const {
     connectionState,
@@ -38,6 +40,7 @@ function AppContent() {
 
   const needsCalibration = isConnected && motorStatus.isCalibrated === false
   const stallCount = motorStatus.stallCount ?? 0
+  const driverFaults = motorStatus.driverFaults ?? 0
 
   // Shared jog speed state (30% of max speed by default)
   const [jogSpeed, setJogSpeed] = useState(Math.round(motorConfig.maxSpeed * 0.3))
@@ -166,6 +169,19 @@ function AppContent() {
                     Settings
                   </button>
                   .
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
+          {(driverFaults & ~dismissedFaults) !== 0 && (
+            <div className="lg:col-span-2">
+              <Alert variant="destructive" onDismiss={() => setDismissedFaults(driverFaults)}>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Motor Driver Fault</AlertTitle>
+                <AlertDescription>
+                  The driver reported: {describeDriverFaults(driverFaults).join(', ')}. Stop and
+                  check the motor wiring and cooling.
                 </AlertDescription>
               </Alert>
             </div>

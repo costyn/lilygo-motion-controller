@@ -20,6 +20,8 @@ ClosedLoopController::ClosedLoopController()
       driverStatusAtPeak(0),
       driverFaultBits(0),
       driverSampleCycles(0),
+      idleDriverCycles(0),
+      driverFaults(0),
       correctionAttempts(0),
       lastReferenceCount(0),
       measuring(false),
@@ -70,6 +72,8 @@ void ClosedLoopController::update()
 
     magnetDetected = !sample.noMagnet;
     encoderPositionSteps = tracker.steps();
+
+    motorController.updateChopperMode();
 
     long steps = motorController.getCurrentPosition();
     updateAlignment(steps);
@@ -151,7 +155,13 @@ void ClosedLoopController::updateMeasurement(long steps)
     }
     else
     {
-        followShaftWhileFreewheeling();
+        followShaftWhileIdle();
+
+        if (++idleDriverCycles >= IDLE_DRIVER_CYCLES)
+        {
+            idleDriverCycles = 0;
+            recordDriverFaults(motorController.readDriverStatus());
+        }
     }
 }
 
@@ -190,6 +200,7 @@ void ClosedLoopController::sampleDriver()
 
     uint32_t status = motorController.readDriverStatus();
     driverFaultBits |= status & 0xFF; // Overtemperature, short and open load flags
+    recordDriverFaults(status);
 
     float speed = fabs(motorController.getCommandedSpeed());
     if (speed >= driverSampleSpeed)
@@ -197,6 +208,23 @@ void ClosedLoopController::sampleDriver()
         driverSampleSpeed = speed;
         driverStatusAtPeak = status;
     }
+}
+
+// Open load flags aren't recorded: they fire on a healthy motor in StealthChop
+void ClosedLoopController::recordDriverFaults(uint32_t status)
+{
+    // All zeros or ones mean the UART read failed, not that everything is faulty
+    if (status == 0 || status == 0xFFFFFFFF)
+    {
+        return;
+    }
+
+    uint8_t faults = status & 0x3F;
+    if (faults & ~driverFaults)
+    {
+        LOG_ERROR("TMC2209 driver fault: 0x%02X", faults);
+    }
+    driverFaults = driverFaults | faults;
 }
 
 void ClosedLoopController::checkForStall(long steps)
@@ -256,14 +284,8 @@ void ClosedLoopController::reportMove()
              (driverFaultBits >> 6) & 3, driverFaultBits & 0x3F);
 }
 
-void ClosedLoopController::followShaftWhileFreewheeling()
+void ClosedLoopController::followShaftWhileIdle()
 {
-    if (motorController.isMotorEnabled())
-    {
-        idleMotion.reset(encoderPositionSteps);
-        return;
-    }
-
     long travel = idleMotion.takeTravel(encoderPositionSteps);
     if (travel != 0)
     {

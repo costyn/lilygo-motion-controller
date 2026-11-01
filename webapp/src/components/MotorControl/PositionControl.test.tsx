@@ -44,6 +44,14 @@ describe('PositionControl - Disabled States', () => {
     })
   })
 
+  it('should describe the driver mode for the selected speed', () => {
+    const { rerender } = render(<PositionControl {...defaultProps} jogSpeed={10000} />)
+    expect(screen.getByText('Quiet operation')).toBeInTheDocument()
+
+    rerender(<PositionControl {...defaultProps} jogSpeed={10100} />)
+    expect(screen.getByText('Louder operation, for high speed')).toBeInTheDocument()
+  })
+
   it('should disable controls until calibrated', () => {
     render(<PositionControl {...defaultProps} needsCalibration={true} />)
 
