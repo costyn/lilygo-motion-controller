@@ -29,6 +29,9 @@ usually mean the motor ran out of torque, which a 50Hz correction can't recover.
 - TMC2209 answers on UART address 0b00 (version 0x21) with both MS1/MS2 switches up, so firmware register settings reach the driver. Microsteps come from firmware, and moving a switch would change the UART address.
 - Step 5 is partly done: the step counter follows the shaft while freewheeling. Limits are still stale after a reboot or slip.
 
+- Saved limits are fixed: calibration is required after boot, MIN is position 0, and repeated calibrations agree within 2 steps. Switch presses correct the position instead of rewriting limits.
+- Driver mode updates moved to Core 0 after they paused stepping for about 7ms. Pauses are now about 50us.
+
 ## Step 1 measurements to collect
 
 Keep "Freewheel After Movement" off so the rotor is held while the final reading settles.
