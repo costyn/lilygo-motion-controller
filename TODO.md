@@ -43,6 +43,7 @@ Open items, most important first. Add new debt here as it appears.
 - [ ] Stepper access crosses cores without locking. `jogStop()`, `moveTo()`, `referencePosition()` and `emergencyStop()` run on Core 0 while `loop()` uses AccelStepper on Core 1. This already caused one motor-disabled race. Route every stepper change through requests handled in `update()`, as stall stops and corrections do.
 - [ ] Calibration on a rig that can't reach a switch runs until `moveTo(±999999)` ends, about 11 minutes at 1,500 steps/sec, because the encoder follows normally. Add a travel limit or timeout.
 - [ ] The calibration abort has never fired on the rig (motor too strong to hold). Test it by unplugging the MIN switch.
+- [ ] A hand on the shaft in the 200ms after a real move looks like lost steps, so the motor drives back. Rare, but check with the motor moving by hand right after a jog.
 - [ ] One WebSocket client was dropped during fast moves and not investigated. It was seen before the web tasks moved to Core 0.
 - [ ] Encoder parity is assumed to be even and only counted. Confirm it against the datasheet, then skip bad frames.
 

@@ -63,6 +63,7 @@ MotorController::MotorController()
     wantSpreadCycle = false;
     spreadCycleActive = false;
     pendingPositionShift = 0;
+    moving = false;
     correctionRequested = false;
     correctionShift = 0;
     correctionTarget = 0;
@@ -190,6 +191,7 @@ void MotorController::moveTo(long position, int speed)
     targetPosition = position;
     stepper->setMaxSpeed(speed);
     stepper->moveTo(position);
+    moving = stepper->distanceToGo() != 0;
 
     LOG_INFO("Moving to position: %ld at speed: %d steps/sec", position, speed);
 }
@@ -389,6 +391,8 @@ void MotorController::update()
         wasMoving = false;
     }
     // else: motor is stopped and we've already logged it
+
+    moving = !emergencyStopActive && stepper->distanceToGo() != 0;
 }
 
 void MotorController::setAcceleration(long accel)
@@ -596,6 +600,15 @@ const char *MotorController::setMaxHere()
     config.saveLimitPositions(config.getLimitPos1(), position);
     calibrated = true;
     return nullptr;
+}
+
+// Applies a changed setting straight away, otherwise it would wait for the next move to end
+void MotorController::applyFreewheelSetting()
+{
+    if (!isMoving() && !isCalibrating() && !emergencyStopActive)
+    {
+        digitalWrite(EN_PIN, config.getFreewheelAfterMove() ? HIGH : LOW);
+    }
 }
 
 void MotorController::updateChopperMode()

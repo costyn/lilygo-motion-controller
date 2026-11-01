@@ -257,6 +257,13 @@ void ClosedLoopController::finishMove(long steps)
         return;
     }
 
+    // No steps were sent, so this was a hand on the shaft, not lost steps. Never drive back.
+    if (measurement.getStepTravel() == 0)
+    {
+        motorController.requestPositionShift(-error);
+        return;
+    }
+
     // A stall ended early, so its target is still to come. Otherwise the step counter
     // stopped where it was told to, which may be short of the target after a jog stop.
     long destination = wasStalled ? motorController.getTargetPosition() : steps;

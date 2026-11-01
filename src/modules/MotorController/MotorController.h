@@ -38,6 +38,10 @@ private:
 
     // Requests from other tasks, applied in update()
     volatile long pendingPositionShift;
+
+    // Mirrored in update(): reading distanceToGo() from Core 0 can catch setCurrentPosition()
+    // half done, which looks like a move starting
+    volatile bool moving;
     volatile bool correctionRequested;
     volatile long correctionShift;
     volatile long correctionTarget;
@@ -132,12 +136,13 @@ public:
     uint32_t getMaxStepGapUs() const { return maxStepGapUs; }
     void resetTimingStats();
     void updateChopperMode();
+    void applyFreewheelSetting();
     uint32_t readDriverStatus() { return driver->DRV_STATUS(); }
     double getMonitorSpeed() const { return monitorSpeed; }
     float getMotorSpeed() const { return motorSpeed; }
     int8_t getDirection() const { return direction; }
     bool isEmergencyStopped() const { return emergencyStopActive; }
-    bool isMoving() const { return !emergencyStopActive && stepper->distanceToGo() != 0; }
+    bool isMoving() const { return moving; }
     bool isEmergencyStopActive() const { return emergencyStopActive; }
 
     // Encoder operations

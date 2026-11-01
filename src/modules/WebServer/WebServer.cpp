@@ -381,6 +381,7 @@ void WebServerClass::handleSetConfigCommand(JsonDocument& doc)
     if (doc["freewheelAfterMove"].is<bool>())
     {
         config.setFreewheelAfterMove(doc["freewheelAfterMove"]);
+        motorController.applyFreewheelSetting();
         updated = true;
     }
 
