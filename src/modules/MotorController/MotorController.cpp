@@ -106,11 +106,9 @@ bool MotorController::begin()
     driver->microsteps(16);    // Set microsteps to 1/8th
     driver->ihold(1);
 
-    driver->en_spreadCycle(false); // StealthChop at low speed, the driver switches at TPWMTHRS
-
-    // TSTEP is the 12MHz clock cycles per 1/256 step, so this depends on microsteps
-    driver->TPWMTHRS(12000000 / (STEALTH_CHOP_MAX_SPEED * (256 / 16)));
-    driver->pwm_autoscale(true);  // Needed for stealthChop
+    // SpreadCycle only. Switching from StealthChop mid-move bumped audibly, and ground
+    // when the speed sat at the handover, and StealthChop stalled from about 18,000.
+    driver->en_spreadCycle(true);
 
     // Initialize AccelStepper exactly like factory code
     stepper->setMaxSpeed(config.getMaxSpeed());         // 100mm/s @ 80 steps/mm

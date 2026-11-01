@@ -84,7 +84,7 @@ Real-time debug output via WebSocket for monitoring system events and troublesho
 ### Core Functionality
 - **WebSocket-based Control Interface** - Real-time motor control via web browser
 - **Smart Limit Switch Handling** - Automatic position learning and persistence
-- **Automatic TMC2209 Optimization** - The driver switches between StealthChop and SpreadCycle at a fixed speed
+- **TMC2209 SpreadCycle** - One chopper mode at all speeds, so moves have no mode change
 - **Configurable Freewheel Mode** - Choose between holding position (motor powered) or freewheeling (motor spins freely) after movement completes
 - **Configuration Persistence** - Settings saved to ESP32 NVRAM
 - **Over-the-Air Updates** - Wireless firmware updates via ElegantOTA
@@ -295,7 +295,7 @@ Default settings can be modified via WebSocket or web interface Settings dialog:
 - **Acceleration**: 15,000 steps/second² (default) - Range: 100-200,000 steps/sec²
 - **Microsteps**: 16 (1/16th stepping)
 - **RMS Current**: 2000mA
-- **Chopper Mode**: The driver uses StealthChop up to 10,000 steps/sec and SpreadCycle above it
+- **Chopper Mode**: SpreadCycle at all speeds
 
 **Motor-Specific Tuning:** Validation ranges accommodate various motors (e.g., Sanyo Denki 103-547-52500, NEMA 17). Exceeding your motor's capability may cause skipped steps but won't damage hardware. Consult your motor datasheet for optimal settings.
 

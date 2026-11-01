@@ -251,8 +251,9 @@ void ClosedLoopController::reportMove()
              measurement.getStepTravel(), measurement.getEncoderTravel(), measurement.getScale(),
              measurement.getPeakError(), measurement.getFinalError(), peakSpeed,
              motorController.getMaxStepGapUs(), maxCycleUs);
-    LOG_INFO("Driver at %.0f steps/sec: stealthChop=%d current=%d/31 faultBits=0x%02X",
-             driverSampleSpeed, (driverStatusAtPeak >> 30) & 1, (driverStatusAtPeak >> 16) & 0x1F, driverFaultBits);
+    LOG_INFO("Driver at %.0f steps/sec: stealthChop=%d current=%d/31 openLoad=%d faults=0x%02X",
+             driverSampleSpeed, (driverStatusAtPeak >> 30) & 1, (driverStatusAtPeak >> 16) & 0x1F,
+             (driverFaultBits >> 6) & 3, driverFaultBits & 0x3F);
 }
 
 void ClosedLoopController::followShaftWhileFreewheeling()

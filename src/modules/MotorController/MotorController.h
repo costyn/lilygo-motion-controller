@@ -61,10 +61,6 @@ private:
     bool switchesReferenced; // Calibrated from the switches, so a press gives the true position
     bool manualMinSet;       // Min set by hand since boot, waiting for Max
 
-    // StealthChop runs out of torque at speed, so the driver hands over to SpreadCycle here.
-    // Fixed, not a share of Max Speed: on the rig StealthChop stalled from about 18,000.
-    static constexpr long STEALTH_CHOP_MAX_SPEED = 10000; // steps/sec
-
     void referencePosition(long measuredPosition, long actualPosition);
 
     // Safety limits for motor configuration (based on TMC2209 capabilities)

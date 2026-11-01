@@ -49,7 +49,7 @@ Open items, most important first. Add new debt here as it appears.
 **Maintainability**
 - [ ] Microsteps (16) are hardcoded in `begin()`, the TPWMTHRS calculation and `STEPS_PER_REV`. Use one constant.
 - [ ] Speed and acceleration limits are duplicated in firmware and webapp. Send them with the config.
-- [ ] Stall (500), lost-step (48) and StealthChop handover (10,000) values are tuned on the unloaded rig and hardcoded. Check them under load, and consider settings.
+- [ ] Stall (500) and lost-step (48) values are tuned on the unloaded rig and hardcoded. Check them under load, and consider settings.
 - [ ] Dead code: `calculateSpeed()`, `readEncoder()`, `monitorSpeed`, `motorSpeed`, `direction`, `needsLimitRecovery`, `limitRecoveryPosition`, `getTMCStatus()`, and `emergencyStopWithRecovery()`, which is declared but never defined.
 - [ ] Clamp calibration speed once. It is repeated in `startCalibration()` and `onMinLimitReached()`.
 - [ ] Wrong comments in `MotorController::begin()`: "1/8th" microsteps, "100mm/s" and "2000mm/s^2".
