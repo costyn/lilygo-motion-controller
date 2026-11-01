@@ -62,6 +62,8 @@ MotorController::MotorController()
     lastUpdateMicros = 0;
     wantSpreadCycle = false;
     spreadCycleActive = false;
+    wantMotorCurrent = 0;
+    activeMotorCurrent = 0;
     pendingPositionShift = 0;
     moving = false;
     correctionRequested = false;
@@ -105,9 +107,9 @@ bool MotorController::begin()
     LOG_DEBUG("TMC2209 IOIN : 0X%X", text);
 
     driver->toff(5);           // Enables driver in software
-    driver->rms_current(2000); // Set motor RMS current
+    wantMotorCurrent = activeMotorCurrent = config.getMotorCurrent();
+    driver->rms_current(activeMotorCurrent, HOLD_CURRENT_SHARE); // Set motor RMS current
     driver->microsteps(16);    // Set microsteps to 1/8th
-    driver->ihold(HOLD_CURRENT);
 
     driver->en_spreadCycle(false); // StealthChop until a fast move asks for SpreadCycle
     driver->pwm_autoscale(true);   // Needed for stealthChop
@@ -179,6 +181,29 @@ void MotorController::moveTo(long position, int speed)
         return;
     }
 
+    startMove(position, speed);
+}
+
+const char *MotorController::jogUncalibrated(bool forward, int speed)
+{
+    if (emergencyStopActive || isCalibrating())
+    {
+        return "Cannot jog right now";
+    }
+
+    if (forward ? maxLimitSwitch.isPressed() : minLimitSwitch.isPressed())
+    {
+        return "Limit switch reached";
+    }
+
+    long slowSpeed = config.getCalibrationSpeed();
+    startMove(getCurrentPosition() + (forward ? UNCALIBRATED_JOG_STEPS : -UNCALIBRATED_JOG_STEPS),
+              speed < slowSpeed ? speed : slowSpeed);
+    return nullptr;
+}
+
+void MotorController::startMove(long position, int speed)
+{
     digitalWrite(EN_PIN, LOW); // Enable motor
 
     // Clamp speed to safe limits (already validated, but extra safety check)
@@ -611,12 +636,33 @@ void MotorController::applyFreewheelSetting()
     }
 }
 
-void MotorController::updateChopperMode()
+void MotorController::setMotorCurrent(long current)
+{
+    if (current < MIN_MOTOR_CURRENT)
+    {
+        current = MIN_MOTOR_CURRENT;
+    }
+    else if (current > MAX_MOTOR_CURRENT)
+    {
+        current = MAX_MOTOR_CURRENT;
+    }
+
+    config.setMotorCurrent(current);
+    wantMotorCurrent = current;
+}
+
+void MotorController::updateDriverSettings()
 {
     if (wantSpreadCycle != spreadCycleActive)
     {
         spreadCycleActive = wantSpreadCycle;
         driver->en_spreadCycle(spreadCycleActive);
+    }
+
+    if (wantMotorCurrent != activeMotorCurrent)
+    {
+        activeMotorCurrent = wantMotorCurrent;
+        driver->rms_current(activeMotorCurrent, HOLD_CURRENT_SHARE);
     }
 }
 

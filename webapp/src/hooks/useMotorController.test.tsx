@@ -244,7 +244,9 @@ describe('useMotorController - Command Sending', () => {
       acceleration: 25000,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
-    calibrationDirectDrive: true
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
     })
 
     const ws = MockWebSocket.getLastInstance()!
@@ -260,7 +262,9 @@ describe('useMotorController - Command Sending', () => {
       acceleration: 25000,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
-    calibrationDirectDrive: true
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
     })
   })
 

@@ -19,6 +19,8 @@ public:
         bool freewheelAfterMove;
         long calibrationSpeed;
         bool calibrationDirectDrive;
+        long motorCurrent; // mA RMS
+        bool encoderFitted;
     } motorConfig;
 
     // Constructor
@@ -46,6 +48,8 @@ public:
     bool getFreewheelAfterMove() const { return motorConfig.freewheelAfterMove; }
     long getCalibrationSpeed() const { return motorConfig.calibrationSpeed; }
     bool getCalibrationDirectDrive() const { return motorConfig.calibrationDirectDrive; }
+    long getMotorCurrent() const { return motorConfig.motorCurrent; }
+    bool getEncoderFitted() const { return motorConfig.encoderFitted; }
 
     // Set configuration values
     void setAcceleration(long accel);
@@ -55,6 +59,8 @@ public:
     void setFreewheelAfterMove(bool value);
     void setCalibrationSpeed(long speed);
     void setCalibrationDirectDrive(bool value);
+    void setMotorCurrent(long current);
+    void setEncoderFitted(bool value);
 };
 
 extern Configuration config;

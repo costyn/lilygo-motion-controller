@@ -161,7 +161,7 @@ function AppContent() {
                   >
                     {motorStatus.isCalibrating ? 'Calibrating...' : 'Calibrate now'}
                   </button>
-                  {', or set the limits by hand in '}
+                  {', or jog slowly to each end and set the limits in '}
                   <button
                     onClick={() => setConfigDialogOpen(true)}
                     className="underline font-medium hover:no-underline"

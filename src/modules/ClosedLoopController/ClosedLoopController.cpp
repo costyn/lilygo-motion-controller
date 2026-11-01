@@ -11,6 +11,7 @@ ClosedLoopController::ClosedLoopController()
       magnetDetected(false),
       positionError(0),
       aligned(false),
+      tracking(false),
       stalled(false),
       trackingCalibration(false),
       calibrationReferenceCount(0),
@@ -40,14 +41,35 @@ ClosedLoopController::ClosedLoopController()
 
 bool ClosedLoopController::begin()
 {
+    LOG_INFO("Position supervision %s", config.getEncoderFitted() ? "enabled" : "disabled, no encoder fitted");
+    return true;
+}
+
+void ClosedLoopController::startTracking()
+{
     EncoderSample sample = decodeEncoderFrame(motorController.readEncoderFrame());
     tracker.reset(sample.angle);
     magnetDetected = !sample.noMagnet;
+    encoderPositionSteps = 0;
+    lastEncoderSteps = 0;
     lastSteps = motorController.getCurrentPosition();
+    idleMotion.reset(0);
+    tracking = true;
 
-    LOG_INFO("Encoder tracking started in measure-only mode (angle: %u, magnet: %s)",
+    LOG_INFO("Encoder tracking started (angle: %u, magnet: %s)",
              sample.angle, magnetDetected ? "detected" : "NOT detected");
-    return true;
+}
+
+void ClosedLoopController::stopTracking()
+{
+    tracking = false;
+    aligned = false;
+    measuring = false;
+    stalled = false;
+    trackingCalibration = false;
+    magnetDetected = false;
+    positionError = 0;
+    correctionAttempts = 0;
 }
 
 void ClosedLoopController::update()
@@ -59,6 +81,23 @@ void ClosedLoopController::update()
         maxCycleUs = now - lastCycleMicros;
     }
     lastCycleMicros = now;
+
+    motorController.updateDriverSettings();
+
+    if (!config.getEncoderFitted())
+    {
+        if (tracking)
+        {
+            stopTracking();
+        }
+        watchDriver();
+        return;
+    }
+
+    if (!tracking)
+    {
+        startTracking();
+    }
 
     EncoderSample sample = decodeEncoderFrame(motorController.readEncoderFrame());
 
@@ -72,8 +111,6 @@ void ClosedLoopController::update()
 
     magnetDetected = !sample.noMagnet;
     encoderPositionSteps = tracker.steps();
-
-    motorController.updateChopperMode();
 
     long steps = motorController.getCurrentPosition();
     updateAlignment(steps);
@@ -156,12 +193,16 @@ void ClosedLoopController::updateMeasurement(long steps)
     else
     {
         followShaftWhileIdle();
+        watchDriver();
+    }
+}
 
-        if (++idleDriverCycles >= IDLE_DRIVER_CYCLES)
-        {
-            idleDriverCycles = 0;
-            recordDriverFaults(motorController.readDriverStatus());
-        }
+void ClosedLoopController::watchDriver()
+{
+    if (++idleDriverCycles >= IDLE_DRIVER_CYCLES)
+    {
+        idleDriverCycles = 0;
+        recordDriverFaults(motorController.readDriverStatus());
     }
 }
 

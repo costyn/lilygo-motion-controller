@@ -13,6 +13,7 @@ export interface MotorStatus {
   isCalibrated?: boolean;
   isManualMinSet?: boolean; // Min set by hand, waiting for Max
   calibrationState?: string;
+  encoderFitted?: boolean; // Off means stalls and lost steps can't be detected
   encoderPosition?: number; // Steps travelled since boot, measured by the encoder
   encoderMagnetDetected?: boolean;
   positionError?: number; // Step counter minus encoder, in steps
@@ -35,6 +36,8 @@ export interface MotorConfig {
   freewheelAfterMove: boolean;
   calibrationSpeed: number;
   calibrationDirectDrive: boolean;
+  motorCurrent: number; // mA RMS
+  encoderFitted: boolean;
 }
 
 export interface ConfigUpdatedResponse {
@@ -85,6 +88,8 @@ export interface SetConfigCommand {
   freewheelAfterMove?: boolean;
   calibrationSpeed?: number;
   calibrationDirectDrive?: boolean;
+  motorCurrent?: number;
+  encoderFitted?: boolean;
 }
 
 export interface JogStartCommand {

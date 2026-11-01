@@ -158,6 +158,8 @@ void WebServerClass::setupRoutes()
         doc["freewheelAfterMove"] = config.getFreewheelAfterMove();
         doc["calibrationSpeed"] = config.getCalibrationSpeed();
         doc["calibrationDirectDrive"] = config.getCalibrationDirectDrive();
+        doc["motorCurrent"] = config.getMotorCurrent();
+        doc["encoderFitted"] = config.getEncoderFitted();
 
         String response;
         serializeJson(doc, response);
@@ -212,6 +214,12 @@ void WebServerClass::onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClie
 
     case WS_EVT_DISCONNECT:
         LOG_INFO("WebSocket client #%u disconnected", client->id());
+
+        // Limits don't bound a jog yet, so don't let it outlive whoever is holding the button
+        if (!motorController.isCalibrated() && !motorController.isCalibrating() && motorController.isMoving())
+        {
+            motorController.jogStop();
+        }
         break;
 
     case WS_EVT_DATA:
@@ -268,12 +276,6 @@ void WebServerClass::handleMoveCommand(JsonDocument& doc)
 
 void WebServerClass::handleJogStartCommand(JsonDocument& doc)
 {
-    if (!motorController.isCalibrated())
-    {
-        ws.textAll("{\"type\":\"error\",\"message\":\"Cannot jog: calibration required\"}");
-        return;
-    }
-
     bool hasDirection = doc["direction"].is<const char *>() || doc["direction"].is<String>();
     bool hasSpeed = doc["speed"].is<int>() || doc["speed"].is<float>() || doc["speed"].is<double>();
 
@@ -281,6 +283,12 @@ void WebServerClass::handleJogStartCommand(JsonDocument& doc)
     {
         String direction = doc["direction"].as<String>();
         int jogSpeed = doc["speed"].as<int>();
+
+        if (!motorController.isCalibrated())
+        {
+            reportCommandResult(motorController.jogUncalibrated(direction == "forward", jogSpeed));
+            return;
+        }
 
         if (!motorController.isEmergencyStopActive())
         {
@@ -391,6 +399,18 @@ void WebServerClass::handleSetConfigCommand(JsonDocument& doc)
         updated = true;
     }
 
+    if (doc["motorCurrent"].is<long>())
+    {
+        motorController.setMotorCurrent(doc["motorCurrent"]);
+        updated = true;
+    }
+
+    if (doc["encoderFitted"].is<bool>())
+    {
+        config.setEncoderFitted(doc["encoderFitted"]);
+        updated = true;
+    }
+
     if (doc["calibrationDirectDrive"].is<bool>())
     {
         config.setCalibrationDirectDrive(doc["calibrationDirectDrive"]);
@@ -423,7 +443,7 @@ void WebServerClass::handleCalibrateCommand(JsonDocument& doc)
     }
 }
 
-void WebServerClass::handleSetLimitResult(const char *error)
+void WebServerClass::reportCommandResult(const char *error)
 {
     if (error)
     {
@@ -517,11 +537,11 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
         }
         else if (command == "setMinHere")
         {
-            handleSetLimitResult(motorController.setMinHere());
+            reportCommandResult(motorController.setMinHere());
         }
         else if (command == "setMaxHere")
         {
-            handleSetLimitResult(motorController.setMaxHere());
+            reportCommandResult(motorController.setMaxHere());
         }
         else
         {
@@ -567,6 +587,7 @@ void WebServerClass::broadcastStatus()
     doc["isCalibrated"] = motorController.isCalibrated();
     doc["isManualMinSet"] = motorController.isManualMinSet();
     doc["calibrationState"] = getCalibrationStateString(motorController.getCalibrationState());
+    doc["encoderFitted"] = config.getEncoderFitted();
     doc["encoderPosition"] = closedLoopController.getEncoderPositionSteps();
     doc["encoderMagnetDetected"] = closedLoopController.isMagnetDetected();
     doc["positionError"] = closedLoopController.getPositionError();
@@ -597,6 +618,8 @@ void WebServerClass::broadcastConfig()
     doc["freewheelAfterMove"] = config.getFreewheelAfterMove();
     doc["calibrationSpeed"] = config.getCalibrationSpeed();
     doc["calibrationDirectDrive"] = config.getCalibrationDirectDrive();
+    doc["motorCurrent"] = config.getMotorCurrent();
+    doc["encoderFitted"] = config.getEncoderFitted();
 
     String message;
     serializeJson(doc, message);

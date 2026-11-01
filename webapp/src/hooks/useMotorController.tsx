@@ -27,7 +27,9 @@ const DEFAULT_CONFIG: MotorConfig = {
   maxLimit: 5000,
   freewheelAfterMove: false,
   calibrationSpeed: 500,
-  calibrationDirectDrive: true
+  calibrationDirectDrive: true,
+  motorCurrent: 400,
+  encoderFitted: true
 }
 
 export function useMotorController() {

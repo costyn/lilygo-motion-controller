@@ -125,7 +125,9 @@ describe('WebSocket Protocol Compliance', () => {
         acceleration: 25000,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
-    calibrationDirectDrive: true
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
       })
 
       await waitFor(() => {
@@ -142,7 +144,9 @@ describe('WebSocket Protocol Compliance', () => {
         acceleration: 25000,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
-    calibrationDirectDrive: true
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
       })
     })
   })
@@ -346,7 +350,9 @@ describe('WebSocket Protocol Compliance', () => {
         maxLimit: 1000,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
-    calibrationDirectDrive: true
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
       }
 
       act(() => {

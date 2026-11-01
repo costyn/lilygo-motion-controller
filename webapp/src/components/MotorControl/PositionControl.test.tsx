@@ -12,7 +12,9 @@ describe('PositionControl - Disabled States', () => {
     maxLimit: 5000,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
-    calibrationDirectDrive: true
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
   }
 
   const defaultProps = {
@@ -91,7 +93,9 @@ describe('PositionControl - Position Display', () => {
     maxLimit: 10000,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
-    calibrationDirectDrive: true
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
   }
 
   const defaultProps = {
@@ -146,7 +150,9 @@ describe('PositionControl - Quick Position Buttons', () => {
     maxLimit: 10000,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
-    calibrationDirectDrive: true
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
   }
 
   const defaultProps = {
@@ -219,7 +225,9 @@ describe('PositionControl - Slider Configuration', () => {
     maxLimit: 8000,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
-    calibrationDirectDrive: true
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
   }
 
   const defaultProps = {

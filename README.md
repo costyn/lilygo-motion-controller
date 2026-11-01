@@ -54,7 +54,7 @@ Movement is disabled after every power-up, because the motor may have been moved
 
 Hitting a limit switch later corrects the position, which also repairs it after lost steps.
 
-Without limit switches, set the limits by hand after each power-up: move the load to one end, click **Set Min Here** in Settings, move it to the other end and click **Set Max Here**.
+Without limit switches, set the limits after each power-up: jog slowly to one end, click **Set Min Here** in Settings, jog to the other end and click **Set Max Here**. Before calibration, jogging runs at the calibration Slow Speed and stops if the web connection drops. With an encoder fitted, you can move the load by hand instead.
 
 The MT6816 encoder supervises every move. If the motor stalls it stops, and after any move that lost steps it corrects its position and finishes at half Max Speed. After three failed attempts in a row it triggers an emergency stop.
 
@@ -71,6 +71,8 @@ Control motor position with jog buttons, go-to-position commands, and real-time 
 Adjust motor parameters:
 - **Max Speed**: 100-50,000 steps/sec
 - **Acceleration**: 100-200,000 steps/sec²
+- **Motor Current**: 100-1,800 mA, default 400. Set this to your motor's rated current or lower
+- **Encoder Fitted**: Turn off for motors with no magnet on the rear shaft. Stalls, lost steps and manual movement then go unnoticed
 - **Freewheel After Movement**: Enable to let motor spin freely after movement completes, disable to hold position (uses power)
 - **Calibration Mode**: Direct drive finds the limit switches at the Slow Speed (default 500 steps/sec, range 100-100,000); Normal uses full Max Speed
 
@@ -294,7 +296,7 @@ Default settings can be modified via WebSocket or web interface Settings dialog:
 - **Max Speed**: 14,400 steps/second (default) - Range: 100-50,000 steps/sec
 - **Acceleration**: 15,000 steps/second² (default) - Range: 100-200,000 steps/sec²
 - **Microsteps**: 16 (1/16th stepping)
-- **RMS Current**: 2000mA
+- **RMS Current**: 400mA (default), set in the Settings dialog
 - **Chopper Mode**: Chosen per move: quiet StealthChop up to 10,000 steps/sec, SpreadCycle above it, with no change during a move
 - **Hold Current**: About a third of run current when Freewheel After Movement is off
 

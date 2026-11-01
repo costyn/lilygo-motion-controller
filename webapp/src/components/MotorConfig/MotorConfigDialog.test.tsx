@@ -12,7 +12,9 @@ describe('MotorConfigDialog - Dialog Behavior', () => {
     maxLimit: 5000,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
-    calibrationDirectDrive: true
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
   }
 
   const defaultProps = {
@@ -66,7 +68,9 @@ describe('MotorConfigDialog - Input Validation', () => {
     maxLimit: 5000,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
-    calibrationDirectDrive: true
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
   }
 
   const defaultProps = {
@@ -152,7 +156,9 @@ describe('MotorConfigDialog - Apply Changes', () => {
     maxLimit: 5000,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
-    calibrationDirectDrive: true
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
   }
 
   const defaultProps = {
@@ -228,7 +234,9 @@ describe('MotorConfigDialog - Revert Functionality', () => {
     maxLimit: 5000,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
-    calibrationDirectDrive: true
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
   }
 
   const defaultProps = {
@@ -291,7 +299,9 @@ describe('MotorConfigDialog - Calibration Settings', () => {
     maxLimit: 5000,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
-    calibrationDirectDrive: true
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
   }
 
   const defaultProps = {
@@ -358,7 +368,9 @@ describe('MotorConfigDialog - Set Limits Here', () => {
     maxLimit: 5000,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
-    calibrationDirectDrive: true
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
   }
 
   const defaultProps = {
@@ -400,5 +412,65 @@ describe('MotorConfigDialog - Set Limits Here', () => {
 
     expect(screen.getByText('Set Min Here')).toBeDisabled()
     expect(screen.getByText('Set Max Here')).toBeDisabled()
+  })
+})
+
+describe('MotorConfigDialog - Motor Settings', () => {
+  const defaultConfig: MotorConfig = {
+    type: 'config',
+    maxSpeed: 10000,
+    acceleration: 20000,
+    minLimit: 0,
+    maxLimit: 5000,
+    freewheelAfterMove: false,
+    calibrationSpeed: 500,
+    calibrationDirectDrive: true,
+    motorCurrent: 400,
+    encoderFitted: true
+  }
+
+  const defaultProps = {
+    open: true,
+    onOpenChange: vi.fn(),
+    currentConfig: defaultConfig,
+    onApply: vi.fn(),
+    isConnected: true,
+    onCalibrate: vi.fn(),
+    isCalibrating: false,
+    isCalibrated: true,
+    isManualMinSet: false,
+    isMoving: false,
+    onSetMinHere: vi.fn(),
+    onSetMaxHere: vi.fn(),
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should reject motor current above the driver limit', () => {
+    render(<MotorConfigDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Motor Current'), { target: { value: '2000' } })
+
+    expect(screen.getByText(/Current must be between 100 and 1,800 mA/)).toBeInTheDocument()
+  })
+
+  it('should apply a changed motor current', () => {
+    render(<MotorConfigDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Motor Current'), { target: { value: '300' } })
+    fireEvent.click(screen.getByText('Apply'))
+
+    expect(defaultProps.onApply).toHaveBeenCalledWith({ motorCurrent: 300 })
+  })
+
+  it('should apply turning the encoder off', () => {
+    render(<MotorConfigDialog {...defaultProps} />)
+
+    fireEvent.click(screen.getByLabelText('Encoder Fitted'))
+    fireEvent.click(screen.getByText('Apply'))
+
+    expect(defaultProps.onApply).toHaveBeenCalledWith({ encoderFitted: false })
   })
 })

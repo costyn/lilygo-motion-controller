@@ -13,7 +13,8 @@
  * because a hand can overpower the holding current as well as turn a freewheeling motor.
  *
  * All motor changes are requests applied in loop(). Without calibration, or without a
- * magnet, it only tracks position and the motor runs open loop.
+ * magnet, it only tracks position. With the Encoder Fitted setting off, it never reads the
+ * encoder, so stray readings from a missing magnet can't affect anything.
  *
  * Encoder positions are relative to boot: the first reading is zero.
  */
@@ -32,6 +33,7 @@ private:
 
     // Correction state
     bool aligned;
+    bool tracking;
     bool stalled;
     bool trackingCalibration;
     uint32_t calibrationReferenceCount;
@@ -64,10 +66,13 @@ private:
     unsigned long lastFrameReportTime;
 
     static constexpr uint8_t SETTLE_CYCLES = 40;                  // 200ms after the step counter stops
-    static constexpr uint8_t IDLE_DRIVER_CYCLES = 200;            // Check the driver every second
+    static constexpr uint8_t IDLE_DRIVER_CYCLES = 200;            // Check the driver every second when not sampling a move
     static constexpr uint8_t MAX_CORRECTION_ATTEMPTS = 3;
     static constexpr unsigned long FRAME_REPORT_INTERVAL_MS = 10000;
 
+    void startTracking();
+    void stopTracking();
+    void watchDriver();
     void updateAlignment(long steps);
     void updateMeasurement(long steps);
     void sampleDriver();
