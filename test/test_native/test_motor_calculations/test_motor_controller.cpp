@@ -21,12 +21,6 @@ double calculateSpeedLogic(double currentLocation, double lastLocation, int8_t& 
     return speedT;
 }
 
-// Test updateTMCMode logic
-bool shouldUseStealthChopLogic(float currentSpeed, float maxSpeed, float threshold) {
-    float currentSpeedPercent = abs(currentSpeed) / maxSpeed;
-    return currentSpeedPercent < threshold;
-}
-
 // Test cases for calculateSpeed
 void test_calculateSpeed_no_movement(void) {
     int8_t direction = 0;
@@ -85,61 +79,6 @@ void test_calculateSpeed_wrap_around_boundary(void) {
 }
 
 // Test cases for TMC mode switching
-void test_updateTMCMode_low_speed_stealth(void) {
-    float currentSpeed = 1000.0;
-    float maxSpeed = 8000.0;
-    float threshold = 0.5;
-
-    bool result = shouldUseStealthChopLogic(currentSpeed, maxSpeed, threshold);
-
-    // 1000/8000 = 0.125 < 0.5, so should use StealthChop
-    TEST_ASSERT_TRUE(result);
-}
-
-void test_updateTMCMode_high_speed_spreadcycle(void) {
-    float currentSpeed = 5000.0;
-    float maxSpeed = 8000.0;
-    float threshold = 0.5;
-
-    bool result = shouldUseStealthChopLogic(currentSpeed, maxSpeed, threshold);
-
-    // 5000/8000 = 0.625 > 0.5, so should use SpreadCycle
-    TEST_ASSERT_FALSE(result);
-}
-
-void test_updateTMCMode_threshold_boundary(void) {
-    float currentSpeed = 4000.0; // Exactly 50% of 8000
-    float maxSpeed = 8000.0;
-    float threshold = 0.5;
-
-    bool result = shouldUseStealthChopLogic(currentSpeed, maxSpeed, threshold);
-
-    // 4000/8000 = 0.5, which is NOT < 0.5, so should use SpreadCycle
-    TEST_ASSERT_FALSE(result);
-}
-
-void test_updateTMCMode_negative_speed(void) {
-    float currentSpeed = -3000.0; // Negative speed (backward)
-    float maxSpeed = 8000.0;
-    float threshold = 0.5;
-
-    bool result = shouldUseStealthChopLogic(currentSpeed, maxSpeed, threshold);
-
-    // abs(-3000)/8000 = 0.375 < 0.5, so should use StealthChop
-    TEST_ASSERT_TRUE(result);
-}
-
-void test_updateTMCMode_zero_speed(void) {
-    float currentSpeed = 0.0;
-    float maxSpeed = 8000.0;
-    float threshold = 0.5;
-
-    bool result = shouldUseStealthChopLogic(currentSpeed, maxSpeed, threshold);
-
-    // 0/8000 = 0 < 0.5, so should use StealthChop
-    TEST_ASSERT_TRUE(result);
-}
-
 void setUp(void) {
     // Set up before each test
 }
@@ -159,11 +98,6 @@ void setup() {
     RUN_TEST(test_calculateSpeed_wrap_around_boundary);
 
     // updateTMCMode tests
-    RUN_TEST(test_updateTMCMode_low_speed_stealth);
-    RUN_TEST(test_updateTMCMode_high_speed_spreadcycle);
-    RUN_TEST(test_updateTMCMode_threshold_boundary);
-    RUN_TEST(test_updateTMCMode_negative_speed);
-    RUN_TEST(test_updateTMCMode_zero_speed);
 
     UNITY_END();
 }

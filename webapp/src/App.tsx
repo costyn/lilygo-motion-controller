@@ -17,6 +17,7 @@ declare const __BUILD_TIME__: string
 function AppContent() {
   const [configDialogOpen, setConfigDialogOpen] = useState(false)
   const [showLimitWarning, setShowLimitWarning] = useState(false)
+  const [dismissedStalls, setDismissedStalls] = useState(0)
 
   const {
     connectionState,
@@ -30,8 +31,13 @@ function AppContent() {
     jogStart,
     jogStop,
     startCalibration,
+    setMinHere,
+    setMaxHere,
     manualReconnect
   } = useMotorController()
+
+  const needsCalibration = isConnected && motorStatus.isCalibrated === false
+  const stallCount = motorStatus.stallCount ?? 0
 
   // Shared jog speed state (30% of max speed by default)
   const [jogSpeed, setJogSpeed] = useState(Math.round(motorConfig.maxSpeed * 0.3))
@@ -137,6 +143,54 @@ function AppContent() {
             </div>
           )}
 
+          {needsCalibration && (
+            <div className="lg:col-span-2">
+              <Alert variant="warning">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Calibration Required</AlertTitle>
+                <AlertDescription>
+                  The motor's position is unknown after power-up, so movement is disabled until both
+                  limit switches are found.{' '}
+                  <button
+                    onClick={startCalibration}
+                    disabled={motorStatus.isCalibrating || motorStatus.emergencyStop}
+                    className="underline font-medium hover:no-underline disabled:opacity-50"
+                  >
+                    {motorStatus.isCalibrating ? 'Calibrating...' : 'Calibrate now'}
+                  </button>
+                  {', or set the limits by hand in '}
+                  <button
+                    onClick={() => setConfigDialogOpen(true)}
+                    className="underline font-medium hover:no-underline"
+                  >
+                    Settings
+                  </button>
+                  .
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
+          {stallCount > dismissedStalls && (
+            <div className="lg:col-span-2">
+              <Alert variant="warning" onDismiss={() => setDismissedStalls(stallCount)}>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Motor Stalled</AlertTitle>
+                <AlertDescription>
+                  The encoder detected a stall at about {motorStatus.lastStallSpeed} steps/sec.
+                  If this repeats, lower Max Speed or Acceleration in{' '}
+                  <button
+                    onClick={() => setConfigDialogOpen(true)}
+                    className="underline font-medium hover:no-underline"
+                  >
+                    Settings
+                  </button>
+                  , and check for a jam.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
           {/* Motor Status */}
           <div className="lg:col-span-2">
             <MotorStatus
@@ -150,6 +204,7 @@ function AppContent() {
             isConnected={isConnected}
             isMoving={motorStatus.isMoving}
             emergencyStop={motorStatus.emergencyStop}
+            needsCalibration={needsCalibration}
             jogSpeed={jogSpeed}
             onJogStart={handleJogStart}
             onJogStop={handleJogStop}
@@ -163,6 +218,7 @@ function AppContent() {
             isConnected={isConnected}
             isMoving={motorStatus.isMoving}
             emergencyStop={motorStatus.emergencyStop}
+            needsCalibration={needsCalibration}
             currentPosition={motorStatus.position}
             motorConfig={motorConfig}
             jogSpeed={jogSpeed}
@@ -195,6 +251,11 @@ function AppContent() {
         isConnected={isConnected}
         onCalibrate={startCalibration}
         isCalibrating={motorStatus.isCalibrating || false}
+        isCalibrated={motorStatus.isCalibrated ?? true}
+        isManualMinSet={motorStatus.isManualMinSet ?? false}
+        isMoving={motorStatus.isMoving}
+        onSetMinHere={setMinHere}
+        onSetMaxHere={setMaxHere}
       />
     </div>
   )

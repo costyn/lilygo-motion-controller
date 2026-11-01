@@ -2,6 +2,11 @@
 
 ## Completed Sessions
 
+### 2025-10-13-2030-closed-loop-control ✅ IMPLEMENTED
+- **Status**: Complete - Control approach replaced, see `07-revised-plan.md`
+- **Focus**: Encoder feedback for lost steps and manual movement
+- **Result**: Stall stop, end-of-move correction, hand tracking, required calibration, corrected chopper modes
+
 ### 2025-11-22-1450-auto-calibration ✅ IMPLEMENTED
 - **Status**: Complete
 - **Focus**: One-button calibration of both limit switches from the Settings dialog
@@ -93,8 +98,8 @@
 
 ## Session Statistics
 
-- **Total Sessions**: 7
-- **Completed**: 7
+- **Total Sessions**: 8
+- **Completed**: 8
 - **Implemented**: 4 (general-request, high-priority-features, protocol-sync-updates, tech-debt-review, jog-buttons-motor-config)
 - **Success Rate**: 100%
 

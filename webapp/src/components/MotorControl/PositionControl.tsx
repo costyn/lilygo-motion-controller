@@ -10,6 +10,7 @@ interface PositionControlProps {
   isConnected: boolean
   isMoving: boolean
   emergencyStop: boolean
+  needsCalibration?: boolean
   currentPosition: number
   motorConfig: MotorConfig
   jogSpeed: number
@@ -21,6 +22,7 @@ export function PositionControl({
   isConnected,
   isMoving,
   emergencyStop,
+  needsCalibration = false,
   currentPosition,
   motorConfig,
   jogSpeed,
@@ -59,7 +61,7 @@ export function PositionControl({
     onMoveTo(position, jogSpeed)
   }
 
-  const controlsDisabled = !isConnected || emergencyStop || isMoving
+  const controlsDisabled = !isConnected || emergencyStop || isMoving || needsCalibration
 
 
   return (

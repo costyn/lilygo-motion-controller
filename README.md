@@ -47,9 +47,16 @@ Connect motor phases to screw terminals:
 
 ### 4. Initial Calibration
 
-1. **Test Movement** - Use web interface jog buttons to verify motor direction
-2. **Set Limits** - Move motor to both extreme positions to trigger limit switches
-3. **Configure Settings** - Adjust max speed and acceleration via Settings dialog if needed
+Movement is disabled after every power-up, because the motor may have been moved while it was off.
+
+1. **Calibrate** - Click "Calibrate now" in the web interface. The motor finds the MIN switch (position 0), then the MAX switch
+2. **Configure Settings** - Adjust max speed and acceleration via Settings dialog if needed
+
+Hitting a limit switch later corrects the position, which also repairs it after lost steps.
+
+Without limit switches, set the limits by hand after each power-up: move the load to one end, click **Set Min Here** in Settings, move it to the other end and click **Set Max Here**.
+
+The MT6816 encoder supervises every move. If the motor stalls it stops, and after any move that lost steps it corrects its position and finishes at half Max Speed. After three failed attempts in a row it triggers an emergency stop.
 
 ## Web Interface
 
@@ -62,9 +69,8 @@ Control motor position with jog buttons, go-to-position commands, and real-time 
 ![Configuration Dialog](docs/images/Configuration%20Dialog.png)
 
 Adjust motor parameters:
-- **Max Speed**: 100-100,000 steps/sec
-- **Acceleration**: 100-500,000 steps/sec²
-- **StealthChop Mode**: Enable for quiet operation, disable for more torque
+- **Max Speed**: 100-50,000 steps/sec
+- **Acceleration**: 100-200,000 steps/sec²
 - **Freewheel After Movement**: Enable to let motor spin freely after movement completes, disable to hold position (uses power)
 - **Calibration Mode**: Direct drive finds the limit switches at the Slow Speed (default 500 steps/sec, range 100-100,000); Normal uses full Max Speed
 
@@ -78,7 +84,7 @@ Real-time debug output via WebSocket for monitoring system events and troublesho
 ### Core Functionality
 - **WebSocket-based Control Interface** - Real-time motor control via web browser
 - **Smart Limit Switch Handling** - Automatic position learning and persistence
-- **Automatic TMC2209 Optimization** - Dynamic switching between StealthChop/SpreadCycle modes based on actual motor speed
+- **Automatic TMC2209 Optimization** - The driver switches between StealthChop and SpreadCycle at a fixed speed
 - **Configurable Freewheel Mode** - Choose between holding position (motor powered) or freewheeling (motor spins freely) after movement completes
 - **Configuration Persistence** - Settings saved to ESP32 NVRAM
 - **Over-the-Air Updates** - Wireless firmware updates via ElegantOTA
@@ -177,7 +183,6 @@ src/
   "command": "setConfig",
   "maxSpeed": 14400,
   "acceleration": 80000,
-  "useStealthChop": true,
   "calibrationSpeed": 500,
   "calibrationDirectDrive": true
 }
@@ -222,8 +227,7 @@ src/
   "maxSpeed": 8000,
   "acceleration": 16000,
   "minLimit": -5000,
-  "maxLimit": 5000,
-  "useStealthChop": true
+  "maxLimit": 5000
 }
 
 // Configuration update confirmation (setConfig)
@@ -271,7 +275,7 @@ Run cross-platform unit tests for motor calculation functions:
 pio test -e native
 
 # Expected output: 20 test cases passed
-# Tests calculateSpeed() and updateTMCMode() logic
+# Tests calculateSpeed() logic
 ```
 
 ## Configuration
@@ -287,12 +291,11 @@ pio test -e native
 
 Default settings can be modified via WebSocket or web interface Settings dialog:
 
-- **Max Speed**: 14,400 steps/second (default) - Range: 100-100,000 steps/sec
-- **Acceleration**: 80,000 steps/second² (default) - Range: 100-500,000 steps/sec²
+- **Max Speed**: 14,400 steps/second (default) - Range: 100-50,000 steps/sec
+- **Acceleration**: 15,000 steps/second² (default) - Range: 100-200,000 steps/sec²
 - **Microsteps**: 16 (1/16th stepping)
 - **RMS Current**: 2000mA
-- **StealthChop Mode**: Enabled by default (quieter operation, less torque)
-- **StealthChop Threshold**: Automatic switching at 50% of max speed
+- **Chopper Mode**: The driver uses StealthChop up to 10,000 steps/sec and SpreadCycle above it
 
 **Motor-Specific Tuning:** Validation ranges accommodate various motors (e.g., Sanyo Denki 103-547-52500, NEMA 17). Exceeding your motor's capability may cause skipped steps but won't damage hardware. Consult your motor datasheet for optimal settings.
 

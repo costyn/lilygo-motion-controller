@@ -2,6 +2,7 @@
 #include "../Configuration/Configuration.h"
 #include "../MotorController/MotorController.h"
 #include "../LimitSwitch/LimitSwitch.h"
+#include "../ClosedLoopController/ClosedLoopController.h"
 #include "util.h"
 #include <Arduino.h>
 
@@ -71,6 +72,7 @@ WebServerClass::WebServerClass() : server(80), ws("/ws"), debugWs("/debug"), ini
     lastPositionBroadcast = 0;
     lastStatusBroadcast = 0;
     wasMovingLastUpdate = false;
+    lastIdlePosition = 0;
 }
 
 bool WebServerClass::begin()
@@ -153,7 +155,6 @@ void WebServerClass::setupRoutes()
         doc["acceleration"] = config.getAcceleration();
         doc["minLimit"] = config.getMinLimit();
         doc["maxLimit"] = config.getMaxLimit();
-        doc["useStealthChop"] = config.getUseStealthChop();
         doc["freewheelAfterMove"] = config.getFreewheelAfterMove();
         doc["calibrationSpeed"] = config.getCalibrationSpeed();
         doc["calibrationDirectDrive"] = config.getCalibrationDirectDrive();
@@ -226,13 +227,19 @@ void WebServerClass::onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClie
 // Command handler implementations
 void WebServerClass::handleMoveCommand(JsonDocument& doc)
 {
+    if (!motorController.isCalibrated())
+    {
+        ws.textAll("{\"type\":\"error\",\"message\":\"Cannot move: calibration required\"}");
+        return;
+    }
+
     // Support both int and float for speed (JavaScript sends numbers as float)
     bool hasPosition = doc["position"].is<long>();
     bool hasSpeed = doc["speed"].is<int>() || doc["speed"].is<float>() || doc["speed"].is<double>();
 
     if (hasPosition && hasSpeed)
     {
-        long position = doc["position"];
+        long position = constrain(doc["position"].as<long>(), config.getMinLimit(), config.getMaxLimit());
         int speed = doc["speed"].as<int>(); // Convert to int regardless of source type
 
         if (!motorController.isEmergencyStopActive())
@@ -261,6 +268,12 @@ void WebServerClass::handleMoveCommand(JsonDocument& doc)
 
 void WebServerClass::handleJogStartCommand(JsonDocument& doc)
 {
+    if (!motorController.isCalibrated())
+    {
+        ws.textAll("{\"type\":\"error\",\"message\":\"Cannot jog: calibration required\"}");
+        return;
+    }
+
     bool hasDirection = doc["direction"].is<const char *>() || doc["direction"].is<String>();
     bool hasSpeed = doc["speed"].is<int>() || doc["speed"].is<float>() || doc["speed"].is<double>();
 
@@ -365,13 +378,6 @@ void WebServerClass::handleSetConfigCommand(JsonDocument& doc)
         updated = true;
     }
 
-    if (doc["useStealthChop"].is<bool>())
-    {
-        config.setUseStealthChop(doc["useStealthChop"]);
-        motorController.setTMCMode(doc["useStealthChop"]);
-        updated = true;
-    }
-
     if (doc["freewheelAfterMove"].is<bool>())
     {
         config.setFreewheelAfterMove(doc["freewheelAfterMove"]);
@@ -414,6 +420,24 @@ void WebServerClass::handleCalibrateCommand(JsonDocument& doc)
     {
         ws.textAll("{\"type\":\"error\",\"message\":\"Cannot calibrate: emergency stop active\"}");
     }
+}
+
+void WebServerClass::handleSetLimitResult(const char *error)
+{
+    if (error)
+    {
+        JsonDocument doc;
+        doc["type"] = "error";
+        doc["message"] = error;
+
+        String message;
+        serializeJson(doc, message);
+        ws.textAll(message);
+        return;
+    }
+
+    broadcastStatus();
+    broadcastConfig();
 }
 
 void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
@@ -490,6 +514,14 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
         {
             handleCalibrateCommand(doc);
         }
+        else if (command == "setMinHere")
+        {
+            handleSetLimitResult(motorController.setMinHere());
+        }
+        else if (command == "setMaxHere")
+        {
+            handleSetLimitResult(motorController.setMaxHere());
+        }
         else
         {
             LOG_WARN("Unknown WebSocket command: %s", command.c_str());
@@ -506,6 +538,8 @@ void WebServerClass::handleAPI(AsyncWebServerRequest *request)
     doc["emergencyStop"] = motorController.isEmergencyStopActive();
     doc["limitSwitches"]["min"] = minLimitSwitch.isPressed();
     doc["limitSwitches"]["max"] = maxLimitSwitch.isPressed();
+    doc["tmcUartAddress"] = motorController.getTmcUartAddress();
+    doc["tmcVersion"] = motorController.getTmcVersion();
 
     String response;
     serializeJson(doc, response);
@@ -529,7 +563,14 @@ void WebServerClass::broadcastStatus()
     doc["limitSwitches"]["min"] = minLimitSwitch.isPressed();
     doc["limitSwitches"]["max"] = maxLimitSwitch.isPressed();
     doc["isCalibrating"] = motorController.isCalibrating();
+    doc["isCalibrated"] = motorController.isCalibrated();
+    doc["isManualMinSet"] = motorController.isManualMinSet();
     doc["calibrationState"] = getCalibrationStateString(motorController.getCalibrationState());
+    doc["encoderPosition"] = closedLoopController.getEncoderPositionSteps();
+    doc["encoderMagnetDetected"] = closedLoopController.isMagnetDetected();
+    doc["positionError"] = closedLoopController.getPositionError();
+    doc["stallCount"] = closedLoopController.getStallCount();
+    doc["lastStallSpeed"] = closedLoopController.getLastStallSpeed();
 
     String message;
     serializeJson(doc, message);
@@ -551,7 +592,6 @@ void WebServerClass::broadcastConfig()
     doc["acceleration"] = config.getAcceleration();
     doc["minLimit"] = config.getMinLimit();
     doc["maxLimit"] = config.getMaxLimit();
-    doc["useStealthChop"] = config.getUseStealthChop();
     doc["freewheelAfterMove"] = config.getFreewheelAfterMove();
     doc["calibrationSpeed"] = config.getCalibrationSpeed();
     doc["calibrationDirectDrive"] = config.getCalibrationDirectDrive();
@@ -662,6 +702,17 @@ void WebServerClass::update()
         LOG_INFO("Movement completed - sending final status");
         broadcastStatus();
         wasMovingLastUpdate = false;
+    }
+    else if (currentMillis - lastPositionBroadcast >= POSITION_BROADCAST_INTERVAL_MS)
+    {
+        // Motor idle - position still changes when the shaft is turned by hand
+        long position = motorController.getCurrentPosition();
+        if (position != lastIdlePosition)
+        {
+            broadcastPosition(position);
+            lastIdlePosition = position;
+        }
+        lastPositionBroadcast = currentMillis;
     }
 }
 

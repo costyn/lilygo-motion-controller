@@ -1,6 +1,7 @@
 #include "MotorController.h"
 #include "../Configuration/Configuration.h"
 #include "../LimitSwitch/LimitSwitch.h"
+#include "../ClosedLoopController/EncoderTracker.h"
 #include "util.h"
 #include <Arduino.h>
 #include <string>
@@ -26,6 +27,8 @@ double MotorController::currentLocation = 0;
 double MotorController::monitorSpeed = 0;
 float MotorController::motorSpeed = 0;
 int8_t MotorController::direction = 1;
+volatile long MotorController::livePosition = 0;
+volatile MotorController::StopRequest MotorController::stopRequest = MotorController::STOP_NONE;
 
 // Global instance
 MotorController motorController;
@@ -50,9 +53,27 @@ MotorController::MotorController()
 
     targetPosition = 0;
     emergencyStopActive = false;
-    useStealthChop = true;
     calibrationState = CAL_IDLE;
     calibrationSpeed = 0;
+    calibrated = false;
+    maxSwitchPosition = 0;
+    switchesReferenced = false;
+    manualMinSet = false;
+    lastUpdateMicros = 0;
+    pendingPositionShift = 0;
+    correctionRequested = false;
+    correctionShift = 0;
+    correctionTarget = 0;
+    correctionSpeed = 0;
+    referenceCount = 0;
+    tmcUartAddress = -1;
+    tmcVersion = 0;
+    resetTimingStats();
+}
+
+void MotorController::resetTimingStats()
+{
+    maxStepGapUs = 0;
 }
 
 bool MotorController::begin()
@@ -63,7 +84,7 @@ bool MotorController::begin()
     pinMode(CLK_PIN, OUTPUT);
     pinMode(SPREAD_PIN, OUTPUT);
     digitalWrite(CLK_PIN, LOW);
-    digitalWrite(SPREAD_PIN, HIGH);
+    digitalWrite(SPREAD_PIN, LOW); // HIGH inverts en_spreadCycle, swapping the chopper modes
 
     pinMode(EN_PIN, OUTPUT);
     pinMode(STEP_PIN, OUTPUT);
@@ -71,6 +92,7 @@ bool MotorController::begin()
 
     // Initialize TMC2209 exactly like factory code
     serialDriver->begin(115200, SERIAL_8N1, SW_RX, SW_TX);
+    probeTMCAddress();
     driver->begin(); //  SPI: Init CS pins and possible SW SPI pins
     // UART: Init SW UART (if selected) with default 115200 baudrate
     driver->push();
@@ -84,7 +106,10 @@ bool MotorController::begin()
     driver->microsteps(16);    // Set microsteps to 1/8th
     driver->ihold(1);
 
-    driver->en_spreadCycle(true); // Toggle spreadCycle on TMC2208/2209/2224
+    driver->en_spreadCycle(false); // StealthChop at low speed, the driver switches at TPWMTHRS
+
+    // TSTEP is the 12MHz clock cycles per 1/256 step, so this depends on microsteps
+    driver->TPWMTHRS(12000000 / (STEALTH_CHOP_MAX_SPEED * (256 / 16)));
     driver->pwm_autoscale(true);  // Needed for stealthChop
 
     // Initialize AccelStepper exactly like factory code
@@ -102,6 +127,27 @@ bool MotorController::begin()
 
     LOG_INFO("Motor Controller initialized successfully");
     return true;
+}
+
+// Read-only check of which UART address the TMC2209 answers on (set by MS1/MS2)
+void MotorController::probeTMCAddress()
+{
+    for (uint8_t address = 0; address < 4; address++)
+    {
+        TMC2209Stepper probe(serialDriver, R_SENSE, address);
+        uint8_t version = probe.version();
+        LOG_INFO("TMC2209 UART address 0b%d%d: version 0x%02X", address >> 1, address & 1, version);
+        if (version != 0 && version != 0xFF && tmcUartAddress < 0)
+        {
+            tmcUartAddress = address;
+            tmcVersion = version;
+        }
+    }
+}
+
+bool MotorController::isMotorEnabled() const
+{
+    return digitalRead(EN_PIN) == LOW;
 }
 
 // Separate encoder initialization (called from InputTask like factory code)
@@ -129,6 +175,12 @@ void MotorController::moveTo(long position, int speed)
     if (isCalibrating())
     {
         LOG_WARN("Cannot move - calibration in progress");
+        return;
+    }
+
+    if (!calibrated)
+    {
+        LOG_WARN("Cannot move - calibration required");
         return;
     }
 
@@ -191,8 +243,8 @@ long MotorController::getCurrentPosition() const
     return stepper->currentPosition();
 }
 
-// Unused for now, no closed loop feature yet:
-int MotorController::readEncoder()
+// Raw 16-bit MT6816 frame: angle, no-magnet warning and parity bits
+uint16_t MotorController::readEncoderFrame()
 {
     uint16_t temp[2];
     digitalWrite(SPI_MT_CS, LOW);
@@ -207,13 +259,13 @@ int MotorController::readEncoder()
     mt6816->endTransaction();
     digitalWrite(SPI_MT_CS, HIGH);
 
-    int position = (int)(temp[0] << 6 | temp[1] >> 2);
+    return temp[0] << 8 | temp[1];
+}
 
-    // Debug: Log encoder raw bytes and calculated position
-    LOG_DEBUG("Encoder raw: high=0x%02X low=0x%02X -> position=%d (%.1f°)",
-              temp[0], temp[1], position, (position * 360.0) / 16384.0);
-
-    return position;
+// Unused for now, no closed loop feature yet:
+int MotorController::readEncoder()
+{
+    return readEncoderFrame() >> 2;
 }
 
 // Unused for now, no closed loop feature yet:
@@ -246,30 +298,6 @@ double MotorController::calculateSpeed(float ms)
     return speedT;
 }
 
-void MotorController::updateTMCMode()
-{
-    // Use commanded speed from AccelStepper (not encoder)
-    float currentSpeedPercent = abs(stepper->speed()) / (float)config.getMaxSpeed();
-    bool shouldUseStealthChop = currentSpeedPercent < STEALTH_CHOP_THRESHOLD;
-
-    if (shouldUseStealthChop != useStealthChop)
-    {
-        useStealthChop = shouldUseStealthChop;
-        driver->en_spreadCycle(!useStealthChop);
-        LOG_DEBUG("TMC mode switched to %s (speed: %.0f steps/sec, %.0f%% of max)",
-                  useStealthChop ? "StealthChop" : "SpreadCycle",
-                  abs(stepper->speed()),
-                  currentSpeedPercent * 100);
-    }
-}
-
-void MotorController::setTMCMode(bool stealthChop)
-{
-    useStealthChop = stealthChop;
-    driver->en_spreadCycle(!stealthChop);
-    LOG_INFO("TMC mode manually set to %s", stealthChop ? "StealthChop" : "SpreadCycle");
-}
-
 uint32_t MotorController::getTMCStatus()
 {
     return driver->IOIN();
@@ -281,8 +309,48 @@ void MotorController::update()
     static bool wasMoving = false;
     bool isMoving = !emergencyStopActive && (stepper->distanceToGo() != 0);
 
-    // Update TMC mode based on current commanded speed
-    updateTMCMode();
+    // Time between update() calls while moving: no steps can be sent during a gap
+    unsigned long now = micros();
+    if (wasMoving && isMoving && now - lastUpdateMicros > maxStepGapUs)
+    {
+        maxStepGapUs = now - lastUpdateMicros;
+    }
+    lastUpdateMicros = now;
+
+    // Stop first. MIN is ignored while calibration backs off it, because that is switch bounce.
+    StopRequest stop = stopRequest;
+    if (stop != STOP_NONE)
+    {
+        stopRequest = STOP_NONE;
+        if (!(stop == STOP_MIN_SWITCH && calibrationState == CAL_FINDING_MAX))
+        {
+            jogStop();
+            isMoving = false;
+        }
+    }
+
+    // Shift and move together, so the destination is measured from the corrected position.
+    // A move started in the meantime takes priority.
+    if (correctionRequested && !isMoving)
+    {
+        correctionRequested = false;
+        stepper->setCurrentPosition(stepper->currentPosition() + correctionShift);
+        moveTo(correctionTarget, correctionSpeed);
+    }
+    else if (correctionRequested)
+    {
+        correctionRequested = false;
+    }
+
+    // Apply step counter shifts only while idle, so they can't disturb a move
+    if (pendingPositionShift != 0 && !isMoving)
+    {
+        long shift = pendingPositionShift;
+        pendingPositionShift = 0;
+        stepper->setCurrentPosition(stepper->currentPosition() + shift);
+    }
+
+    livePosition = stepper->currentPosition();
 
     // Handle calibration state machine
     if (calibrationState == CAL_COMPLETE)
@@ -302,6 +370,11 @@ void MotorController::update()
     else if (isMoving)
     {
         // Motor is moving - call run() to step motor
+        // A move can start while the branch below is freewheeling, so enable it again here
+        if (!wasMoving)
+        {
+            digitalWrite(EN_PIN, LOW);
+        }
         stepper->run();
         wasMoving = true;
     }
@@ -378,9 +451,19 @@ void MotorController::startCalibration()
         return;
     }
 
+    calibrated = false;
+    switchesReferenced = false;
+    manualMinSet = false;
     calibrationState = CAL_FINDING_MIN;
     // Direct drive: slow configured speed, so the stop latency doesn't crash into the switches
     calibrationSpeed = config.getCalibrationDirectDrive() ? config.getCalibrationSpeed() : config.getMaxSpeed();
+
+    // Already on the MIN switch: driving further would only push against the end stop
+    if (minLimitSwitch.isPressed())
+    {
+        onMinLimitReached(getCurrentPosition());
+        return;
+    }
 
     // Move toward MIN limit (large negative position)
     // Note: This bypasses the isCalibrating() check in moveTo() because we haven't set the state yet
@@ -416,6 +499,7 @@ void MotorController::onMinLimitReached(long position)
     if (calibrationState == CAL_FINDING_MIN)
     {
         LOG_INFO("Calibration: MIN limit reached at position %ld", position);
+        referencePosition(position, 0);
 
         // Transition to finding MAX limit
         calibrationState = CAL_FINDING_MAX;
@@ -435,6 +519,10 @@ void MotorController::onMinLimitReached(long position)
 
         LOG_INFO("Calibration: now finding MAX limit at speed %ld steps/sec", speed);
     }
+    else if (switchesReferenced)
+    {
+        referencePosition(position, 0);
+    }
 }
 
 void MotorController::onMaxLimitReached(long position)
@@ -444,9 +532,92 @@ void MotorController::onMaxLimitReached(long position)
         LOG_INFO("Calibration: MAX limit reached at position %ld", position);
 
         // Calibration complete
+        maxSwitchPosition = position;
+        config.saveLimitPositions(0, position);
+        calibrated = true;
+        switchesReferenced = true;
         calibrationState = CAL_COMPLETE;
 
         LOG_INFO("Calibration complete - min: %ld, max: %ld",
                  config.getLimitPos1(), config.getLimitPos2());
+    }
+    else if (calibrationState == CAL_FINDING_MIN)
+    {
+        LOG_ERROR("Calibration aborted: MAX switch hit while finding MIN. Check motor direction and switch wiring");
+        stopCalibration();
+    }
+    else if (switchesReferenced)
+    {
+        referencePosition(position, maxSwitchPosition);
+    }
+}
+
+const char *MotorController::setMinHere()
+{
+    if (isCalibrating() || isMoving())
+    {
+        return "Cannot set a limit while the motor is moving";
+    }
+
+    // Before calibration this point becomes position 0, as the MIN switch would
+    if (!calibrated)
+    {
+        referencePosition(getCurrentPosition(), 0);
+        manualMinSet = true;
+        config.saveLimitPositions(0, config.getLimitPos2());
+        return nullptr;
+    }
+
+    long position = getCurrentPosition();
+    if (position >= config.getMaxLimit())
+    {
+        return "Min must be below Max";
+    }
+
+    config.saveLimitPositions(position, config.getLimitPos2());
+    return nullptr;
+}
+
+const char *MotorController::setMaxHere()
+{
+    if (isCalibrating() || isMoving())
+    {
+        return "Cannot set a limit while the motor is moving";
+    }
+
+    if (!calibrated && !manualMinSet)
+    {
+        return "Set Min first";
+    }
+
+    long position = getCurrentPosition();
+    if (position <= config.getMinLimit())
+    {
+        return "Max must be above Min";
+    }
+
+    config.saveLimitPositions(config.getLimitPos1(), position);
+    calibrated = true;
+    return nullptr;
+}
+
+void MotorController::requestCorrection(long shift, long target, int speed)
+{
+    correctionShift = shift;
+    correctionTarget = target;
+    correctionSpeed = speed;
+    correctionRequested = true;
+}
+
+// A switch gives the true position, which also repairs the step counter after a slip
+void MotorController::referencePosition(long measuredPosition, long actualPosition)
+{
+    long shift = actualPosition - measuredPosition;
+    stepper->setCurrentPosition(stepper->currentPosition() + shift);
+    referenceCount = referenceCount + 1;
+
+    if (calibrated && labs(shift) >= LOST_STEP_THRESHOLD)
+    {
+        LOG_WARN("Limit switch corrected position by %ld steps", shift);
     }
 }

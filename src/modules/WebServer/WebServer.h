@@ -43,6 +43,7 @@ private:
     unsigned long lastPositionBroadcast;
     unsigned long lastStatusBroadcast;
     bool wasMovingLastUpdate;
+    long lastIdlePosition;
 
     // WebSocket handlers
     void handleWebSocketMessage(void *arg, uint8_t *data, size_t len);
@@ -59,6 +60,7 @@ private:
     void handleGetConfigCommand(JsonDocument& doc);
     void handleSetConfigCommand(JsonDocument& doc);
     void handleCalibrateCommand(JsonDocument& doc);
+    void handleSetLimitResult(const char *error);
 
     // Debug WebSocket handlers
     void onDebugWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,

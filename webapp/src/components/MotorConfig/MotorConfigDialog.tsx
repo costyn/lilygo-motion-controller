@@ -14,6 +14,11 @@ interface MotorConfigDialogProps {
   isConnected: boolean
   onCalibrate: () => void
   isCalibrating: boolean
+  isCalibrated: boolean
+  isManualMinSet: boolean
+  isMoving: boolean
+  onSetMinHere: () => void
+  onSetMaxHere: () => void
 }
 
 export function MotorConfigDialog({
@@ -23,12 +28,16 @@ export function MotorConfigDialog({
   onApply,
   isConnected,
   onCalibrate,
-  isCalibrating
+  isCalibrating,
+  isCalibrated,
+  isManualMinSet,
+  isMoving,
+  onSetMinHere,
+  onSetMaxHere
 }: MotorConfigDialogProps) {
   // Form state
   const [maxSpeed, setMaxSpeed] = useState(currentConfig.maxSpeed)
   const [acceleration, setAcceleration] = useState(currentConfig.acceleration)
-  const [useStealthChop, setUseStealthChop] = useState(currentConfig.useStealthChop)
   const [freewheelAfterMove, setFreewheelAfterMove] = useState(currentConfig.freewheelAfterMove)
   const [minLimit, setMinLimit] = useState<number | string>(currentConfig.minLimit)
   const [maxLimit, setMaxLimit] = useState<number | string>(currentConfig.maxLimit)
@@ -47,7 +56,6 @@ export function MotorConfigDialog({
     if (open) {
       setMaxSpeed(currentConfig.maxSpeed)
       setAcceleration(currentConfig.acceleration)
-      setUseStealthChop(currentConfig.useStealthChop)
       setFreewheelAfterMove(currentConfig.freewheelAfterMove)
       setMinLimit(currentConfig.minLimit)
       setMaxLimit(currentConfig.maxLimit)
@@ -63,15 +71,15 @@ export function MotorConfigDialog({
 
   // Validation functions
   const validateMaxSpeed = (value: number) => {
-    if (value < 100 || value > 100000) {
-      return "Speed must be between 100 and 100,000 steps/sec"
+    if (value < 100 || value > 50000) {
+      return "Speed must be between 100 and 50,000 steps/sec"
     }
     return null
   }
 
   const validateAcceleration = (value: number) => {
-    if (value < 100 || value > 500000) {
-      return "Acceleration must be between 100 and 500,000 steps/sec²"
+    if (value < 100 || value > 200000) {
+      return "Acceleration must be between 100 and 200,000 steps/sec²"
     }
     return null
   }
@@ -172,7 +180,6 @@ export function MotorConfigDialog({
   const hasChanges =
     hasCalibrationChanges ||
     acceleration !== currentConfig.acceleration ||
-    useStealthChop !== currentConfig.useStealthChop ||
     freewheelAfterMove !== currentConfig.freewheelAfterMove ||
     (!isNaN(minLimitNum) && minLimitNum !== currentConfig.minLimit) ||
     (!isNaN(maxLimitNum) && maxLimitNum !== currentConfig.maxLimit)
@@ -181,7 +188,6 @@ export function MotorConfigDialog({
   const handleRevert = () => {
     setMaxSpeed(currentConfig.maxSpeed)
     setAcceleration(currentConfig.acceleration)
-    setUseStealthChop(currentConfig.useStealthChop)
     setFreewheelAfterMove(currentConfig.freewheelAfterMove)
     setMinLimit(currentConfig.minLimit)
     setMaxLimit(currentConfig.maxLimit)
@@ -201,7 +207,6 @@ export function MotorConfigDialog({
       const changes: Partial<Omit<MotorConfig, 'type'>> = {}
       if (maxSpeed !== currentConfig.maxSpeed) changes.maxSpeed = maxSpeed
       if (acceleration !== currentConfig.acceleration) changes.acceleration = acceleration
-      if (useStealthChop !== currentConfig.useStealthChop) changes.useStealthChop = useStealthChop
       if (freewheelAfterMove !== currentConfig.freewheelAfterMove) changes.freewheelAfterMove = freewheelAfterMove
       if (!isNaN(minLimitNum) && minLimitNum !== currentConfig.minLimit) changes.minLimit = minLimitNum
       if (!isNaN(maxLimitNum) && maxLimitNum !== currentConfig.maxLimit) changes.maxLimit = maxLimitNum
@@ -215,12 +220,14 @@ export function MotorConfigDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent className="flex flex-col overflow-hidden sm:max-w-3xl" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Motor Configuration</DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
+        {/* Only this area scrolls, so the footer buttons stay visible */}
+        <div className="grid min-h-0 flex-1 gap-6 overflow-y-auto py-2 pr-2 md:grid-cols-2">
+          <div className="grid content-start gap-4">
           {/* Max Speed */}
           <div className="grid gap-2">
             <Label htmlFor="maxSpeed">Max Speed</Label>
@@ -263,24 +270,6 @@ export function MotorConfigDialog({
             </p>
           </div>
 
-          {/* StealthChop Mode */}
-          <div className="grid gap-2">
-            <Label htmlFor="stealthchop">StealthChop Mode</Label>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="stealthchop"
-                checked={useStealthChop}
-                onCheckedChange={setUseStealthChop}
-              />
-              <span className="text-sm">
-                {useStealthChop ? "Enabled (Quiet)" : "Disabled (Powerful)"}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Enable for quieter operation, disable for more torque
-            </p>
-          </div>
-
           {/* Freewheel Mode */}
           <div className="grid gap-2">
             <Label htmlFor="freewheel">Freewheel After Movement</Label>
@@ -299,8 +288,11 @@ export function MotorConfigDialog({
             </p>
           </div>
 
+          </div>
+
+          <div className="grid content-start gap-4">
           {/* Limit Positions */}
-          <div className="grid gap-2 pt-4 border-t">
+          <div className="grid gap-2 pt-4 border-t md:pt-0 md:border-t-0">
             <Label>Limit Positions</Label>
             <div className="grid grid-cols-2 gap-2">
               <div className="grid gap-2">
@@ -336,8 +328,26 @@ export function MotorConfigDialog({
                 )}
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                onClick={onSetMinHere}
+                disabled={!isConnected || isCalibrating || isMoving}
+              >
+                Set Min Here
+              </Button>
+              <Button
+                variant="outline"
+                onClick={onSetMaxHere}
+                disabled={!isConnected || isCalibrating || isMoving || (!isCalibrated && !isManualMinSet)}
+              >
+                Set Max Here
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground">
-              Set manually or via physical limit switches. Limit switches will override these values if triggered.
+              {isCalibrated
+                ? 'Calibration sets these, with the minimum switch at 0. You can narrow them until the next calibration.'
+                : 'No limit switches? Move the load by hand to one end and click Set Min Here, then to the other end and click Set Max Here. Needed after every power-up.'}
             </p>
           </div>
 
@@ -388,6 +398,7 @@ export function MotorConfigDialog({
                 ? 'Apply your speed changes before recalibrating.'
                 : 'Automatically move motor to both limits and update positions. Motor will move to minimum first, then maximum.'}
             </p>
+          </div>
           </div>
         </div>
 

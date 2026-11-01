@@ -8,6 +8,7 @@
 #include "modules/LimitSwitch/LimitSwitch.h"
 #include "modules/ButtonController/ButtonController.h"
 #include "modules/WebServer/WebServer.h"
+#include "modules/ClosedLoopController/ClosedLoopController.h"
 
 /*
  * LilyGo Motion Controller
@@ -17,8 +18,9 @@
  *
  * Features:
  * - WebSocket-based control interface
+ * - Encoder position tracking (measure-only, no closed-loop correction yet)
  * - Smart limit switch handling with position learning
- * - Automatic TMC2209 mode optimization (StealthChop/SpreadCycle)
+ * - TMC2209 StealthChop at low speed, SpreadCycle at high speed
  * - Configuration persistence via ESP32 Preferences
  * - Over-the-air firmware updates
  * - Real-time position feedback via encoder
@@ -34,10 +36,12 @@
 // Task handles
 TaskHandle_t inputTaskHandle = NULL;
 TaskHandle_t webServerTaskHandle = NULL;
+TaskHandle_t closedLoopTaskHandle = NULL;
 
 // Task function declarations
 void InputTask(void *pvParameters);
 void WebServerTask(void *pvParameters);
+void ClosedLoopTask(void *pvParameters);
 
 void setup()
 {
@@ -110,7 +114,17 @@ void setup()
         NULL,                 // Parameters
         1,                    // Priority
         &webServerTaskHandle, // Task handle
-        1                     // Core (1 for web server)
+        0                     // Core (0: loop() needs Core 1 to itself for step timing)
+    );
+
+    xTaskCreatePinnedToCore(
+        ClosedLoopTask,        // Task function
+        "ClosedLoop",          // Task name
+        8192,                  // Stack size (same as InputTask, logs from this task)
+        NULL,                  // Parameters
+        12,                    // Priority (above AsyncTCP: a long pause miscounts encoder turns)
+        &closedLoopTaskHandle, // Task handle
+        0                      // Core (0, same as InputTask)
     );
 
     LOG_INFO("FreeRTOS tasks created");
@@ -131,9 +145,6 @@ void loop()
 void InputTask(void *pvParameters)
 {
     LOG_INFO("Input Task started");
-
-    // Initialize encoder
-    motorController.initEncoder();
 
     // Task main loop
     while (1)
@@ -165,5 +176,28 @@ void WebServerTask(void *pvParameters)
 
         // 50ms update rate for web operations
         vTaskDelay(pdMS_TO_TICKS(50));
+    }
+}
+
+void ClosedLoopTask(void *pvParameters)
+{
+    LOG_INFO("Closed Loop Task started");
+
+    // This task owns the encoder, so SPI is ready before the first read
+    motorController.initEncoder();
+    closedLoopController.begin();
+
+    // Use vTaskDelayUntil for precise timing
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    const TickType_t xFrequency = pdMS_TO_TICKS(5); // 5ms = 200Hz
+
+    // Task main loop
+    while (1)
+    {
+        // Update closed-loop controller
+        closedLoopController.update();
+
+        // Precise 5ms timing for position control
+        vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }
 }

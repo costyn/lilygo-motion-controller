@@ -117,13 +117,13 @@ describe('useMotorController - Message Handling', () => {
         acceleration: 20000,
         minLimit: -1000,
         maxLimit: 1000,
-        useStealthChop: false
+        freewheelAfterMove: true
       })
     })
 
     await waitFor(() => expect(result.current.motorConfig.maxSpeed).toBe(10000))
     expect(result.current.motorConfig.acceleration).toBe(20000)
-    expect(result.current.motorConfig.useStealthChop).toBe(false)
+    expect(result.current.motorConfig.freewheelAfterMove).toBe(true)
   })
 
   it('should set connection error on error message', async () => {
@@ -242,7 +242,6 @@ describe('useMotorController - Command Sending', () => {
     result.current.updateConfig({
       maxSpeed: 12000,
       acceleration: 25000,
-      useStealthChop: true,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
     calibrationDirectDrive: true
@@ -259,7 +258,6 @@ describe('useMotorController - Command Sending', () => {
       command: 'setConfig',
       maxSpeed: 12000,
       acceleration: 25000,
-      useStealthChop: true,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
     calibrationDirectDrive: true
@@ -281,9 +279,9 @@ describe('useMotorController - State Defaults', () => {
   it('should use default motorConfig until received from server', () => {
     const { result } = renderHook(() => useMotorController())
 
-    expect(result.current.motorConfig.maxSpeed).toBe(8000)
-    expect(result.current.motorConfig.acceleration).toBe(16000)
-    expect(result.current.motorConfig.useStealthChop).toBe(true)
+    expect(result.current.motorConfig.maxSpeed).toBe(14400)
+    expect(result.current.motorConfig.acceleration).toBe(15000)
+    expect(result.current.motorConfig.freewheelAfterMove).toBe(false)
   })
 
   it('should use default motorStatus until received from server', () => {
@@ -306,7 +304,7 @@ describe('useMotorController - State Defaults', () => {
         acceleration: 30000,
         minLimit: -2000,
         maxLimit: 2000,
-        useStealthChop: false
+        freewheelAfterMove: true
       })
     })
 

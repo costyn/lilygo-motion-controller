@@ -10,7 +10,6 @@ describe('MotorConfigDialog - Dialog Behavior', () => {
     acceleration: 20000,
     minLimit: -5000,
     maxLimit: 5000,
-    useStealthChop: true,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
     calibrationDirectDrive: true
@@ -24,6 +23,11 @@ describe('MotorConfigDialog - Dialog Behavior', () => {
     isConnected: true,
     onCalibrate: vi.fn(),
     isCalibrating: false,
+    isCalibrated: true,
+    isManualMinSet: false,
+    isMoving: false,
+    onSetMinHere: vi.fn(),
+    onSetMaxHere: vi.fn(),
   }
 
   beforeEach(() => {
@@ -60,7 +64,6 @@ describe('MotorConfigDialog - Input Validation', () => {
     acceleration: 20000,
     minLimit: -5000,
     maxLimit: 5000,
-    useStealthChop: true,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
     calibrationDirectDrive: true
@@ -74,6 +77,11 @@ describe('MotorConfigDialog - Input Validation', () => {
     isConnected: true,
     onCalibrate: vi.fn(),
     isCalibrating: false,
+    isCalibrated: true,
+    isManualMinSet: false,
+    isMoving: false,
+    onSetMinHere: vi.fn(),
+    onSetMaxHere: vi.fn(),
   }
 
   beforeEach(() => {
@@ -86,16 +94,16 @@ describe('MotorConfigDialog - Input Validation', () => {
     const maxSpeedInput = screen.getByLabelText('Max Speed')
     fireEvent.change(maxSpeedInput, { target: { value: '50' } })
 
-    expect(screen.getByText(/Speed must be between 100 and 100,000/)).toBeInTheDocument()
+    expect(screen.getByText(/Speed must be between 100 and 50,000/)).toBeInTheDocument()
   })
 
-  it('should show error when maxSpeed is above 100000', () => {
+  it('should show error when maxSpeed is above 50000', () => {
     render(<MotorConfigDialog {...defaultProps} />)
 
     const maxSpeedInput = screen.getByLabelText('Max Speed')
-    fireEvent.change(maxSpeedInput, { target: { value: '150000' } })
+    fireEvent.change(maxSpeedInput, { target: { value: '60000' } })
 
-    expect(screen.getByText(/Speed must be between 100 and 100,000/)).toBeInTheDocument()
+    expect(screen.getByText(/Speed must be between 100 and 50,000/)).toBeInTheDocument()
   })
 
   it('should show error when acceleration is below 100', () => {
@@ -104,16 +112,16 @@ describe('MotorConfigDialog - Input Validation', () => {
     const accelerationInput = screen.getByLabelText('Acceleration')
     fireEvent.change(accelerationInput, { target: { value: '50' } })
 
-    expect(screen.getByText(/Acceleration must be between 100 and 500,000/)).toBeInTheDocument()
+    expect(screen.getByText(/Acceleration must be between 100 and 200,000/)).toBeInTheDocument()
   })
 
-  it('should show error when acceleration is above 500000', () => {
+  it('should show error when acceleration is above 200000', () => {
     render(<MotorConfigDialog {...defaultProps} />)
 
     const accelerationInput = screen.getByLabelText('Acceleration')
     fireEvent.change(accelerationInput, { target: { value: '600000' } })
 
-    expect(screen.getByText(/Acceleration must be between 100 and 500,000/)).toBeInTheDocument()
+    expect(screen.getByText(/Acceleration must be between 100 and 200,000/)).toBeInTheDocument()
   })
 
   it('should show error when min limit is greater than or equal to max limit', () => {
@@ -142,7 +150,6 @@ describe('MotorConfigDialog - Apply Changes', () => {
     acceleration: 20000,
     minLimit: -5000,
     maxLimit: 5000,
-    useStealthChop: true,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
     calibrationDirectDrive: true
@@ -156,6 +163,11 @@ describe('MotorConfigDialog - Apply Changes', () => {
     isConnected: true,
     onCalibrate: vi.fn(),
     isCalibrating: false,
+    isCalibrated: true,
+    isManualMinSet: false,
+    isMoving: false,
+    onSetMinHere: vi.fn(),
+    onSetMaxHere: vi.fn(),
   }
 
   beforeEach(() => {
@@ -205,19 +217,6 @@ describe('MotorConfigDialog - Apply Changes', () => {
     expect(applyButton).toBeEnabled()
   })
 
-  it('should toggle StealthChop mode', () => {
-    render(<MotorConfigDialog {...defaultProps} />)
-
-    const stealthChopSwitch = screen.getByLabelText('StealthChop Mode')
-    fireEvent.click(stealthChopSwitch)
-
-    const applyButton = screen.getByText('Apply')
-    fireEvent.click(applyButton)
-
-    expect(defaultProps.onApply).toHaveBeenCalledWith({
-      useStealthChop: false
-    })
-  })
 })
 
 describe('MotorConfigDialog - Revert Functionality', () => {
@@ -227,7 +226,6 @@ describe('MotorConfigDialog - Revert Functionality', () => {
     acceleration: 20000,
     minLimit: -5000,
     maxLimit: 5000,
-    useStealthChop: true,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
     calibrationDirectDrive: true
@@ -241,6 +239,11 @@ describe('MotorConfigDialog - Revert Functionality', () => {
     isConnected: true,
     onCalibrate: vi.fn(),
     isCalibrating: false,
+    isCalibrated: true,
+    isManualMinSet: false,
+    isMoving: false,
+    onSetMinHere: vi.fn(),
+    onSetMaxHere: vi.fn(),
   }
 
   beforeEach(() => {
@@ -286,7 +289,6 @@ describe('MotorConfigDialog - Calibration Settings', () => {
     acceleration: 20000,
     minLimit: -5000,
     maxLimit: 5000,
-    useStealthChop: true,
     freewheelAfterMove: false,
     calibrationSpeed: 500,
     calibrationDirectDrive: true
@@ -300,6 +302,11 @@ describe('MotorConfigDialog - Calibration Settings', () => {
     isConnected: true,
     onCalibrate: vi.fn(),
     isCalibrating: false,
+    isCalibrated: true,
+    isManualMinSet: false,
+    isMoving: false,
+    onSetMinHere: vi.fn(),
+    onSetMaxHere: vi.fn(),
   }
 
   beforeEach(() => {
@@ -311,7 +318,7 @@ describe('MotorConfigDialog - Calibration Settings', () => {
 
     fireEvent.change(screen.getByLabelText('Slow Speed'), { target: { value: '50' } })
 
-    expect(screen.getByText(/Speed must be between 100 and 100,000/)).toBeInTheDocument()
+    expect(screen.getByText(/Speed must be between 100 and 50,000/)).toBeInTheDocument()
   })
 
   it('should apply only the changed calibration settings', () => {
@@ -339,5 +346,59 @@ describe('MotorConfigDialog - Calibration Settings', () => {
     expect(screen.getByText('Recalibrate')).not.toBeDisabled()
     fireEvent.change(screen.getByLabelText('Slow Speed'), { target: { value: '800' } })
     expect(screen.getByText('Recalibrate')).toBeDisabled()
+  })
+})
+
+describe('MotorConfigDialog - Set Limits Here', () => {
+  const defaultConfig: MotorConfig = {
+    type: 'config',
+    maxSpeed: 10000,
+    acceleration: 20000,
+    minLimit: 0,
+    maxLimit: 5000,
+    freewheelAfterMove: false,
+    calibrationSpeed: 500,
+    calibrationDirectDrive: true
+  }
+
+  const defaultProps = {
+    open: true,
+    onOpenChange: vi.fn(),
+    currentConfig: defaultConfig,
+    onApply: vi.fn(),
+    isConnected: true,
+    onCalibrate: vi.fn(),
+    isCalibrating: false,
+    isCalibrated: false,
+    isManualMinSet: false,
+    isMoving: false,
+    onSetMinHere: vi.fn(),
+    onSetMaxHere: vi.fn(),
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should require Min before Max when not calibrated', () => {
+    render(<MotorConfigDialog {...defaultProps} />)
+
+    expect(screen.getByText('Set Max Here')).toBeDisabled()
+    fireEvent.click(screen.getByText('Set Min Here'))
+    expect(defaultProps.onSetMinHere).toHaveBeenCalled()
+  })
+
+  it('should enable Max once Min is set', () => {
+    render(<MotorConfigDialog {...defaultProps} isManualMinSet={true} />)
+
+    fireEvent.click(screen.getByText('Set Max Here'))
+    expect(defaultProps.onSetMaxHere).toHaveBeenCalled()
+  })
+
+  it('should disable both buttons while moving', () => {
+    render(<MotorConfigDialog {...defaultProps} isCalibrated={true} isMoving={true} />)
+
+    expect(screen.getByText('Set Min Here')).toBeDisabled()
+    expect(screen.getByText('Set Max Here')).toBeDisabled()
   })
 })

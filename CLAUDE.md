@@ -8,7 +8,7 @@ LilyGo Motion Controller - Modular wireless stepper motor controller for LilyGo 
 ### ✅ Completed Tasks (Core System)
 1. **Modular Architecture Implementation** - Clean separation into Configuration, MotorController, LimitSwitch, and WebServer modules
 2. **Factory-Accurate Hardware Initialization** - TMC2209 and MT6816 setup matching manufacturer's example exactly
-3. **FreeRTOS Task Structure** - InputTask (Core 0) + WebServerTask (Core 1) with proper task separation
+3. **FreeRTOS Task Structure** - InputTask, WebServerTask and ClosedLoopTask on Core 0, `loop()` alone on Core 1
 4. **Library Conflict Resolution** - Fixed ESPAsyncWebServer compatibility by switching to maintained `ESP32Async/ESPAsyncWebServer` repository
 5. **WebServer Integration** - WiFiManager + WebSocket + REST API fully functional
 6. **Build Success** - Final build: RAM 16.0%, Flash 83.1%
@@ -40,8 +40,8 @@ LilyGo Motion Controller - Modular wireless stepper motor controller for LilyGo 
    - Mouse and touch event support with leave detection
    - `stopGently()` method that doesn't trigger emergency flag
 14. **Motor Configuration UI** - Settings dialog for motor parameters
-   - Max Speed: 100-100,000 steps/sec with real-time validation
-   - Acceleration: 100-500,000 steps/sec² with real-time validation
+   - Max Speed: 100-50,000 steps/sec with real-time validation
+   - Acceleration: 100-200,000 steps/sec² with real-time validation
    - StealthChop mode toggle (Quiet vs Powerful)
    - Freewheel After Movement toggle (Hold position vs spin freely)
    - Read-only limit position display
@@ -52,7 +52,7 @@ LilyGo Motion Controller - Modular wireless stepper motor controller for LilyGo 
    - Dynamic range based on current configuration
    - Touch-friendly slider interface
 16. **Backend Validation System** - Safety limits enforced on all inputs
-   - Constants: MIN/MAX_SPEED (100-100,000), MIN/MAX_ACCELERATION (100-500,000)
+   - Constants: MIN/MAX_SPEED (100-50,000), MIN/MAX_ACCELERATION (100-200,000)
    - Clamping behavior (not rejection) for better UX
    - Warning logs when values are adjusted
    - Protects against WebSocket, REST API, and internal calls
@@ -93,6 +93,13 @@ LilyGo Motion Controller - Modular wireless stepper motor controller for LilyGo 
    - All movement commands now check only `!motorController.isEmergencyStopActive()`
    - Limit switch triggers always call `emergencyStop()`, so checking emergency flag is sufficient
    - Cleaner code, single source of truth for "can motor move?"
+
+### ✅ Closed-Loop Control (November 2026)
+24. **Encoder supervision** - `ClosedLoopController` reads the MT6816 at 200Hz on Core 0, stops on a stall (500 steps of error) and corrects lost steps at the end of a move (48 or more), with an emergency stop after 3 failed attempts. It never steers a running move
+25. **Calibration required after boot** - MIN is position 0, limits survive only as travel, and movement is refused until calibrated. Switch presses correct the position instead of rewriting limits. Rigs without switches use Set Min Here and Set Max Here
+26. **Core 1 is reserved for `loop()`** - Web tasks and AsyncTCP run on Core 0, because any pause in `loop()` stops step pulses. Don't log or use UART there during a move
+27. **Chopper modes** - SPREAD pin is LOW, unlike the factory example, because HIGH inverts `en_spreadCycle`. The driver switches at TPWMTHRS (10,000 steps/sec)
+28. **Limits** - Speed 100-50,000, acceleration 100-200,000 steps/sec². Open tech debt is tracked in TODO.md
 
 ## Key Technical Details
 
@@ -196,13 +203,15 @@ src/modules/
 ├── Configuration/     # ESP32 Preferences, motor settings, limit positions
 ├── DebugConsole/     # Serial logging is sent over websocket to a text field for display
 ├── MotorController/   # TMC2209 + MT6816, factory-accurate initialization
-├── LimitSwitch/      # Debounced switches, position learning
+├── ClosedLoopController/ # Encoder tracking, stall stop, lost-step correction
+├── LimitSwitch/      # Interrupt-driven switches, position capture
 └── WebServer/        # WiFiManager, WebSocket, REST API
 ```
 
 ### FreeRTOS Task Design
 - **main loop()**: High-frequency motor control (motorController.update())
-- **InputTask**: Button handling, limit switches, encoder speed calculation (100ms)
+- **InputTask**: Button handling, limit switch events (100ms)
+- **ClosedLoopTask**: Encoder reading and position supervision (5ms, priority 12)
 - **WebServerTask**: WebSocket cleanup, ElegantOTA handling (50ms)
 
 ## Known Issues & Solutions

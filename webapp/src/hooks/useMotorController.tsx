@@ -21,11 +21,10 @@ const DEFAULT_STATUS: MotorStatus = {
 
 const DEFAULT_CONFIG: MotorConfig = {
   type: 'config',
-  maxSpeed: 8000,
-  acceleration: 16000,
+  maxSpeed: 14400,
+  acceleration: 15000,
   minLimit: -5000,
   maxLimit: 5000,
-  useStealthChop: true,
   freewheelAfterMove: false,
   calibrationSpeed: 500,
   calibrationDirectDrive: true
@@ -204,6 +203,14 @@ export function useMotorController() {
     return sendCommand({ command: 'calibrate' })
   }, [sendCommand])
 
+  const setMinHere = useCallback(() => {
+    return sendCommand({ command: 'setMinHere' })
+  }, [sendCommand])
+
+  const setMaxHere = useCallback(() => {
+    return sendCommand({ command: 'setMaxHere' })
+  }, [sendCommand])
+
   const manualReconnect = useCallback(() => {
     cleanup()
     setConnectionState({
@@ -250,6 +257,8 @@ export function useMotorController() {
     jogStart,
     jogStop,
     startCalibration,
+    setMinHere,
+    setMaxHere,
     manualReconnect,
 
     // Raw WebSocket access for advanced use
