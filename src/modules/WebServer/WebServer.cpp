@@ -240,7 +240,7 @@ void WebServerClass::handleMoveCommand(JsonDocument& doc)
 
     if (hasPosition && hasSpeed)
     {
-        long position = doc["position"];
+        long position = constrain(doc["position"].as<long>(), config.getMinLimit(), config.getMaxLimit());
         int speed = doc["speed"].as<int>(); // Convert to int regardless of source type
 
         if (!motorController.isEmergencyStopActive())
@@ -572,6 +572,7 @@ void WebServerClass::broadcastStatus()
     doc["limitSwitches"]["max"] = maxLimitSwitch.isPressed();
     doc["isCalibrating"] = motorController.isCalibrating();
     doc["isCalibrated"] = motorController.isCalibrated();
+    doc["isManualMinSet"] = motorController.isManualMinSet();
     doc["calibrationState"] = getCalibrationStateString(motorController.getCalibrationState());
     doc["encoderPosition"] = closedLoopController.getEncoderPositionSteps();
     doc["encoderMagnetDetected"] = closedLoopController.isMagnetDetected();

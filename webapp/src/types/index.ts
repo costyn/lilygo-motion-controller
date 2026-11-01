@@ -11,10 +11,13 @@ export interface MotorStatus {
   };
   isCalibrating?: boolean;
   isCalibrated?: boolean;
+  isManualMinSet?: boolean; // Min set by hand, waiting for Max
   calibrationState?: string;
   encoderPosition?: number; // Steps travelled since boot, measured by the encoder
   encoderMagnetDetected?: boolean;
   positionError?: number; // Step counter minus encoder, in steps
+  stallCount?: number; // Stalls since boot
+  lastStallSpeed?: number; // Peak speed of the last stall, in steps/sec
 }
 
 export interface PositionUpdate {
@@ -99,6 +102,10 @@ export interface CalibrateCommand {
   command: 'calibrate';
 }
 
+export interface SetLimitHereCommand {
+  command: 'setMinHere' | 'setMaxHere';
+}
+
 export type ControlCommand =
   | MoveCommand
   | EmergencyStopCommand
@@ -108,7 +115,8 @@ export type ControlCommand =
   | SetConfigCommand
   | JogStartCommand
   | JogStopCommand
-  | CalibrateCommand;
+  | CalibrateCommand
+  | SetLimitHereCommand;
 
 // Connection state
 export interface ConnectionState {

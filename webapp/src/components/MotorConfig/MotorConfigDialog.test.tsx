@@ -24,6 +24,11 @@ describe('MotorConfigDialog - Dialog Behavior', () => {
     isConnected: true,
     onCalibrate: vi.fn(),
     isCalibrating: false,
+    isCalibrated: true,
+    isManualMinSet: false,
+    isMoving: false,
+    onSetMinHere: vi.fn(),
+    onSetMaxHere: vi.fn(),
   }
 
   beforeEach(() => {
@@ -74,6 +79,11 @@ describe('MotorConfigDialog - Input Validation', () => {
     isConnected: true,
     onCalibrate: vi.fn(),
     isCalibrating: false,
+    isCalibrated: true,
+    isManualMinSet: false,
+    isMoving: false,
+    onSetMinHere: vi.fn(),
+    onSetMaxHere: vi.fn(),
   }
 
   beforeEach(() => {
@@ -156,6 +166,11 @@ describe('MotorConfigDialog - Apply Changes', () => {
     isConnected: true,
     onCalibrate: vi.fn(),
     isCalibrating: false,
+    isCalibrated: true,
+    isManualMinSet: false,
+    isMoving: false,
+    onSetMinHere: vi.fn(),
+    onSetMaxHere: vi.fn(),
   }
 
   beforeEach(() => {
@@ -241,6 +256,11 @@ describe('MotorConfigDialog - Revert Functionality', () => {
     isConnected: true,
     onCalibrate: vi.fn(),
     isCalibrating: false,
+    isCalibrated: true,
+    isManualMinSet: false,
+    isMoving: false,
+    onSetMinHere: vi.fn(),
+    onSetMaxHere: vi.fn(),
   }
 
   beforeEach(() => {
@@ -300,6 +320,11 @@ describe('MotorConfigDialog - Calibration Settings', () => {
     isConnected: true,
     onCalibrate: vi.fn(),
     isCalibrating: false,
+    isCalibrated: true,
+    isManualMinSet: false,
+    isMoving: false,
+    onSetMinHere: vi.fn(),
+    onSetMaxHere: vi.fn(),
   }
 
   beforeEach(() => {
@@ -339,5 +364,60 @@ describe('MotorConfigDialog - Calibration Settings', () => {
     expect(screen.getByText('Recalibrate')).not.toBeDisabled()
     fireEvent.change(screen.getByLabelText('Slow Speed'), { target: { value: '800' } })
     expect(screen.getByText('Recalibrate')).toBeDisabled()
+  })
+})
+
+describe('MotorConfigDialog - Set Limits Here', () => {
+  const defaultConfig: MotorConfig = {
+    type: 'config',
+    maxSpeed: 10000,
+    acceleration: 20000,
+    minLimit: 0,
+    maxLimit: 5000,
+    useStealthChop: true,
+    freewheelAfterMove: false,
+    calibrationSpeed: 500,
+    calibrationDirectDrive: true
+  }
+
+  const defaultProps = {
+    open: true,
+    onOpenChange: vi.fn(),
+    currentConfig: defaultConfig,
+    onApply: vi.fn(),
+    isConnected: true,
+    onCalibrate: vi.fn(),
+    isCalibrating: false,
+    isCalibrated: false,
+    isManualMinSet: false,
+    isMoving: false,
+    onSetMinHere: vi.fn(),
+    onSetMaxHere: vi.fn(),
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should require Min before Max when not calibrated', () => {
+    render(<MotorConfigDialog {...defaultProps} />)
+
+    expect(screen.getByText('Set Max Here')).toBeDisabled()
+    fireEvent.click(screen.getByText('Set Min Here'))
+    expect(defaultProps.onSetMinHere).toHaveBeenCalled()
+  })
+
+  it('should enable Max once Min is set', () => {
+    render(<MotorConfigDialog {...defaultProps} isManualMinSet={true} />)
+
+    fireEvent.click(screen.getByText('Set Max Here'))
+    expect(defaultProps.onSetMaxHere).toHaveBeenCalled()
+  })
+
+  it('should disable both buttons while moving', () => {
+    render(<MotorConfigDialog {...defaultProps} isCalibrated={true} isMoving={true} />)
+
+    expect(screen.getByText('Set Min Here')).toBeDisabled()
+    expect(screen.getByText('Set Max Here')).toBeDisabled()
   })
 })

@@ -204,6 +204,14 @@ export function useMotorController() {
     return sendCommand({ command: 'calibrate' })
   }, [sendCommand])
 
+  const setMinHere = useCallback(() => {
+    return sendCommand({ command: 'setMinHere' })
+  }, [sendCommand])
+
+  const setMaxHere = useCallback(() => {
+    return sendCommand({ command: 'setMaxHere' })
+  }, [sendCommand])
+
   const manualReconnect = useCallback(() => {
     cleanup()
     setConnectionState({
@@ -250,6 +258,8 @@ export function useMotorController() {
     jogStart,
     jogStop,
     startCalibration,
+    setMinHere,
+    setMaxHere,
     manualReconnect,
 
     // Raw WebSocket access for advanced use

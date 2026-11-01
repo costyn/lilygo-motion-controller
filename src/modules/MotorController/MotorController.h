@@ -106,6 +106,7 @@ public:
     void stopCalibration();
     bool isCalibrating() const { return calibrationState != CAL_IDLE; }
     bool isCalibrated() const { return calibrated; }
+    bool isManualMinSet() const { return manualMinSet; }
 
     // Limits set by hand at the current position. Return an error message, or nullptr.
     const char *setMinHere();

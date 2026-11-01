@@ -14,6 +14,11 @@ interface MotorConfigDialogProps {
   isConnected: boolean
   onCalibrate: () => void
   isCalibrating: boolean
+  isCalibrated: boolean
+  isManualMinSet: boolean
+  isMoving: boolean
+  onSetMinHere: () => void
+  onSetMaxHere: () => void
 }
 
 export function MotorConfigDialog({
@@ -23,7 +28,12 @@ export function MotorConfigDialog({
   onApply,
   isConnected,
   onCalibrate,
-  isCalibrating
+  isCalibrating,
+  isCalibrated,
+  isManualMinSet,
+  isMoving,
+  onSetMinHere,
+  onSetMaxHere
 }: MotorConfigDialogProps) {
   // Form state
   const [maxSpeed, setMaxSpeed] = useState(currentConfig.maxSpeed)
@@ -336,8 +346,26 @@ export function MotorConfigDialog({
                 )}
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                onClick={onSetMinHere}
+                disabled={!isConnected || isCalibrating || isMoving}
+              >
+                Set Min Here
+              </Button>
+              <Button
+                variant="outline"
+                onClick={onSetMaxHere}
+                disabled={!isConnected || isCalibrating || isMoving || (!isCalibrated && !isManualMinSet)}
+              >
+                Set Max Here
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground">
-              Calibration sets these, with the minimum switch at 0. You can narrow them manually until the next calibration.
+              {isCalibrated
+                ? 'Calibration sets these, with the minimum switch at 0. You can narrow them until the next calibration.'
+                : 'No limit switches? Move the load by hand to one end and click Set Min Here, then to the other end and click Set Max Here. Needed after every power-up.'}
             </p>
           </div>
 
