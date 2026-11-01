@@ -2,6 +2,18 @@ Release ${nextRelease.version} for LilyGo Motion Controller
 
 ### Features
 
+* choose the chopper mode per move and track the shaft while holding ([45329a5](https://github.com/costyn/lilygo-motion-controller/commit/45329a521d11f537304a2acde68e585b6aa8b183))
+
+
+### Bug Fixes
+
+* run SpreadCycle at all speeds ([b4c7f56](https://github.com/costyn/lilygo-motion-controller/commit/b4c7f567f86b0c257e6ea48075f6e379729671a4))
+* stop the motor moving by itself after being turned by hand ([0ddab0d](https://github.com/costyn/lilygo-motion-controller/commit/0ddab0db7697628053fb3a3c19e0c072b828dfeb))
+
+Release ${nextRelease.version} for LilyGo Motion Controller
+
+### Features
+
 * add Set Min and Set Max buttons and a stall warning ([1ce9d1d](https://github.com/costyn/lilygo-motion-controller/commit/1ce9d1df64e57e7c8842f1d1c6344bdf7d59f906))
 * follow the shaft when the motor is turned by hand ([fbb79af](https://github.com/costyn/lilygo-motion-controller/commit/fbb79af6f663dfc58455b2a485cb1773283b3d43))
 * lower default acceleration and widen the settings dialog ([82e627c](https://github.com/costyn/lilygo-motion-controller/commit/82e627c52e411a6e168e1ed22771a4166490f6ed))
