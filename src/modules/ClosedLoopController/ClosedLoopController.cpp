@@ -12,6 +12,14 @@ ClosedLoopController::ClosedLoopController()
       positionError(0),
       aligned(false),
       stalled(false),
+      trackingCalibration(false),
+      calibrationReferenceCount(0),
+      stallCount(0),
+      lastStallSpeed(0),
+      driverSampleSpeed(0),
+      driverStatusAtPeak(0),
+      driverFaultBits(0),
+      driverSampleCycles(0),
       correctionAttempts(0),
       lastReferenceCount(0),
       measuring(false),
@@ -100,8 +108,10 @@ void ClosedLoopController::updateMeasurement(long steps)
     {
         measuring = false;
         idleMotion.reset(encoderPositionSteps);
+        checkCalibrationTracking(steps);
         return;
     }
+    trackingCalibration = false;
 
     if (motorController.isMoving())
     {
@@ -112,12 +122,16 @@ void ClosedLoopController::updateMeasurement(long steps)
             measuring = true;
             peakSpeed = 0;
             maxCycleUs = 0;
+            driverSampleSpeed = 0;
+            driverStatusAtPeak = 0;
+            driverFaultBits = 0;
             motorController.resetTimingStats();
         }
 
         settleCycles = 0;
         measurement.sample(steps, encoderPositionSteps);
         checkForStall(steps);
+        sampleDriver();
 
         float speed = fabs(motorController.getCommandedSpeed());
         if (speed > peakSpeed)
@@ -141,6 +155,50 @@ void ClosedLoopController::updateMeasurement(long steps)
     }
 }
 
+// Calibration has no known position to compare with, so check each leg's travel instead.
+// A motor that isn't turning would otherwise run forever, as nothing would hit a switch.
+void ClosedLoopController::checkCalibrationTracking(long steps)
+{
+    uint32_t referenceCount = motorController.getReferenceCount();
+    if (!trackingCalibration || referenceCount != calibrationReferenceCount)
+    {
+        calibrationLeg.start(steps, encoderPositionSteps);
+        calibrationReferenceCount = referenceCount;
+        trackingCalibration = true;
+        return;
+    }
+
+    calibrationLeg.sample(steps, encoderPositionSteps);
+    if (magnetDetected && PositionAlignment::isStalled(calibrationLeg.getFinalError()))
+    {
+        LOG_ERROR("Calibration aborted: motor moved %ld steps but the encoder only %ld. Check for a jam",
+                  calibrationLeg.getStepTravel(), calibrationLeg.getEncoderTravel());
+        stallCount = stallCount + 1;
+        lastStallSpeed = (long)fabs(motorController.getCommandedSpeed());
+        motorController.emergencyStop();
+    }
+}
+
+// A UART read takes a few ms, so sample at 20Hz
+void ClosedLoopController::sampleDriver()
+{
+    if (++driverSampleCycles < 10)
+    {
+        return;
+    }
+    driverSampleCycles = 0;
+
+    uint32_t status = motorController.readDriverStatus();
+    driverFaultBits |= status & 0xFF; // Overtemperature, short and open load flags
+
+    float speed = fabs(motorController.getCommandedSpeed());
+    if (speed >= driverSampleSpeed)
+    {
+        driverSampleSpeed = speed;
+        driverStatusAtPeak = status;
+    }
+}
+
 void ClosedLoopController::checkForStall(long steps)
 {
     if (aligned && magnetDetected && !stalled && PositionAlignment::isStalled(alignment.error(steps, encoderPositionSteps)))
@@ -148,6 +206,8 @@ void ClosedLoopController::checkForStall(long steps)
         LOG_WARN("Stall detected at position %ld, encoder disagrees by %ld steps",
                  steps, alignment.error(steps, encoderPositionSteps));
         stalled = true;
+        stallCount = stallCount + 1;
+        lastStallSpeed = (long)peakSpeed;
         motorController.requestStop();
     }
 }
@@ -192,6 +252,8 @@ void ClosedLoopController::reportMove()
              measurement.getPeakError(), measurement.getFinalError(), peakSpeed,
              motorController.getMaxStepGapUs(), motorController.getTmcSwitchCount(),
              motorController.getMaxTmcSwitchUs(), maxCycleUs);
+    LOG_INFO("Driver at %.0f steps/sec: stealthChop=%d current=%d/31 faultBits=0x%02X",
+             driverSampleSpeed, (driverStatusAtPeak >> 30) & 1, (driverStatusAtPeak >> 16) & 0x1F, driverFaultBits);
 }
 
 void ClosedLoopController::followShaftWhileFreewheeling()

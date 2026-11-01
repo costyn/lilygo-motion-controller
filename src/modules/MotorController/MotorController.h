@@ -61,6 +61,8 @@ private:
     long calibrationSpeed;
     bool calibrated;        // Position is referenced to the switches. Never true after boot.
     long maxSwitchPosition; // Position of the MAX switch, with the MIN switch at 0
+    bool switchesReferenced; // Calibrated from the switches, so a press gives the true position
+    bool manualMinSet;       // Min set by hand since boot, waiting for Max
 
     // Speed threshold for TMC mode switching (percentage)
     const float STEALTH_CHOP_THRESHOLD = 0.5;
@@ -104,6 +106,10 @@ public:
     void stopCalibration();
     bool isCalibrating() const { return calibrationState != CAL_IDLE; }
     bool isCalibrated() const { return calibrated; }
+
+    // Limits set by hand at the current position. Return an error message, or nullptr.
+    const char *setMinHere();
+    const char *setMaxHere();
     CalibrationState getCalibrationState() const { return calibrationState; }
     void onMinLimitReached(long position);
     void onMaxLimitReached(long position);
@@ -123,6 +129,7 @@ public:
     uint32_t getTmcSwitchCount() const { return tmcSwitchCount; }
     uint32_t getMaxTmcSwitchUs() const { return maxTmcSwitchUs; }
     void resetTimingStats();
+    uint32_t readDriverStatus() { return driver->DRV_STATUS(); }
     double getMonitorSpeed() const { return monitorSpeed; }
     float getMotorSpeed() const { return motorSpeed; }
     int8_t getDirection() const { return direction; }

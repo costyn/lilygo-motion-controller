@@ -21,6 +21,7 @@ class ClosedLoopController
 private:
     MultiTurnTracker tracker;
     MoveMeasurement measurement;
+    MoveMeasurement calibrationLeg;
     IdleMotionTracker idleMotion;
     PositionAlignment alignment;
 
@@ -31,6 +32,10 @@ private:
     // Correction state
     bool aligned;
     bool stalled;
+    bool trackingCalibration;
+    uint32_t calibrationReferenceCount;
+    volatile uint32_t stallCount;
+    volatile long lastStallSpeed;
     uint8_t correctionAttempts;
     uint32_t lastReferenceCount;
 
@@ -42,6 +47,12 @@ private:
     float peakSpeed;
     long lastSteps;
     long lastEncoderSteps;
+
+    // TMC2209 state at the fastest point of a move
+    float driverSampleSpeed;
+    uint32_t driverStatusAtPeak;
+    uint32_t driverFaultBits;
+    uint8_t driverSampleCycles;
 
     // Encoder frame quality
     uint32_t noMagnetFrames;
@@ -55,7 +66,9 @@ private:
 
     void updateAlignment(long steps);
     void updateMeasurement(long steps);
+    void sampleDriver();
     void checkForStall(long steps);
+    void checkCalibrationTracking(long steps);
     void finishMove(long steps);
     void reportMove();
     void followShaftWhileFreewheeling();
@@ -75,6 +88,8 @@ public:
     long getEncoderPositionSteps() const { return encoderPositionSteps; }
     bool isMagnetDetected() const { return magnetDetected; }
     long getPositionError() const { return positionError; }
+    uint32_t getStallCount() const { return stallCount; }
+    long getLastStallSpeed() const { return lastStallSpeed; }
 };
 
 extern ClosedLoopController closedLoopController;

@@ -430,6 +430,24 @@ void WebServerClass::handleCalibrateCommand(JsonDocument& doc)
     }
 }
 
+void WebServerClass::handleSetLimitResult(const char *error)
+{
+    if (error)
+    {
+        JsonDocument doc;
+        doc["type"] = "error";
+        doc["message"] = error;
+
+        String message;
+        serializeJson(doc, message);
+        ws.textAll(message);
+        return;
+    }
+
+    broadcastStatus();
+    broadcastConfig();
+}
+
 void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
 {
     AwsFrameInfo *info = (AwsFrameInfo *)arg;
@@ -504,6 +522,14 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
         {
             handleCalibrateCommand(doc);
         }
+        else if (command == "setMinHere")
+        {
+            handleSetLimitResult(motorController.setMinHere());
+        }
+        else if (command == "setMaxHere")
+        {
+            handleSetLimitResult(motorController.setMaxHere());
+        }
         else
         {
             LOG_WARN("Unknown WebSocket command: %s", command.c_str());
@@ -550,6 +576,8 @@ void WebServerClass::broadcastStatus()
     doc["encoderPosition"] = closedLoopController.getEncoderPositionSteps();
     doc["encoderMagnetDetected"] = closedLoopController.isMagnetDetected();
     doc["positionError"] = closedLoopController.getPositionError();
+    doc["stallCount"] = closedLoopController.getStallCount();
+    doc["lastStallSpeed"] = closedLoopController.getLastStallSpeed();
 
     String message;
     serializeJson(doc, message);

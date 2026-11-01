@@ -58,6 +58,8 @@ MotorController::MotorController()
     calibrationSpeed = 0;
     calibrated = false;
     maxSwitchPosition = 0;
+    switchesReferenced = false;
+    manualMinSet = false;
     lastUpdateMicros = 0;
     pendingPositionShift = 0;
     correctionRequested = false;
@@ -85,7 +87,7 @@ bool MotorController::begin()
     pinMode(CLK_PIN, OUTPUT);
     pinMode(SPREAD_PIN, OUTPUT);
     digitalWrite(CLK_PIN, LOW);
-    digitalWrite(SPREAD_PIN, HIGH);
+    digitalWrite(SPREAD_PIN, LOW); // HIGH inverts en_spreadCycle, swapping the chopper modes
 
     pinMode(EN_PIN, OUTPUT);
     pinMode(STEP_PIN, OUTPUT);
@@ -107,7 +109,7 @@ bool MotorController::begin()
     driver->microsteps(16);    // Set microsteps to 1/8th
     driver->ihold(1);
 
-    driver->en_spreadCycle(true); // Toggle spreadCycle on TMC2208/2209/2224
+    driver->en_spreadCycle(false); // StealthChop at low speed, matches useStealthChop
     driver->pwm_autoscale(true);  // Needed for stealthChop
 
     // Initialize AccelStepper exactly like factory code
@@ -395,6 +397,11 @@ void MotorController::update()
     else if (isMoving)
     {
         // Motor is moving - call run() to step motor
+        // A move can start while the branch below is freewheeling, so enable it again here
+        if (!wasMoving)
+        {
+            digitalWrite(EN_PIN, LOW);
+        }
         stepper->run();
         wasMoving = true;
     }
@@ -472,6 +479,8 @@ void MotorController::startCalibration()
     }
 
     calibrated = false;
+    switchesReferenced = false;
+    manualMinSet = false;
     calibrationState = CAL_FINDING_MIN;
     // Direct drive: slow configured speed, so the stop latency doesn't crash into the switches
     calibrationSpeed = config.getCalibrationDirectDrive() ? config.getCalibrationSpeed() : config.getMaxSpeed();
@@ -537,7 +546,7 @@ void MotorController::onMinLimitReached(long position)
 
         LOG_INFO("Calibration: now finding MAX limit at speed %ld steps/sec", speed);
     }
-    else if (calibrated)
+    else if (switchesReferenced)
     {
         referencePosition(position, 0);
     }
@@ -553,6 +562,7 @@ void MotorController::onMaxLimitReached(long position)
         maxSwitchPosition = position;
         config.saveLimitPositions(0, position);
         calibrated = true;
+        switchesReferenced = true;
         calibrationState = CAL_COMPLETE;
 
         LOG_INFO("Calibration complete - min: %ld, max: %ld",
@@ -563,10 +573,59 @@ void MotorController::onMaxLimitReached(long position)
         LOG_ERROR("Calibration aborted: MAX switch hit while finding MIN. Check motor direction and switch wiring");
         stopCalibration();
     }
-    else if (calibrated)
+    else if (switchesReferenced)
     {
         referencePosition(position, maxSwitchPosition);
     }
+}
+
+const char *MotorController::setMinHere()
+{
+    if (isCalibrating() || isMoving())
+    {
+        return "Cannot set a limit while the motor is moving";
+    }
+
+    // Before calibration this point becomes position 0, as the MIN switch would
+    if (!calibrated)
+    {
+        referencePosition(getCurrentPosition(), 0);
+        manualMinSet = true;
+        config.saveLimitPositions(0, config.getLimitPos2());
+        return nullptr;
+    }
+
+    long position = getCurrentPosition();
+    if (position >= config.getMaxLimit())
+    {
+        return "Min must be below Max";
+    }
+
+    config.saveLimitPositions(position, config.getLimitPos2());
+    return nullptr;
+}
+
+const char *MotorController::setMaxHere()
+{
+    if (isCalibrating() || isMoving())
+    {
+        return "Cannot set a limit while the motor is moving";
+    }
+
+    if (!calibrated && !manualMinSet)
+    {
+        return "Set Min first";
+    }
+
+    long position = getCurrentPosition();
+    if (position <= config.getMinLimit())
+    {
+        return "Max must be above Min";
+    }
+
+    config.saveLimitPositions(config.getLimitPos1(), position);
+    calibrated = true;
+    return nullptr;
 }
 
 void MotorController::requestCorrection(long shift, long target, int speed)

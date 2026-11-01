@@ -60,6 +60,7 @@ private:
     void handleGetConfigCommand(JsonDocument& doc);
     void handleSetConfigCommand(JsonDocument& doc);
     void handleCalibrateCommand(JsonDocument& doc);
+    void handleSetLimitResult(const char *error);
 
     // Debug WebSocket handlers
     void onDebugWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
