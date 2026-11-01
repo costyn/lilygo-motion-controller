@@ -87,12 +87,13 @@ private:
     static constexpr long UNCALIBRATED_JOG_STEPS = 32000;
 
     // Safety limits for motor configuration (based on TMC2209 capabilities)
-    static constexpr long MIN_SPEED = 100;           // steps/sec
-    static constexpr long MAX_SPEED = 50000;         // steps/sec (48,000 ran clean on the rig, 64,000 stalled)
     static constexpr long MIN_ACCELERATION = 100;    // steps/sec²
     static constexpr long MAX_ACCELERATION = 200000; // steps/sec² (240,000 ran clean on the unloaded rig)
 
 public:
+    static constexpr long MIN_SPEED = 100;           // steps/sec
+    static constexpr long MAX_SPEED = 50000;         // steps/sec (48,000 ran clean on the rig, 64,000 stalled)
+
     // Step position mirrored from update(), for limit switch ISRs to capture
     static volatile long livePosition;
 

@@ -35,6 +35,7 @@ function AppContent() {
     startCalibration,
     setMinHere,
     setMaxHere,
+    setSpeed,
     manualReconnect
   } = useMotorController()
 
@@ -49,6 +50,13 @@ function AppContent() {
   React.useEffect(() => {
     setJogSpeed(Math.round(motorConfig.maxSpeed * 0.3))
   }, [motorConfig.maxSpeed])
+
+  // A speed set by any browser replaces the default
+  React.useEffect(() => {
+    if (motorStatus.speed) {
+      setJogSpeed(Math.min(motorStatus.speed, motorConfig.maxSpeed))
+    }
+  }, [motorStatus.speed, motorConfig.maxSpeed])
 
   // Check if limits are equal and show warning
   React.useEffect(() => {
@@ -239,6 +247,8 @@ function AppContent() {
             motorConfig={motorConfig}
             jogSpeed={jogSpeed}
             onJogSpeedChange={setJogSpeed}
+            onJogSpeedCommit={setSpeed}
+            sharedTarget={motorStatus.targetPosition}
             onMoveTo={moveTo}
           />
         </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Progress } from '@/components/ui/progress'
@@ -15,6 +15,8 @@ interface PositionControlProps {
   motorConfig: MotorConfig
   jogSpeed: number
   onJogSpeedChange: (speed: number) => void
+  onJogSpeedCommit?: (speed: number) => void
+  sharedTarget?: number
   onMoveTo: (position: number, speed: number) => void
 }
 
@@ -27,9 +29,18 @@ export function PositionControl({
   motorConfig,
   jogSpeed,
   onJogSpeedChange,
+  onJogSpeedCommit,
+  sharedTarget,
   onMoveTo
 }: PositionControlProps) {
   const [targetPosition, setTargetPosition] = useState([motorConfig.minLimit])
+
+  // Follow moves started from other browsers
+  useEffect(() => {
+    if (sharedTarget !== undefined) {
+      setTargetPosition([sharedTarget])
+    }
+  }, [sharedTarget])
 
   // Calculate position progress
   const range = motorConfig.maxLimit - motorConfig.minLimit
@@ -133,6 +144,7 @@ export function PositionControl({
             <Slider
               value={[jogSpeed]}
               onValueChange={handleSpeedChange}
+              onValueCommit={(value) => onJogSpeedCommit?.(value[0])}
               min={100}
               max={motorConfig.maxSpeed}
               step={100}

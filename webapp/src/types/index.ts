@@ -20,6 +20,8 @@ export interface MotorStatus {
   stallCount?: number; // Stalls since boot
   lastStallSpeed?: number; // Peak speed of the last stall, in steps/sec
   driverFaults?: number; // TMC2209 overtemperature and short flags since boot
+  speed?: number; // Speed slider, shared between browsers
+  targetPosition?: number; // Last commanded position, shared between browsers
 }
 
 export interface PositionUpdate {
@@ -110,6 +112,11 @@ export interface SetLimitHereCommand {
   command: 'setMinHere' | 'setMaxHere';
 }
 
+export interface SetSpeedCommand {
+  command: 'setSpeed';
+  speed: number;
+}
+
 export type ControlCommand =
   | MoveCommand
   | EmergencyStopCommand
@@ -120,7 +127,8 @@ export type ControlCommand =
   | JogStartCommand
   | JogStopCommand
   | CalibrateCommand
-  | SetLimitHereCommand;
+  | SetLimitHereCommand
+  | SetSpeedCommand;
 
 // Connection state
 export interface ConnectionState {

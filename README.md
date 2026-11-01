@@ -165,6 +165,9 @@ src/
 {"command": "jogStart", "direction": "forward"}  // or "backward"
 {"command": "jogStop"}
 
+// Share the speed slider with other browsers. Moves nothing
+{"command": "setSpeed", "speed": 1800}
+
 // Stop motor gently (without emergency flag)
 {"command": "stop"}
 

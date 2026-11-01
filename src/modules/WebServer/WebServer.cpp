@@ -73,6 +73,9 @@ WebServerClass::WebServerClass() : server(80), ws("/ws"), debugWs("/debug"), ini
     lastStatusBroadcast = 0;
     wasMovingLastUpdate = false;
     lastIdlePosition = 0;
+    sharedSpeed = 0;
+    sharedTarget = 0;
+    hasSharedTarget = false;
 }
 
 bool WebServerClass::begin()
@@ -233,6 +236,15 @@ void WebServerClass::onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClie
 }
 
 // Command handler implementations
+void WebServerClass::handleSetSpeedCommand(JsonDocument& doc)
+{
+    if (doc["speed"].is<long>())
+    {
+        sharedSpeed = constrain(doc["speed"].as<long>(), MotorController::MIN_SPEED, MotorController::MAX_SPEED);
+        broadcastStatus();
+    }
+}
+
 void WebServerClass::handleMoveCommand(JsonDocument& doc)
 {
     if (!motorController.isCalibrated())
@@ -254,6 +266,8 @@ void WebServerClass::handleMoveCommand(JsonDocument& doc)
         {
             LOG_INFO("Move command: position=%ld, speed=%d", position, speed);
             motorController.moveTo(position, speed);
+            sharedTarget = position;
+            hasSharedTarget = true;
 
             // Immediate status broadcast on movement start
             broadcastStatus();
@@ -507,6 +521,10 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
         {
             handleJogStartCommand(doc);
         }
+        else if (command == "setSpeed")
+        {
+            handleSetSpeedCommand(doc);
+        }
         else if (command == "jogStop")
         {
             handleJogStopCommand(doc);
@@ -594,6 +612,10 @@ void WebServerClass::broadcastStatus()
     doc["stallCount"] = closedLoopController.getStallCount();
     doc["lastStallSpeed"] = closedLoopController.getLastStallSpeed();
     doc["driverFaults"] = closedLoopController.getDriverFaults();
+    if (sharedSpeed > 0)
+        doc["speed"] = sharedSpeed;
+    if (hasSharedTarget)
+        doc["targetPosition"] = sharedTarget;
 
     String message;
     serializeJson(doc, message);

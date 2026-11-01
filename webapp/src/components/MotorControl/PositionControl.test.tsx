@@ -54,6 +54,13 @@ describe('PositionControl - Disabled States', () => {
     expect(screen.getByText('Louder operation, for high speed')).toBeInTheDocument()
   })
 
+  it('should follow a target set from another browser', () => {
+    const { rerender } = render(<PositionControl {...defaultProps} />)
+    rerender(<PositionControl {...defaultProps} sharedTarget={1234} />)
+
+    expect(screen.getByText('1,234')).toBeInTheDocument()
+  })
+
   it('should disable controls until calibrated', () => {
     render(<PositionControl {...defaultProps} needsCalibration={true} />)
 
