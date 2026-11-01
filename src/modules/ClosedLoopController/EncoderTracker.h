@@ -15,6 +15,9 @@ static constexpr int8_t ENCODER_DIRECTION = -1;
 // settling error measured on moves without a slip.
 static constexpr long LOST_STEP_THRESHOLD = 48;
 
+// Clean moves were measured up to 383 steps of error mid-move, stalls at 1,000 or more
+static constexpr long STALL_THRESHOLD = 500;
+
 struct EncoderSample
 {
     uint16_t angle; // 0-16383
@@ -40,7 +43,8 @@ inline EncoderSample decodeEncoderFrame(uint16_t frame)
 }
 
 // Accumulates single-turn angles into a multi-turn position, relative to the first angle.
-// Assumes less than half a turn between updates: at 50Hz that is 25 rev/s (80,000 steps/sec).
+// Assumes less than half a turn between updates: at 200Hz that is 100 rev/s, but a task
+// pause shrinks this. At 7 rev/s, a 70ms pause already loses a whole turn.
 class MultiTurnTracker
 {
 private:
@@ -70,6 +74,22 @@ public:
     {
         return (long)(ENCODER_DIRECTION * counts * STEPS_PER_REV / ENCODER_COUNTS_PER_REV);
     }
+};
+
+// Links the step counter to the encoder, so error builds up across moves
+class PositionAlignment
+{
+private:
+    long offset = 0;
+
+public:
+    void align(long steps, long encoderSteps) { offset = steps - encoderSteps; }
+
+    // Positive when the step counter is ahead of the real position
+    long error(long steps, long encoderSteps) const { return steps - (encoderSteps + offset); }
+
+    static bool isStalled(long error) { return error >= STALL_THRESHOLD || error <= -STALL_THRESHOLD; }
+    static bool hasLostSteps(long error) { return error >= LOST_STEP_THRESHOLD || error <= -LOST_STEP_THRESHOLD; }
 };
 
 // Encoder travel to hand on to the step counter while the motor is idle. Small
@@ -131,7 +151,6 @@ public:
     long getEncoderTravel() const { return encoderTravel; }
     long getPeakError() const { return peakError; }
     long getFinalError() const { return magnitude(stepTravel - encoderTravel); }
-    bool hasLostSteps() const { return getFinalError() >= LOST_STEP_THRESHOLD; }
 
     // Encoder travel per step travelled: 1.0 means direction and scale are right
     float getScale() const

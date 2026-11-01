@@ -126,6 +126,13 @@ void IRAM_ATTR LimitSwitch::onISR()
             {
                 instance->pressPosition = position;
                 instance->pressCaptured = true;
+
+                if (!instance->pressHandled)
+                {
+                    MotorController::stopRequest = instance == &minLimitSwitch
+                                                       ? MotorController::STOP_MIN_SWITCH
+                                                       : MotorController::STOP_MAX_SWITCH;
+                }
             }
         }
     }

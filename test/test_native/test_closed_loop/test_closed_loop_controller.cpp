@@ -129,7 +129,7 @@ void test_measurement_flags_rig_lost_step_move(void) {
     move.sample(-2778, -2668);
 
     TEST_ASSERT_EQUAL_INT32(110, move.getFinalError());
-    TEST_ASSERT_TRUE(move.hasLostSteps());
+    TEST_ASSERT_TRUE(PositionAlignment::hasLostSteps(move.getFinalError()));
 }
 
 void test_measurement_allows_rig_settling_error(void) {
@@ -138,7 +138,7 @@ void test_measurement_allows_rig_settling_error(void) {
     move.sample(3576, 3561);
 
     TEST_ASSERT_EQUAL_INT32(15, move.getFinalError());
-    TEST_ASSERT_FALSE(move.hasLostSteps());
+    TEST_ASSERT_FALSE(PositionAlignment::hasLostSteps(move.getFinalError()));
 }
 
 void test_measurement_handles_no_step_travel(void) {
@@ -182,6 +182,42 @@ void test_idle_motion_accumulates_slow_turning_without_loss(void) {
     TEST_ASSERT_EQUAL_INT32(297, total);
 }
 
+// ============================================================================
+// Position alignment
+// ============================================================================
+
+void test_alignment_measures_from_the_aligned_point(void) {
+    PositionAlignment alignment;
+    alignment.align(1000, -500);
+
+    TEST_ASSERT_EQUAL_INT32(0, alignment.error(1000, -500));
+    TEST_ASSERT_EQUAL_INT32(0, alignment.error(4000, 2500));
+}
+
+void test_alignment_error_is_positive_when_step_counter_is_ahead(void) {
+    PositionAlignment alignment;
+    alignment.align(0, 0);
+
+    TEST_ASSERT_EQUAL_INT32(120, alignment.error(5000, 4880));
+    TEST_ASSERT_EQUAL_INT32(-120, alignment.error(-5000, -4880));
+}
+
+void test_alignment_error_builds_up_across_moves(void) {
+    PositionAlignment alignment;
+    alignment.align(0, 0);
+
+    // 40 steps lost on each of three moves, each below the lost-step threshold alone
+    TEST_ASSERT_FALSE(PositionAlignment::hasLostSteps(alignment.error(1000, 960)));
+    TEST_ASSERT_FALSE(PositionAlignment::hasLostSteps(alignment.error(0, -80 + 40)));
+    TEST_ASSERT_TRUE(PositionAlignment::hasLostSteps(alignment.error(1000, 880)));
+}
+
+void test_stall_threshold_applies_in_both_directions(void) {
+    TEST_ASSERT_FALSE(PositionAlignment::isStalled(499));
+    TEST_ASSERT_TRUE(PositionAlignment::isStalled(500));
+    TEST_ASSERT_TRUE(PositionAlignment::isStalled(-500));
+}
+
 int main(int argc, char **argv) {
     UNITY_BEGIN();
 
@@ -208,6 +244,11 @@ int main(int argc, char **argv) {
     RUN_TEST(test_idle_motion_ignores_encoder_noise);
     RUN_TEST(test_idle_motion_hands_over_real_travel_once);
     RUN_TEST(test_idle_motion_accumulates_slow_turning_without_loss);
+
+    RUN_TEST(test_alignment_measures_from_the_aligned_point);
+    RUN_TEST(test_alignment_error_is_positive_when_step_counter_is_ahead);
+    RUN_TEST(test_alignment_error_builds_up_across_moves);
+    RUN_TEST(test_stall_threshold_applies_in_both_directions);
 
     return UNITY_END();
 }

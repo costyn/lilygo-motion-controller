@@ -54,6 +54,8 @@ Movement is disabled after every power-up, because the motor may have been moved
 
 Hitting a limit switch later corrects the position, which also repairs it after lost steps.
 
+The MT6816 encoder supervises every move. If the motor stalls it stops, and after any move that lost steps it corrects its position and finishes at half Max Speed. After three failed attempts in a row it triggers an emergency stop.
+
 ## Web Interface
 
 ### Main Control Interface

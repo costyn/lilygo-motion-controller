@@ -32,6 +32,10 @@ usually mean the motor ran out of torque, which a 50Hz correction can't recover.
 - Saved limits are fixed: calibration is required after boot, MIN is position 0, and repeated calibrations agree within 2 steps. Switch presses correct the position instead of rewriting limits.
 - Driver mode updates moved to Core 0 after they paused stepping for about 7ms. Pauses are now about 50us.
 
+- Steps 3 and 4 are done: stall stop at 500 steps of error, end-of-move correction past 48, retries at half Max Speed, then emergency stop after 3 attempts.
+- The encoder task must not pause: at 7 rev/s, a 70ms pause lost a whole turn and looked like a 3,226-step stall. It now runs at 200Hz at priority 12, and its longest cycle in forced stall runs was 19ms.
+- Limit switches stop the motor from `loop()` within microseconds of the press, instead of up to 100ms later.
+
 ## Step 1 measurements to collect
 
 Keep "Freewheel After Movement" off so the rotor is held while the final reading settles.

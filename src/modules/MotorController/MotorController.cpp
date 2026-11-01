@@ -28,6 +28,7 @@ double MotorController::monitorSpeed = 0;
 float MotorController::motorSpeed = 0;
 int8_t MotorController::direction = 1;
 volatile long MotorController::livePosition = 0;
+volatile MotorController::StopRequest MotorController::stopRequest = MotorController::STOP_NONE;
 
 // Global instance
 MotorController motorController;
@@ -59,6 +60,11 @@ MotorController::MotorController()
     maxSwitchPosition = 0;
     lastUpdateMicros = 0;
     pendingPositionShift = 0;
+    correctionRequested = false;
+    correctionShift = 0;
+    correctionTarget = 0;
+    correctionSpeed = 0;
+    referenceCount = 0;
     tmcUartAddress = -1;
     tmcVersion = 0;
     resetTimingStats();
@@ -336,6 +342,31 @@ void MotorController::update()
     }
     lastUpdateMicros = now;
 
+    // Stop first. MIN is ignored while calibration backs off it, because that is switch bounce.
+    StopRequest stop = stopRequest;
+    if (stop != STOP_NONE)
+    {
+        stopRequest = STOP_NONE;
+        if (!(stop == STOP_MIN_SWITCH && calibrationState == CAL_FINDING_MAX))
+        {
+            jogStop();
+            isMoving = false;
+        }
+    }
+
+    // Shift and move together, so the destination is measured from the corrected position.
+    // A move started in the meantime takes priority.
+    if (correctionRequested && !isMoving)
+    {
+        correctionRequested = false;
+        stepper->setCurrentPosition(stepper->currentPosition() + correctionShift);
+        moveTo(correctionTarget, correctionSpeed);
+    }
+    else if (correctionRequested)
+    {
+        correctionRequested = false;
+    }
+
     // Apply step counter shifts only while idle, so they can't disturb a move
     if (pendingPositionShift != 0 && !isMoving)
     {
@@ -538,11 +569,20 @@ void MotorController::onMaxLimitReached(long position)
     }
 }
 
+void MotorController::requestCorrection(long shift, long target, int speed)
+{
+    correctionShift = shift;
+    correctionTarget = target;
+    correctionSpeed = speed;
+    correctionRequested = true;
+}
+
 // A switch gives the true position, which also repairs the step counter after a slip
 void MotorController::referencePosition(long measuredPosition, long actualPosition)
 {
     long shift = actualPosition - measuredPosition;
     stepper->setCurrentPosition(stepper->currentPosition() + shift);
+    referenceCount = referenceCount + 1;
 
     if (calibrated && labs(shift) >= LOST_STEP_THRESHOLD)
     {

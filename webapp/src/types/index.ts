@@ -14,6 +14,7 @@ export interface MotorStatus {
   calibrationState?: string;
   encoderPosition?: number; // Steps travelled since boot, measured by the encoder
   encoderMagnetDetected?: boolean;
+  positionError?: number; // Step counter minus encoder, in steps
 }
 
 export interface PositionUpdate {

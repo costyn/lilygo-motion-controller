@@ -39,8 +39,14 @@ private:
     volatile uint32_t tmcSwitchCount;
     volatile uint32_t maxTmcSwitchUs;
 
-    // Step counter shift requested from ClosedLoopTask, applied in update()
+    // Requests from other tasks, applied in update()
     volatile long pendingPositionShift;
+    volatile bool correctionRequested;
+    volatile long correctionShift;
+    volatile long correctionTarget;
+    volatile int correctionSpeed;
+
+    volatile uint32_t referenceCount; // Increases each time a switch re-references position
 
     // TMC2209 UART address that answered at startup, -1 if none
     int8_t tmcUartAddress;
@@ -70,6 +76,10 @@ private:
 public:
     // Step position mirrored from update(), for limit switch ISRs to capture
     static volatile long livePosition;
+
+    // Set from ISRs and other tasks, handled at the top of update() so it stops in microseconds
+    enum StopRequest : uint8_t { STOP_NONE, STOP_MIN_SWITCH, STOP_MAX_SWITCH, STOP_STALL };
+    static volatile StopRequest stopRequest;
 
     // Constructor
     MotorController();
@@ -104,6 +114,9 @@ public:
     float getCommandedSpeed() const { return stepper->speed(); }
     bool isMotorEnabled() const;
     void requestPositionShift(long steps) { pendingPositionShift += steps; }
+    void requestStop() { stopRequest = STOP_STALL; }
+    void requestCorrection(long shift, long target, int speed);
+    uint32_t getReferenceCount() const { return referenceCount; }
     int8_t getTmcUartAddress() const { return tmcUartAddress; }
     uint8_t getTmcVersion() const { return tmcVersion; }
     uint32_t getMaxStepGapUs() const { return maxStepGapUs; }

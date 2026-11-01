@@ -122,7 +122,7 @@ void setup()
         "ClosedLoop",          // Task name
         8192,                  // Stack size (same as InputTask, logs from this task)
         NULL,                  // Parameters
-        1,                     // Priority (same as WebServerTask)
+        12,                    // Priority (above AsyncTCP: a long pause miscounts encoder turns)
         &closedLoopTaskHandle, // Task handle
         0                      // Core (0, same as InputTask)
     );
@@ -189,7 +189,7 @@ void ClosedLoopTask(void *pvParameters)
 
     // Use vTaskDelayUntil for precise timing
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    const TickType_t xFrequency = pdMS_TO_TICKS(20); // 20ms = 50Hz
+    const TickType_t xFrequency = pdMS_TO_TICKS(5); // 5ms = 200Hz
 
     // Task main loop
     while (1)
@@ -200,7 +200,7 @@ void ClosedLoopTask(void *pvParameters)
         // Update TMC mode based on current commanded speed
         motorController.updateTMCMode();
 
-        // Precise 20ms timing for position control
+        // Precise 5ms timing for position control
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }
 }

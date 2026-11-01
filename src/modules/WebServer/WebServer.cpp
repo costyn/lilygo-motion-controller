@@ -549,6 +549,7 @@ void WebServerClass::broadcastStatus()
     doc["calibrationState"] = getCalibrationStateString(motorController.getCalibrationState());
     doc["encoderPosition"] = closedLoopController.getEncoderPositionSteps();
     doc["encoderMagnetDetected"] = closedLoopController.isMagnetDetected();
+    doc["positionError"] = closedLoopController.getPositionError();
 
     String message;
     serializeJson(doc, message);
