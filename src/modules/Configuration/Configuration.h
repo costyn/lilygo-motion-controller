@@ -38,6 +38,10 @@ public:
     // Save only limit positions (called when limits are triggered)
     void saveLimitPositions(long pos1, long pos2);
 
+    // Presets and patterns as JSON, empty if never saved
+    String getProgramJson();
+    void saveProgramJson(const String &json);
+
     // Get configuration values
     long getAcceleration() const { return motorConfig.acceleration; }
     long getMaxSpeed() const { return motorConfig.maxSpeed; }

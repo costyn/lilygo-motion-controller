@@ -5,7 +5,8 @@ import type {
   ControlCommand,
   MotorStatus,
   MotorConfig,
-  ConnectionState
+  ConnectionState,
+  Program
 } from '@/types'
 
 const DEFAULT_STATUS: MotorStatus = {
@@ -32,6 +33,17 @@ const DEFAULT_CONFIG: MotorConfig = {
   encoderFitted: true
 }
 
+// Shown until the controller sends its own
+const DEFAULT_PROGRAM: Program = {
+  presets: [0, 25, 50, 75, 100],
+  patterns: []
+}
+
+export interface CommandError {
+  message: string;
+  id: number; // Increases with each error, so a repeated message is still noticed
+}
+
 export function useMotorController() {
   const [connectionState, setConnectionState] = useState<ConnectionState>({
     isConnected: false,
@@ -42,6 +54,8 @@ export function useMotorController() {
 
   const [motorStatus, setMotorStatus] = useState<MotorStatus>(DEFAULT_STATUS)
   const [motorConfig, setMotorConfig] = useState<MotorConfig>(DEFAULT_CONFIG)
+  const [program, setProgram] = useState<Program>(DEFAULT_PROGRAM)
+  const [commandError, setCommandError] = useState<CommandError | null>(null)
 
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -145,8 +159,12 @@ export function useMotorController() {
               sendCommand({ command: 'getConfig' })
             }
             break
+          case 'program':
+            setProgram(message.program)
+            break
           case 'error':
             console.error('Motor controller error:', message.message)
+            setCommandError(prev => ({ message: message.message, id: (prev?.id ?? 0) + 1 }))
             setConnectionState(prev => ({
               ...prev,
               lastError: message.message
@@ -178,6 +196,18 @@ export function useMotorController() {
 
   const setSpeed = useCallback((speed: number) => {
     return sendCommand({ command: 'setSpeed', speed })
+  }, [sendCommand])
+
+  const startCycles = useCallback((count: number, speed: number) => {
+    return sendCommand({ command: 'cycle', count, speed })
+  }, [sendCommand])
+
+  const runPattern = useCallback((index: number) => {
+    return sendCommand({ command: 'runPattern', index })
+  }, [sendCommand])
+
+  const saveProgram = useCallback((newProgram: Program | null) => {
+    return sendCommand({ command: 'setProgram', program: newProgram })
   }, [sendCommand])
 
   const emergencyStop = useCallback(() => {
@@ -253,6 +283,8 @@ export function useMotorController() {
     // Motor state
     motorStatus,
     motorConfig,
+    program,
+    commandError,
 
     // Control methods
     moveTo,
@@ -266,6 +298,9 @@ export function useMotorController() {
     setMinHere,
     setMaxHere,
     setSpeed,
+    startCycles,
+    runPattern,
+    saveProgram,
     manualReconnect,
 
     // Raw WebSocket access for advanced use

@@ -50,6 +50,7 @@ private:
     unsigned long lastStatusBroadcast;
     bool wasMovingLastUpdate;
     long lastIdlePosition;
+    uint32_t lastPatternState; // So a pattern starting, ending or changing round is broadcast
 
     // WebSocket handlers
     void handleWebSocketMessage(void *arg, uint8_t *data, size_t len);
@@ -60,6 +61,9 @@ private:
     void handleMoveCommand(JsonDocument& doc);
     void handleJogStartCommand(JsonDocument& doc);
     void handleSetSpeedCommand(JsonDocument& doc);
+    void handleCycleCommand(JsonDocument& doc);
+    void handleRunPatternCommand(JsonDocument& doc);
+    void handleSetProgramCommand(JsonDocument& doc);
     void handleJogStopCommand(JsonDocument& doc);
     void handleEmergencyStopCommand(JsonDocument& doc);
     void handleResetCommand(JsonDocument& doc);
@@ -90,6 +94,7 @@ public:
     void update();
     void broadcastStatus();
     void broadcastConfig();
+    void broadcastProgram();
     void broadcastPosition(long position);
     void broadcastDebugMessage(const String& message);
 };

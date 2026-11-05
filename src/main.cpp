@@ -9,6 +9,7 @@
 #include "modules/ButtonController/ButtonController.h"
 #include "modules/WebServer/WebServer.h"
 #include "modules/ClosedLoopController/ClosedLoopController.h"
+#include "modules/PatternRunner/PatternRunner.h"
 
 /*
  * LilyGo Motion Controller
@@ -20,7 +21,7 @@
  * - WebSocket-based control interface
  * - Encoder position tracking (measure-only, no closed-loop correction yet)
  * - Smart limit switch handling with position learning
- * - TMC2209 in SpreadCycle at all speeds
+ * - TMC2209 in StealthChop up to 10,000 steps/sec, SpreadCycle above
  * - Configuration persistence via ESP32 Preferences
  * - Over-the-air firmware updates
  * - Real-time position feedback via encoder
@@ -86,7 +87,10 @@ void setup()
             delay(1000);
     }
 
-    // 5. Web server
+    // 5. Patterns and presets
+    patternRunner.begin();
+
+    // 6. Web server
     if (!webServer.begin())
     {
         LOG_WARN("WARN: Failed to initialize Web Server. Only PCB buttons work!");
@@ -151,6 +155,7 @@ void InputTask(void *pvParameters)
     {
         // Update button controller
         buttonController.update();
+        patternRunner.update();
 
         // Update limit switches
         minLimitSwitch.update();

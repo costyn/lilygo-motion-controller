@@ -1,5 +1,6 @@
 #include "WebServer.h"
 #include "../Configuration/Configuration.h"
+#include "../PatternRunner/PatternRunner.h"
 #include "../MotorController/MotorController.h"
 #include "../LimitSwitch/LimitSwitch.h"
 #include "../ClosedLoopController/ClosedLoopController.h"
@@ -73,6 +74,7 @@ WebServerClass::WebServerClass() : server(80), ws("/ws"), debugWs("/debug"), ini
     lastStatusBroadcast = 0;
     wasMovingLastUpdate = false;
     lastIdlePosition = 0;
+    lastPatternState = 0;
     sharedSpeed = 0;
     sharedTarget = 0;
     hasSharedTarget = false;
@@ -213,6 +215,7 @@ void WebServerClass::onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClie
         LOG_INFO("WebSocket client #%u connected from %s", client->id(), client->remoteIP().toString().c_str());
         // Send current status to new client
         broadcastStatus();
+        broadcastProgram();
         break;
 
     case WS_EVT_DISCONNECT:
@@ -242,6 +245,46 @@ void WebServerClass::handleSetSpeedCommand(JsonDocument& doc)
     {
         sharedSpeed = constrain(doc["speed"].as<long>(), MotorController::MIN_SPEED, MotorController::MAX_SPEED);
         broadcastStatus();
+    }
+}
+
+void WebServerClass::handleCycleCommand(JsonDocument& doc)
+{
+    bool hasSpeed = doc["speed"].is<int>() || doc["speed"].is<float>() || doc["speed"].is<double>();
+    if (!doc["count"].is<int>() || !hasSpeed)
+    {
+        reportCommandResult("Invalid cycle parameters");
+        return;
+    }
+
+    reportCommandResult(patternRunner.startCycles(doc["count"].as<int>(), doc["speed"].as<int>()));
+    broadcastStatus();
+    lastPositionBroadcast = millis();
+    lastStatusBroadcast = millis();
+}
+
+void WebServerClass::handleRunPatternCommand(JsonDocument& doc)
+{
+    if (!doc["index"].is<int>())
+    {
+        reportCommandResult("Invalid pattern");
+        return;
+    }
+
+    reportCommandResult(patternRunner.startPattern(doc["index"].as<int>()));
+    broadcastStatus();
+    lastPositionBroadcast = millis();
+    lastStatusBroadcast = millis();
+}
+
+void WebServerClass::handleSetProgramCommand(JsonDocument& doc)
+{
+    const char *error = doc["program"].isNull() ? patternRunner.resetProgram()
+                                                : patternRunner.setProgram(doc["program"].as<JsonVariantConst>());
+    reportCommandResult(error);
+    if (!error)
+    {
+        broadcastProgram();
     }
 }
 
@@ -521,6 +564,22 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
         {
             handleJogStartCommand(doc);
         }
+        else if (command == "cycle")
+        {
+            handleCycleCommand(doc);
+        }
+        else if (command == "runPattern")
+        {
+            handleRunPatternCommand(doc);
+        }
+        else if (command == "getProgram")
+        {
+            broadcastProgram();
+        }
+        else if (command == "setProgram")
+        {
+            handleSetProgramCommand(doc);
+        }
         else if (command == "setSpeed")
         {
             handleSetSpeedCommand(doc);
@@ -612,6 +671,9 @@ void WebServerClass::broadcastStatus()
     doc["stallCount"] = closedLoopController.getStallCount();
     doc["lastStallSpeed"] = closedLoopController.getLastStallSpeed();
     doc["driverFaults"] = closedLoopController.getDriverFaults();
+    doc["pattern"] = patternRunner.getName();
+    doc["patternRound"] = patternRunner.getRound();
+    doc["patternRepeat"] = patternRunner.getRepeat();
     if (sharedSpeed > 0)
         doc["speed"] = sharedSpeed;
     if (hasSharedTarget)
@@ -626,6 +688,21 @@ void WebServerClass::broadcastStatus()
 // Usage: Called after configuration changes (setConfig command, limit position updates)
 // Frequency: On-demand only (configuration changes are infrequent)
 // Payload: Motor parameters (maxSpeed, acceleration, limits, TMC mode)
+// Presets and patterns, sent on connect and after a change
+void WebServerClass::broadcastProgram()
+{
+    if (!initialized)
+        return;
+
+    JsonDocument doc;
+    doc["type"] = "program";
+    patternRunner.toJson(doc["program"].to<JsonObject>());
+
+    String message;
+    serializeJson(doc, message);
+    ws.textAll(message);
+}
+
 void WebServerClass::broadcastConfig()
 {
     if (!initialized)
@@ -721,6 +798,15 @@ void WebServerClass::update()
     // Only broadcast if actually moving (not stopped by emergency stop)
     bool isCurrentlyMoving = motorController.isMoving() && !motorController.isEmergencyStopActive();
     unsigned long currentMillis = millis();
+
+    // A pattern starts, ends and begins each round while stopped between moves
+    uint32_t patternState = (patternRunner.isRunning() << 16) | (patternRunner.getGeneration() << 8) |
+                            patternRunner.getRound();
+    if (patternState != lastPatternState)
+    {
+        lastPatternState = patternState;
+        broadcastStatus();
+    }
 
     if (isCurrentlyMoving)
     {

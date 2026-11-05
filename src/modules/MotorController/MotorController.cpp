@@ -68,6 +68,8 @@ MotorController::MotorController()
     moving = false;
     correctionRequested = false;
     correctionShift = 0;
+    programActive = false;
+    programTarget = 0;
     correctionTarget = 0;
     correctionSpeed = 0;
     referenceCount = 0;
@@ -161,27 +163,77 @@ bool MotorController::initEncoder()
     return true;
 }
 
+// A move from outside ends any pattern
 void MotorController::moveTo(long position, int speed)
+{
+    stopProgram();
+    if (moveAllowed())
+    {
+        startMove(position, speed);
+    }
+}
+
+bool MotorController::moveAllowed()
 {
     if (emergencyStopActive)
     {
         LOG_WARN("Cannot move - emergency stop active");
-        return;
+        return false;
     }
 
     if (isCalibrating())
     {
         LOG_WARN("Cannot move - calibration in progress");
-        return;
+        return false;
     }
 
     if (!calibrated)
     {
         LOG_WARN("Cannot move - calibration required");
-        return;
+        return false;
     }
 
-    startMove(position, speed);
+    return true;
+}
+
+const char *MotorController::beginProgram()
+{
+    if (emergencyStopActive)
+        return "Cannot run a pattern: emergency stop active";
+    if (isCalibrating() || !calibrated)
+        return "Cannot run a pattern: calibration required";
+    if (isMoving())
+        return "Cannot run a pattern while the motor is moving";
+    if (config.getMinLimit() >= config.getMaxLimit())
+        return "Cannot run a pattern: Min must be below Max";
+
+    programActive = true;
+    return nullptr;
+}
+
+bool MotorController::startProgramMove(long target, int speed, long acceleration)
+{
+    if (!programActive || !moveAllowed())
+    {
+        return false;
+    }
+
+    programTarget = target;
+    startMove(target, speed, acceleration);
+
+    // A stop that landed while this move was being started
+    if (!programActive)
+    {
+        jogStop();
+        return false;
+    }
+    return true;
+}
+
+void MotorController::endProgram()
+{
+    programActive = false;
+    applyFreewheelSetting();
 }
 
 const char *MotorController::jogUncalibrated(bool forward, int speed)
@@ -202,7 +254,7 @@ const char *MotorController::jogUncalibrated(bool forward, int speed)
     return nullptr;
 }
 
-void MotorController::startMove(long position, int speed)
+void MotorController::startMove(long position, int speed, long acceleration)
 {
     digitalWrite(EN_PIN, LOW); // Enable motor
 
@@ -214,6 +266,7 @@ void MotorController::startMove(long position, int speed)
 
     wantSpreadCycle = speed > QUIET_MAX_SPEED;
     targetPosition = position;
+    stepper->setAcceleration(acceleration > 0 ? acceleration : config.getAcceleration());
     stepper->setMaxSpeed(speed);
     stepper->moveTo(position);
     moving = stepper->distanceToGo() != 0;
@@ -223,12 +276,8 @@ void MotorController::startMove(long position, int speed)
 
 void MotorController::jogStop()
 {
-    // Stop motor movement without triggering emergency stop flag
-    // CRITICAL: Call stop() first to clear AccelStepper's internal target state
-    stepper->stop(); // This sets new target to current position with deceleration
-    // Then override with immediate stop (no deceleration ramp)
-    stepper->setCurrentPosition(stepper->currentPosition());
-    stepper->setSpeed(0);
+    stopProgram();
+    haltMotor();
 
     // Respect freewheel configuration
     if (config.getFreewheelAfterMove())
@@ -239,8 +288,36 @@ void MotorController::jogStop()
     LOG_INFO("Motor jog stopped");
 }
 
+void MotorController::haltMotor()
+{
+    // Stop motor movement without triggering emergency stop flag
+    // CRITICAL: Call stop() first to clear AccelStepper's internal target state
+    stepper->stop(); // This sets new target to current position with deceleration
+    // Then override with immediate stop (no deceleration ramp)
+    stepper->setCurrentPosition(stepper->currentPosition());
+    stepper->setSpeed(0);
+}
+
+// Calibrated limits sit on the switches, so a pattern move to a limit ends on one. Only a switch
+// at the other end means something is wrong.
+void MotorController::stopAtSwitch(bool minSwitch)
+{
+    bool legEnd = isProgramActive() && (minSwitch ? programTarget <= config.getMinLimit()
+                                                  : programTarget >= config.getMaxLimit());
+    if (legEnd)
+    {
+        haltMotor();
+    }
+    else
+    {
+        jogStop();
+    }
+}
+
 void MotorController::emergencyStop()
 {
+    stopProgram();
+
     // Stop motor immediately
     stepper->stop();                                         // Clear AccelStepper's internal target state first
     stepper->setCurrentPosition(stepper->currentPosition()); // Stop NOW (override deceleration)
@@ -346,7 +423,10 @@ void MotorController::update()
         stopRequest = STOP_NONE;
         if (!(stop == STOP_MIN_SWITCH && calibrationState == CAL_FINDING_MAX))
         {
-            jogStop();
+            if (stop == STOP_STALL)
+                jogStop();
+            else
+                stopAtSwitch(stop == STOP_MIN_SWITCH);
             isMoving = false;
         }
     }
@@ -357,7 +437,10 @@ void MotorController::update()
     {
         correctionRequested = false;
         stepper->setCurrentPosition(stepper->currentPosition() + correctionShift);
-        moveTo(correctionTarget, correctionSpeed);
+        if (moveAllowed())
+        {
+            startMove(correctionTarget, correctionSpeed); // Not moveTo(), which would end a pattern
+        }
     }
     else if (correctionRequested)
     {
@@ -402,8 +485,8 @@ void MotorController::update()
     }
     else if (wasMoving)
     {
-        // Motor just stopped moving
-        if (config.getFreewheelAfterMove())
+        // Motor just stopped moving. A pattern holds between its moves.
+        if (config.getFreewheelAfterMove() && !isProgramActive())
         {
             digitalWrite(EN_PIN, HIGH); // Freewheel
             LOG_INFO("Movement complete - freewheeling");
@@ -475,6 +558,8 @@ void MotorController::startCalibration()
         return;
     }
 
+    stopProgram();
+    stepper->setAcceleration(config.getAcceleration()); // Not a pattern's gentle one, near the switches
     calibrated = false;
     switchesReferenced = false;
     manualMinSet = false;
@@ -580,7 +665,7 @@ void MotorController::onMaxLimitReached(long position)
 
 const char *MotorController::setMinHere()
 {
-    if (isCalibrating() || isMoving())
+    if (isCalibrating() || isMoving() || isProgramActive())
     {
         return "Cannot set a limit while the motor is moving";
     }
@@ -606,7 +691,7 @@ const char *MotorController::setMinHere()
 
 const char *MotorController::setMaxHere()
 {
-    if (isCalibrating() || isMoving())
+    if (isCalibrating() || isMoving() || isProgramActive())
     {
         return "Cannot set a limit while the motor is moving";
     }

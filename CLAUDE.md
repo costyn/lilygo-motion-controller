@@ -101,6 +101,7 @@ LilyGo Motion Controller - Modular wireless stepper motor controller for LilyGo 
 27. **Chopper mode** - Chosen per move from the requested speed: StealthChop up to 10,000 steps/sec, SpreadCycle above it. Never change it during a move: that bumped audibly, and speeds near a handover ground. SPREAD pin is LOW, unlike the factory example, because HIGH inverts `en_spreadCycle`. Only ClosedLoopTask uses the UART after startup
 28. **Open loop** - The Encoder Fitted setting turns off all encoder reading, for motors with no rear magnet. Motor Current is a setting, default 400 mA so an unknown motor is never overdriven. Before calibration, jogging runs at Slow Speed so limits can be set on any rig
 29. **Limits** - Speed 100-50,000, acceleration 100-200,000 steps/sec². Open tech debt is tracked in TODO.md
+30. **Patterns** - `PatternRunner` runs lists of segments from InputTask, so they carry on with no browser. Each segment moves to a % of travel by duration or % of Max Speed, with a trapezoid ramp worked out per move (`PatternPlan.h`, native-tested), then holds at least 500ms so the encoder can check the move. Presets and patterns are one JSON program in NVRAM. Min-max cycling is a pattern too. Any other move or stop ends a pattern, but a switch at the end a move is heading for doesn't, because calibrated limits sit on the switches
 
 ## Key Technical Details
 

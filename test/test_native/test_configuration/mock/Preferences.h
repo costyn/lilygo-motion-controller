@@ -6,6 +6,13 @@
 // Global storage for mock preferences (persists across instances)
 static std::map<std::string, long> globalLongValues;
 static std::map<std::string, bool> globalBoolValues;
+static std::map<std::string, std::string> globalStringValues;
+
+// Stand-in for Arduino's String
+struct String : std::string {
+    using std::string::string;
+    String(const std::string& value) : std::string(value) {}
+};
 
 // Mock Preferences class for testing (replaces ESP32 Preferences)
 class Preferences {
@@ -38,6 +45,22 @@ public:
         return defaultValue;
     }
 
+    String getString(const char* key, const String& defaultValue = String()) {
+        auto it = globalStringValues.find(key);
+        if (it != globalStringValues.end()) {
+            return it->second;
+        }
+        return defaultValue;
+    }
+
+    void putString(const char* key, const String& value) {
+        globalStringValues[key] = value;
+    }
+
+    bool remove(const char* key) {
+        return globalStringValues.erase(key) > 0;
+    }
+
     void putLong(const char* key, long value) {
         globalLongValues[key] = value;
     }
@@ -49,6 +72,7 @@ public:
     void clear() {
         globalLongValues.clear();
         globalBoolValues.clear();
+        globalStringValues.clear();
     }
 
     // Test helpers

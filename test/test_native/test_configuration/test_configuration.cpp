@@ -22,6 +22,7 @@ void setUp(void) {
     // Clear mock preferences storage before each test
     globalLongValues.clear();
     globalBoolValues.clear();
+    globalStringValues.clear();
 
     // Reset to defaults before each test
     testConfig = Configuration();
@@ -34,6 +35,16 @@ void tearDown(void) {
 // ============================================================================
 // Parameter Validation Tests (5 tests)
 // ============================================================================
+
+void test_program_json_is_saved_and_cleared(void) {
+    TEST_ASSERT_EQUAL_STRING("", testConfig.getProgramJson().c_str());
+
+    testConfig.saveProgramJson("{\"presets\":[0,100]}");
+    TEST_ASSERT_EQUAL_STRING("{\"presets\":[0,100]}", testConfig.getProgramJson().c_str());
+
+    testConfig.saveProgramJson("");
+    TEST_ASSERT_EQUAL_STRING("", testConfig.getProgramJson().c_str());
+}
 
 void test_setMaxSpeed_valid_range(void) {
     testConfig.begin();
@@ -222,6 +233,7 @@ void setup() {
     RUN_TEST(test_loadConfiguration_restores_defaults);
 
     RUN_TEST(test_motorCurrent_and_encoderFitted_persist);
+    RUN_TEST(test_program_json_is_saved_and_cleared);
 
     UNITY_END();
 }

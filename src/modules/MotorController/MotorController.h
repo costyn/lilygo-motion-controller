@@ -66,7 +66,14 @@ private:
     bool manualMinSet;       // Min set by hand since boot, waiting for Max
 
     void referencePosition(long measuredPosition, long actualPosition);
-    void startMove(long position, int speed);
+    void startMove(long position, int speed, long acceleration = 0);
+    bool moveAllowed();
+    void haltMotor();
+
+    // Set while PatternRunner drives the motor. Anything else that moves or stops it clears this.
+    volatile bool programActive;
+    volatile long programTarget;
+    void stopProgram() { programActive = false; }
 
     // The chopper mode is chosen per move, never during one: handing over mid-move bumps
     // audibly, and speeds near a handover grind. Applied from ClosedLoopTask, the only
@@ -88,9 +95,9 @@ private:
 
     // Safety limits for motor configuration (based on TMC2209 capabilities)
     static constexpr long MIN_ACCELERATION = 100;    // steps/sec²
-    static constexpr long MAX_ACCELERATION = 200000; // steps/sec² (240,000 ran clean on the unloaded rig)
 
 public:
+    static constexpr long MAX_ACCELERATION = 200000; // steps/sec² (240,000 ran clean on the unloaded rig)
     static constexpr long MIN_SPEED = 100;           // steps/sec
     static constexpr long MAX_SPEED = 50000;         // steps/sec (48,000 ran clean on the rig, 64,000 stalled)
 
@@ -119,9 +126,18 @@ public:
 
     // Stop methods: We have TWO distinct stop variants (no generic "stop" to avoid confusion)
     void jogStop(); // Gentle stop without emergency flag (for ending jog operations)
+    void stopAtSwitch(bool minSwitch); // Like jogStop(), but a pattern carries on if the switch ends its move
     void emergencyStop(); // Full emergency stop with flag (requires manual reset via clearEmergencyStop)
     void emergencyStopWithRecovery(long limitPosition); // Emergency stop with return to limit position
     void clearEmergencyStop();
+
+    // For PatternRunner. beginProgram() returns an error message, or nullptr. Acceleration 0
+    // uses the configured one. startProgramMove() fails once the program has been stopped.
+    const char *beginProgram();
+    bool startProgramMove(long target, int speed, long acceleration);
+    void endProgram();
+    bool isProgramActive() const { return programActive; }
+    bool isCorrectionPending() const { return correctionRequested; }
 
     // Calibration methods
     void startCalibration();

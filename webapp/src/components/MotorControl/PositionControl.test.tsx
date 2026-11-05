@@ -61,6 +61,44 @@ describe('PositionControl - Disabled States', () => {
     expect(screen.getByText('1,234')).toBeInTheDocument()
   })
 
+  it('should start the chosen number of cycles at the jog speed', () => {
+    const onStartCycles = vi.fn()
+    render(<PositionControl {...defaultProps} onStartCycles={onStartCycles} />)
+
+    fireEvent.click(screen.getByLabelText('Fewer cycles'))
+    expect(screen.getByTestId('cycle-count')).toHaveTextContent('1')
+    for (let i = 0; i < 12; i++) fireEvent.click(screen.getByLabelText('More cycles'))
+    expect(screen.getByTestId('cycle-count')).toHaveTextContent('10')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Go' }))
+    expect(onStartCycles).toHaveBeenCalledWith(10, 3000)
+  })
+
+  it('should offer Stop and lock other controls while cycling', () => {
+    const onStopCycles = vi.fn()
+    render(<PositionControl {...defaultProps} cycleCount={5} cycleNumber={2} onStopCycles={onStopCycles} />)
+
+    expect(screen.getByText('Cycle 2 of 5')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '50%' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    expect(onStopCycles).toHaveBeenCalled()
+  })
+
+  it('should move to a configured preset', () => {
+    const onMoveTo = vi.fn()
+    render(<PositionControl {...defaultProps} presets={[0, 10, 45, 100]} onMoveTo={onMoveTo} />)
+
+    expect(screen.queryByRole('button', { name: '50%' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '45%' }))
+    expect(onMoveTo).toHaveBeenCalledWith(-500, 3000)
+  })
+
+  it('should lock position controls while a pattern runs', () => {
+    render(<PositionControl {...defaultProps} patternRunning={true} />)
+    expect(screen.getByRole('button', { name: '50%' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Go' })).toBeDisabled()
+  })
+
   it('should disable controls until calibrated', () => {
     render(<PositionControl {...defaultProps} needsCalibration={true} />)
 
