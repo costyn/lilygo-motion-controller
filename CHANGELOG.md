@@ -2,6 +2,13 @@ Release ${nextRelease.version} for LilyGo Motion Controller
 
 ### Features
 
+* cycle between min and max a set number of times ([317394d](https://github.com/costyn/lilygo-motion-controller/commit/317394df8106475d1d3f7f7b733cf0f4cf76277a))
+* movement patterns and configurable presets ([5bd7cbd](https://github.com/costyn/lilygo-motion-controller/commit/5bd7cbd6a37eebaa6279f086b13e7bf5e3a8b9a5))
+
+Release ${nextRelease.version} for LilyGo Motion Controller
+
+### Features
+
 * share the speed and target position between browsers ([5228da6](https://github.com/costyn/lilygo-motion-controller/commit/5228da65284d22df33df52e13389bfe7ec5858d4))
 * support motors with no encoder and set the motor current ([215b9f1](https://github.com/costyn/lilygo-motion-controller/commit/215b9f1bc8a6c2fdd513d8b1d6cced4fed291f09))
 
