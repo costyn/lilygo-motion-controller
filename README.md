@@ -168,6 +168,9 @@ src/
 // Share the speed slider with other browsers. Moves nothing
 {"command": "setSpeed", "speed": 1800}
 
+// Cycle min -> max -> min, 1-10 times. Any move, jog or stop ends it
+{"command": "cycle", "count": 5, "speed": 1800}
+
 // Stop motor gently (without emergency flag)
 {"command": "stop"}
 

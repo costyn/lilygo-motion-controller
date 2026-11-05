@@ -180,6 +180,10 @@ export function useMotorController() {
     return sendCommand({ command: 'setSpeed', speed })
   }, [sendCommand])
 
+  const startCycles = useCallback((count: number, speed: number) => {
+    return sendCommand({ command: 'cycle', count, speed })
+  }, [sendCommand])
+
   const emergencyStop = useCallback(() => {
     return sendCommand({ command: 'emergencyStop' })
   }, [sendCommand])
@@ -266,6 +270,7 @@ export function useMotorController() {
     setMinHere,
     setMaxHere,
     setSpeed,
+    startCycles,
     manualReconnect,
 
     // Raw WebSocket access for advanced use

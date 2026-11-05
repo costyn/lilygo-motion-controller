@@ -36,6 +36,7 @@ function AppContent() {
     setMinHere,
     setMaxHere,
     setSpeed,
+    startCycles,
     manualReconnect
   } = useMotorController()
 
@@ -249,6 +250,10 @@ function AppContent() {
             onJogSpeedChange={setJogSpeed}
             onJogSpeedCommit={setSpeed}
             sharedTarget={motorStatus.targetPosition}
+            cycleCount={motorStatus.cycleCount ?? 0}
+            cycleNumber={motorStatus.cycleNumber ?? 0}
+            onStartCycles={startCycles}
+            onStopCycles={jogStop}
             onMoveTo={moveTo}
           />
         </div>

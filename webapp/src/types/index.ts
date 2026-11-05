@@ -22,6 +22,8 @@ export interface MotorStatus {
   driverFaults?: number; // TMC2209 overtemperature and short flags since boot
   speed?: number; // Speed slider, shared between browsers
   targetPosition?: number; // Last commanded position, shared between browsers
+  cycleCount?: number; // Min-max cycles asked for, 0 when not cycling
+  cycleNumber?: number; // Cycle in progress, from 1
 }
 
 export interface PositionUpdate {
@@ -117,6 +119,12 @@ export interface SetSpeedCommand {
   speed: number;
 }
 
+export interface CycleCommand {
+  command: 'cycle';
+  count: number;
+  speed: number;
+}
+
 export type ControlCommand =
   | MoveCommand
   | EmergencyStopCommand
@@ -128,7 +136,8 @@ export type ControlCommand =
   | JogStopCommand
   | CalibrateCommand
   | SetLimitHereCommand
-  | SetSpeedCommand;
+  | SetSpeedCommand
+  | CycleCommand;
 
 // Connection state
 export interface ConnectionState {

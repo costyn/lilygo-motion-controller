@@ -67,6 +67,18 @@ private:
 
     void referencePosition(long measuredPosition, long actualPosition);
     void startMove(long position, int speed);
+    bool moveAllowed();
+    void haltMotor();
+
+    // Min-max cycling runs from update(), so it carries on with no browser connected
+    enum CycleLeg : uint8_t { CYCLE_TO_START, CYCLE_TO_MAX, CYCLE_TO_MIN };
+    volatile uint8_t cycleCount;  // Cycles asked for, 0 when not cycling
+    volatile uint8_t cycleNumber; // Cycle in progress, from 1
+    volatile CycleLeg cycleLeg;
+    volatile int cycleSpeed;
+    volatile unsigned long cycleStoppedAt;
+    static constexpr unsigned long CYCLE_PAUSE_MS = 500; // Gives ClosedLoopTask time to check each leg
+    void advanceCycle();
 
     // The chopper mode is chosen per move, never during one: handing over mid-move bumps
     // audibly, and speeds near a handover grind. Applied from ClosedLoopTask, the only
@@ -119,9 +131,18 @@ public:
 
     // Stop methods: We have TWO distinct stop variants (no generic "stop" to avoid confusion)
     void jogStop(); // Gentle stop without emergency flag (for ending jog operations)
+    void stopAtSwitch(bool minSwitch); // Like jogStop(), but a cycle carries on if the switch ends its leg
     void emergencyStop(); // Full emergency stop with flag (requires manual reset via clearEmergencyStop)
     void emergencyStopWithRecovery(long limitPosition); // Emergency stop with return to limit position
     void clearEmergencyStop();
+
+    // Runs min -> max -> min the given number of times. Returns an error message, or nullptr.
+    static constexpr int MAX_CYCLES = 10;
+    const char *startCycles(int count, int speed);
+    void stopCycles() { cycleCount = 0; }
+    bool isCycling() const { return cycleCount > 0; }
+    uint8_t getCycleCount() const { return cycleCount; }
+    uint8_t getCycleNumber() const { return cycleNumber; }
 
     // Calibration methods
     void startCalibration();

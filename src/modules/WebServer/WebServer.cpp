@@ -73,6 +73,7 @@ WebServerClass::WebServerClass() : server(80), ws("/ws"), debugWs("/debug"), ini
     lastStatusBroadcast = 0;
     wasMovingLastUpdate = false;
     lastIdlePosition = 0;
+    lastCycleState = 0;
     sharedSpeed = 0;
     sharedTarget = 0;
     hasSharedTarget = false;
@@ -243,6 +244,21 @@ void WebServerClass::handleSetSpeedCommand(JsonDocument& doc)
         sharedSpeed = constrain(doc["speed"].as<long>(), MotorController::MIN_SPEED, MotorController::MAX_SPEED);
         broadcastStatus();
     }
+}
+
+void WebServerClass::handleCycleCommand(JsonDocument& doc)
+{
+    bool hasSpeed = doc["speed"].is<int>() || doc["speed"].is<float>() || doc["speed"].is<double>();
+    if (!doc["count"].is<int>() || !hasSpeed)
+    {
+        reportCommandResult("Invalid cycle parameters");
+        return;
+    }
+
+    reportCommandResult(motorController.startCycles(doc["count"].as<int>(), doc["speed"].as<int>()));
+    broadcastStatus();
+    lastPositionBroadcast = millis();
+    lastStatusBroadcast = millis();
 }
 
 void WebServerClass::handleMoveCommand(JsonDocument& doc)
@@ -521,6 +537,10 @@ void WebServerClass::handleWebSocketMessage(void *arg, uint8_t *data, size_t len
         {
             handleJogStartCommand(doc);
         }
+        else if (command == "cycle")
+        {
+            handleCycleCommand(doc);
+        }
         else if (command == "setSpeed")
         {
             handleSetSpeedCommand(doc);
@@ -612,6 +632,8 @@ void WebServerClass::broadcastStatus()
     doc["stallCount"] = closedLoopController.getStallCount();
     doc["lastStallSpeed"] = closedLoopController.getLastStallSpeed();
     doc["driverFaults"] = closedLoopController.getDriverFaults();
+    doc["cycleCount"] = motorController.getCycleCount();
+    doc["cycleNumber"] = motorController.getCycleNumber();
     if (sharedSpeed > 0)
         doc["speed"] = sharedSpeed;
     if (hasSharedTarget)
@@ -721,6 +743,14 @@ void WebServerClass::update()
     // Only broadcast if actually moving (not stopped by emergency stop)
     bool isCurrentlyMoving = motorController.isMoving() && !motorController.isEmergencyStopActive();
     unsigned long currentMillis = millis();
+
+    // A new cycle, or the end of cycling, starts while stopped between legs
+    uint16_t cycleState = (motorController.getCycleCount() << 8) | motorController.getCycleNumber();
+    if (cycleState != lastCycleState)
+    {
+        lastCycleState = cycleState;
+        broadcastStatus();
+    }
 
     if (isCurrentlyMoving)
     {

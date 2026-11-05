@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatPosition, QUIET_MAX_SPEED } from '@/lib/utils'
 import type { MotorConfig } from '@/types'
 
+const MAX_CYCLES = 10
+
 interface PositionControlProps {
   isConnected: boolean
   isMoving: boolean
@@ -17,6 +19,10 @@ interface PositionControlProps {
   onJogSpeedChange: (speed: number) => void
   onJogSpeedCommit?: (speed: number) => void
   sharedTarget?: number
+  cycleCount?: number
+  cycleNumber?: number
+  onStartCycles?: (count: number, speed: number) => void
+  onStopCycles?: () => void
   onMoveTo: (position: number, speed: number) => void
 }
 
@@ -31,9 +37,15 @@ export function PositionControl({
   onJogSpeedChange,
   onJogSpeedCommit,
   sharedTarget,
+  cycleCount = 0,
+  cycleNumber = 0,
+  onStartCycles,
+  onStopCycles,
   onMoveTo
 }: PositionControlProps) {
   const [targetPosition, setTargetPosition] = useState([motorConfig.minLimit])
+  const [cycles, setCycles] = useState(1)
+  const isCycling = cycleCount > 0
 
   // Follow moves started from other browsers
   useEffect(() => {
@@ -72,7 +84,7 @@ export function PositionControl({
     onMoveTo(position, jogSpeed)
   }
 
-  const controlsDisabled = !isConnected || emergencyStop || isMoving || needsCalibration
+  const controlsDisabled = !isConnected || emergencyStop || isMoving || needsCalibration || isCycling
 
 
   return (
@@ -179,6 +191,46 @@ export function PositionControl({
               </Button>
             ))}
           </div>
+        </div>
+
+        {/* Min-max cycling, run by the controller so it carries on if this page closes */}
+        <div className="border-t pt-4">
+          <div className="text-sm font-medium mb-2">Cycle Min to Max:</div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Fewer cycles"
+              onClick={() => setCycles(Math.max(1, cycles - 1))}
+              disabled={controlsDisabled || cycles <= 1}
+            >
+              −
+            </Button>
+            <span className="w-8 text-center font-mono text-lg" data-testid="cycle-count">
+              {cycles}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="More cycles"
+              onClick={() => setCycles(Math.min(MAX_CYCLES, cycles + 1))}
+              disabled={controlsDisabled || cycles >= MAX_CYCLES}
+            >
+              +
+            </Button>
+            {isCycling ? (
+              <Button variant="destructive" className="flex-1" onClick={onStopCycles} disabled={!isConnected}>
+                Stop
+              </Button>
+            ) : (
+              <Button className="flex-1" onClick={() => onStartCycles?.(cycles, jogSpeed)} disabled={controlsDisabled}>
+                Go
+              </Button>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {isCycling ? `Cycle ${cycleNumber} of ${cycleCount}` : 'Min to max and back, at the speed above'}
+          </p>
         </div>
       </CardContent>
     </Card>

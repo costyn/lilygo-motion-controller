@@ -81,7 +81,7 @@ void LimitSwitch::update()
             triggered = true;
 
             // Stop motor immediately (safe in task context)
-            motorController.jogStop();
+            motorController.stopAtSwitch(this == &minLimitSwitch);
 
             long position = pressCaptured ? pressPosition : motorController.getCurrentPosition();
             storedPosition = position;
