@@ -22,8 +22,9 @@ export interface MotorStatus {
   driverFaults?: number; // TMC2209 overtemperature and short flags since boot
   speed?: number; // Speed slider, shared between browsers
   targetPosition?: number; // Last commanded position, shared between browsers
-  cycleCount?: number; // Min-max cycles asked for, 0 when not cycling
-  cycleNumber?: number; // Cycle in progress, from 1
+  pattern?: string; // Name of the running pattern, empty when none
+  patternRound?: number; // Round in progress, from 1
+  patternRepeat?: number; // Rounds asked for, 0 for until stopped
 }
 
 export interface PositionUpdate {
@@ -44,6 +45,31 @@ export interface MotorConfig {
   encoderFitted: boolean;
 }
 
+// One move of a pattern. Give either seconds or speed.
+export interface PatternSegment {
+  to: number; // % of travel, 0 is Min and 100 is Max
+  seconds?: number; // Duration of the move
+  speed?: number; // % of Max Speed, when seconds isn't given
+  ramp?: number; // 0.05-0.5: share of the distance spent speeding up, and again slowing down
+  hold?: number; // Seconds to wait at the target
+}
+
+export interface Pattern {
+  name: string;
+  repeat: number; // 0 for until stopped
+  segments: PatternSegment[];
+}
+
+export interface Program {
+  presets: number[]; // Quick positions, % of travel
+  patterns: Pattern[];
+}
+
+export interface ProgramMessage {
+  type: 'program';
+  program: Program;
+}
+
 export interface ConfigUpdatedResponse {
   type: 'configUpdated';
   status: 'success' | 'error';
@@ -60,7 +86,8 @@ export type WebSocketMessage =
   | PositionUpdate
   | MotorConfig
   | ConfigUpdatedResponse
-  | ErrorResponse;
+  | ErrorResponse
+  | ProgramMessage;
 
 // Command types to send to controller
 export interface MoveCommand {
@@ -125,6 +152,21 @@ export interface CycleCommand {
   speed: number;
 }
 
+export interface RunPatternCommand {
+  command: 'runPattern';
+  index: number;
+}
+
+export interface GetProgramCommand {
+  command: 'getProgram';
+}
+
+// A null program restores the built-in defaults
+export interface SetProgramCommand {
+  command: 'setProgram';
+  program: Program | null;
+}
+
 export type ControlCommand =
   | MoveCommand
   | EmergencyStopCommand
@@ -137,7 +179,10 @@ export type ControlCommand =
   | CalibrateCommand
   | SetLimitHereCommand
   | SetSpeedCommand
-  | CycleCommand;
+  | CycleCommand
+  | RunPatternCommand
+  | GetProgramCommand
+  | SetProgramCommand;
 
 // Connection state
 export interface ConnectionState {

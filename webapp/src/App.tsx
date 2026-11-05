@@ -6,6 +6,8 @@ import { JogControls } from './components/MotorControl/JogControls'
 import { PositionControl } from './components/MotorControl/PositionControl'
 import DebugConsole from './components/DebugConsole/DebugConsole'
 import { MotorConfigDialog } from './components/MotorConfig/MotorConfigDialog'
+import { PatternControl } from './components/Patterns/PatternControl'
+import { PatternEditorDialog } from './components/Patterns/PatternEditorDialog'
 import { useMotorController } from './hooks/useMotorController'
 import { Button } from './components/ui/button'
 import { Alert, AlertTitle, AlertDescription } from './components/ui/alert'
@@ -17,6 +19,7 @@ declare const __BUILD_TIME__: string
 
 function AppContent() {
   const [configDialogOpen, setConfigDialogOpen] = useState(false)
+  const [patternEditorOpen, setPatternEditorOpen] = useState(false)
   const [showLimitWarning, setShowLimitWarning] = useState(false)
   const [dismissedStalls, setDismissedStalls] = useState(0)
   const [dismissedFaults, setDismissedFaults] = useState(0)
@@ -37,10 +40,15 @@ function AppContent() {
     setMaxHere,
     setSpeed,
     startCycles,
+    runPattern,
+    saveProgram,
+    program,
+    commandError,
     manualReconnect
   } = useMotorController()
 
   const needsCalibration = isConnected && motorStatus.isCalibrated === false
+  const runningPattern = motorStatus.pattern ?? ''
   const stallCount = motorStatus.stallCount ?? 0
   const driverFaults = motorStatus.driverFaults ?? 0
 
@@ -250,11 +258,27 @@ function AppContent() {
             onJogSpeedChange={setJogSpeed}
             onJogSpeedCommit={setSpeed}
             sharedTarget={motorStatus.targetPosition}
-            cycleCount={motorStatus.cycleCount ?? 0}
-            cycleNumber={motorStatus.cycleNumber ?? 0}
+            presets={program.presets}
+            patternRunning={runningPattern !== ''}
+            cycleCount={runningPattern === 'Cycle' ? motorStatus.patternRepeat ?? 0 : 0}
+            cycleNumber={motorStatus.patternRound ?? 0}
             onStartCycles={startCycles}
             onStopCycles={jogStop}
             onMoveTo={moveTo}
+          />
+
+          <PatternControl
+            isConnected={isConnected}
+            isMoving={motorStatus.isMoving}
+            emergencyStop={motorStatus.emergencyStop}
+            needsCalibration={needsCalibration}
+            patterns={program.patterns}
+            runningPattern={runningPattern}
+            round={motorStatus.patternRound ?? 0}
+            repeat={motorStatus.patternRepeat ?? 0}
+            onRun={runPattern}
+            onStop={jogStop}
+            onEdit={() => setPatternEditorOpen(true)}
           />
         </div>
         <DebugConsole />
@@ -272,6 +296,15 @@ function AppContent() {
           </p>
         </div>
       </footer>
+
+      <PatternEditorDialog
+        open={patternEditorOpen}
+        onOpenChange={setPatternEditorOpen}
+        program={program}
+        commandError={commandError}
+        isConnected={isConnected}
+        onSave={saveProgram}
+      />
 
       {/* Motor Config Dialog */}
       <MotorConfigDialog

@@ -67,6 +67,18 @@ void Configuration::saveLimitPositions(long pos1, long pos2) {
     LOG_INFO("Limit positions saved: %ld, %ld", pos1, pos2);
 }
 
+String Configuration::getProgramJson() {
+    return preferences.getString("program", "");
+}
+
+void Configuration::saveProgramJson(const String &json) {
+    if (json.length() == 0)
+        preferences.remove("program");
+    else
+        preferences.putString("program", json);
+    LOG_INFO("Patterns saved (%u bytes)", json.length());
+}
+
 void Configuration::setAcceleration(long accel) {
     motorConfig.acceleration = accel;
     preferences.putLong("acceleration", accel);

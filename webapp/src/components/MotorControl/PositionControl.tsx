@@ -19,6 +19,8 @@ interface PositionControlProps {
   onJogSpeedChange: (speed: number) => void
   onJogSpeedCommit?: (speed: number) => void
   sharedTarget?: number
+  presets?: number[] // Quick positions, % of travel
+  patternRunning?: boolean // Any pattern, including cycling
   cycleCount?: number
   cycleNumber?: number
   onStartCycles?: (count: number, speed: number) => void
@@ -37,6 +39,8 @@ export function PositionControl({
   onJogSpeedChange,
   onJogSpeedCommit,
   sharedTarget,
+  presets = [0, 25, 50, 75, 100],
+  patternRunning = false,
   cycleCount = 0,
   cycleNumber = 0,
   onStartCycles,
@@ -84,7 +88,7 @@ export function PositionControl({
     onMoveTo(position, jogSpeed)
   }
 
-  const controlsDisabled = !isConnected || emergencyStop || isMoving || needsCalibration || isCycling
+  const controlsDisabled = !isConnected || emergencyStop || isMoving || needsCalibration || isCycling || patternRunning
 
 
   return (
@@ -177,10 +181,10 @@ export function PositionControl({
         {/* Quick Position Buttons */}
         <div className="border-t pt-4">
           <div className="text-sm font-medium mb-2">Quick Positions:</div>
-          <div className="grid grid-cols-5 gap-1">
-            {[0, 25, 50, 75, 100].map((percentage) => (
+          <div className={`grid gap-1 ${presets.length > 5 ? 'grid-cols-4' : 'grid-cols-5'}`}>
+            {presets.map((percentage, index) => (
               <Button
-                key={percentage}
+                key={index}
                 variant="outline"
                 size="sm"
                 onClick={() => handleQuickPosition(percentage)}

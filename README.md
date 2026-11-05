@@ -198,6 +198,37 @@ src/
 
 **Backward Compatibility:** Legacy `"cmd": "goto"` format still supported for older clients.
 
+### Patterns
+
+Presets and patterns are one JSON program, saved on the controller and edited in the webapp under **Patterns > Edit**. Patterns run on the controller, so they carry on with the page closed. Any move, jog or stop ends one.
+
+```json
+{
+  "presets": [0, 10, 25, 45, 75, 85, 90, 100],
+  "patterns": [
+    {"name": "Breath", "repeat": 0, "segments": [
+      {"to": 100, "speed": 20, "ramp": 0.2, "hold": 2},
+      {"to": 35, "seconds": 8, "ramp": 0.2, "hold": 4}
+    ]}
+  ]
+}
+```
+
+- **presets**: quick positions, in % of travel. Up to 12.
+- **repeat**: rounds to run, or 0 for until stopped. Up to 8 patterns, with up to 8 segments each.
+- **to**: target, in % of travel. 0 is Min and 100 is Max.
+- **seconds** or **speed**: how long the move takes, or its top speed as a % of Max Speed. Speed is capped at Max Speed, so a move asked to go faster takes longer.
+- **ramp**: share of the distance spent speeding up, and again slowing down, from 0.05 to 0.5. 0.5 peaks at the halfway point. Default 0.25.
+- **hold**: seconds to wait at the target. There is always at least half a second, so the encoder can check the move.
+
+A pattern starts by moving to where its last segment ends, so every round is complete.
+
+```json
+{"command": "runPattern", "index": 0}       // Patterns in the order they are listed
+{"command": "getProgram"}                   // Answered with {"type": "program", "program": {...}}
+{"command": "setProgram", "program": {...}} // null restores the defaults
+```
+
 ### REST API (Read-Only)
 
 **For monitoring and debugging only. Use WebSocket for all control operations.**

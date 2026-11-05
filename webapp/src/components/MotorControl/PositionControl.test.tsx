@@ -84,6 +84,21 @@ describe('PositionControl - Disabled States', () => {
     expect(onStopCycles).toHaveBeenCalled()
   })
 
+  it('should move to a configured preset', () => {
+    const onMoveTo = vi.fn()
+    render(<PositionControl {...defaultProps} presets={[0, 10, 45, 100]} onMoveTo={onMoveTo} />)
+
+    expect(screen.queryByRole('button', { name: '50%' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '45%' }))
+    expect(onMoveTo).toHaveBeenCalledWith(-500, 3000)
+  })
+
+  it('should lock position controls while a pattern runs', () => {
+    render(<PositionControl {...defaultProps} patternRunning={true} />)
+    expect(screen.getByRole('button', { name: '50%' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Go' })).toBeDisabled()
+  })
+
   it('should disable controls until calibrated', () => {
     render(<PositionControl {...defaultProps} needsCalibration={true} />)
 
